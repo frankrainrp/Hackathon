@@ -1,0 +1,3 @@
+playwright>=1.48,<2
+cryptography>=43,<48
+pypdf>=6,<7

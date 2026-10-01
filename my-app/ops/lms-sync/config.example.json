@@ -1,0 +1,13 @@
+{
+  "school": "Republic Polytechnic",
+  "base_url": "https://rplms.polite.edu.sg",
+  "timezone": "Asia/Singapore",
+  "interval_minutes": 60,
+  "output_dir": "courses",
+  "private_dir": ".private",
+  "browser_channel": "msedge",
+  "max_file_mb": 150,
+  "courses": [],
+  "butler_url": "http://127.0.0.1:3000",
+  "enable_ai_brief": true
+}
