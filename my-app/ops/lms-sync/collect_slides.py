@@ -4,27 +4,26 @@ Reads:  <output_dir>/<School>/<Module>/<Lesson NN>/*.pptx   (made by `lms_sync.p
 Writes: <output_dir>/<School>/Slides/<Module>/Lesson NN - <file>.pptx
 
 Also pulls .ppt/.pptx out of ZIP bundles (some lecturers upload slides zipped).
+ZIP slides keep their archive name and internal folders to avoid name collisions.
 Safe to re-run: only copies files that are new or changed. Never deletes anything.
 
 Usage:  .\\.venv\\Scripts\\python.exe collect_slides.py
 """
 import json
+import os
 import shutil
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from core import component as safe
 
 HERE = Path(__file__).resolve().parent
 SLIDE_EXT = {".ppt", ".pptx"}
 
 
-def load_output_dir() -> Path:
+def load_output_dir() -> tuple[Path, str]:
     cfg_path = HERE / "config.local.json"
     cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
     return (HERE / cfg.get("output_dir", "courses")).resolve(), cfg.get("school", "")
-
-
-def safe(name: str) -> str:
-    return "".join("_" if c in '<>:"/\\|?*' else c for c in name).strip(" .") or "file"
 
 
 def is_newer(src_mtime: float, src_size: int, dest: Path) -> bool:
@@ -58,15 +57,17 @@ def main():
                         try:
                             with zipfile.ZipFile(f) as z:
                                 for info in z.infolist():
-                                    inner = Path(info.filename)
-                                    if info.is_dir() or inner.suffix.lower() not in SLIDE_EXT or inner.name.startswith("~$") or "__MACOSX" in inner.parts:
+                                    inner = PurePosixPath(info.filename.replace("\\", "/"))
+                                    if info.is_dir() or inner.is_absolute() or ".." in inner.parts or inner.suffix.lower() not in SLIDE_EXT or inner.name.startswith("~$") or "__MACOSX" in inner.parts:
                                         continue
-                                    # Only the file name is used, never the zip's folder path (prevents writing outside Slides/).
-                                    dest = slides_root / module_dir.name / f"{lesson_dir.name} - {safe(inner.name)}"
-                                    if is_newer(f.stat().st_mtime, info.file_size, dest):
+                                    # Validate the relative path and sanitize every segment before joining.
+                                    dest = slides_root / module_dir.name / f"{lesson_dir.name} - {f.name}" / Path(*(safe(part) for part in inner.parts))
+                                    stamp = f.stat().st_mtime
+                                    if is_newer(stamp, info.file_size, dest):
                                         dest.parent.mkdir(parents=True, exist_ok=True)
                                         with z.open(info) as src, open(dest, "wb") as out:
                                             shutil.copyfileobj(src, out)
+                                        os.utime(dest, (stamp, stamp))
                                         copied += 1
                                     else:
                                         skipped += 1

@@ -11,7 +11,7 @@ export function isLocalLmsRequest(request: Request) {
   try {
     if (origin) {
       const o = new URL(origin);
-      if (!LOCAL.includes(o.hostname) || o.port !== url.port) return false;
+      if (!LOCAL.includes(o.hostname) || o.protocol !== url.protocol || o.port !== url.port) return false;
     }
   } catch { return false; }
   return request.headers.get("sec-fetch-site") !== "cross-site";
