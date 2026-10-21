@@ -4,6 +4,14 @@ A local learning assistant built on [Bulter](https://github.com/frankrainrp/Bult
 
 [中文说明](README.zh-CN.md)
 
+## Interface language and optional AI
+
+The interface defaults to English. Select **中文** on the first AI setup screen or in **Preferences → Language**; existing course titles, notes and conversation history keep their original text. Example courses are opt-in and clearly labelled. New panels start empty.
+
+First launch offers **Local on this computer**, **DeepSeek API**, or **Skip for now**. The Windows CPU engine is pinned in this repository; model weights are separate and download only after an explicit choice. An existing loopback OpenAI-compatible service is also supported. DeepSeek keys are entered through the masked setup field and protected with Windows DPAPI. Provider charges and the local billing demonstration are separate.
+
+Read [AI setup and storage](my-app/docs/local-ai.md), [Windows package startup](distribution/GETTING-STARTED.md), [language verification](LOCALIZATION.md), and the [file-by-file change record](docs/CHANGE-FILES-2026-10-21.md).
+
 ## Configure your school first
 
 Open **Courses → School, semester and daily checks**. Enter your school name and HTTPS LMS entry, preview the normalized domain, and confirm the current semester and course selection. TP/RP buttons are examples, never an inferred user identity. Only selected active courses are downloaded; switching semesters retains historical records.
@@ -48,6 +56,8 @@ flowchart LR
 ```
 
 School assignment deadlines come from Brightspace. Missing dates stay unknown; AI does not invent school deadlines. Scans still need OCR, Quiz/forum/LTI submissions are not covered, and DeepTutor is not integrated. Source and artwork remain attributed to Bulter and existing third-party notices.
-# Local AI onboarding build
+## Build the current Windows package
 
-This independent Hackathon course-sync build adds optional Local/DeepSeek setup and a pinned Windows CPU inference sidecar. See [the implementation and data-flow guide](my-app/docs/local-ai.md) and [the distribution quick start](distribution/GETTING-STARTED.md). Private records and model weights are not included. The original source workspace remains separate.
+From `my-app`, run `pnpm --filter @smart-hub/web build`. Then, from the repository root, run `node tools/package-windows.cjs <new-absolute-output-folder>`. The packager uses the locally present pinned engine and Node runtime and refuses to overwrite an existing installation. It includes no model weights, private database, key or school session. See the distribution quick start for system prerequisites.
+
+Source updates on `main` do not replace previously uploaded release assets. A binary release must be published separately; the old Releases download is not claimed to be the new build.

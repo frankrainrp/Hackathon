@@ -2,6 +2,12 @@
 
 [English](README.md) · 基于 [frankrainrp/Bulter](https://github.com/frankrainrp/Bulter) 原有框架。
 
+界面默认英文，可在首次 AI 设置页或 **Preferences → Language** 选择中文；个人课程、笔记和历史对话保持原文。示例课程需主动打开，新面板为空数据。
+
+首次启动可选择本机 AI、DeepSeek 或暂时跳过。仓库包含已固定版本的 Windows CPU 引擎，不包含模型权重；大模型下载需明确选择。DeepSeek 密钥通过设置页输入并使用 Windows DPAPI 保护，服务商费用与应用里的本地账单演示分别处理。
+
+查看 [AI 设置与数据流程](my-app/docs/local-ai.md)、[Windows 运行包启动说明](distribution/GETTING-STARTED.md)、[语言检查](LOCALIZATION.md)与[逐文件变更说明](docs/CHANGE-FILES-2026-10-21.md)。
+
 先到「课程 → 学校、学期与每日检查设置」填写学校名称、HTTPS LMS 入口，并预览确认最终域名、当前学期和课程。自由描述不会自动推断学校；TP／RP 按钮只是示例，不代表你的实际学校。
 
 - 当前连接支持 TP／RP 的明确 Brightspace 域名及受限 Microsoft 登录域名。其他自定义学校可以保存档案、入口和学期历史；安全连接策略接入前，登录、同步和计划启用会被拒绝。不能把一次 DNS 预检当作任意网址的安全保证。
@@ -36,3 +42,10 @@ pnpm --filter @smart-hub/web dev --hostname 127.0.0.1
 GitHub Actions 在 Ubuntu 运行 Node 测试、类型检查和生产构建，在 Windows 运行 Python／DPAPI 测试。合成 HTTP 集成测试使用独立临时数据，不需要学校登录。真实 SSO／MFA、选课正确性和任务计划启用仍需另行批准并实测。
 
 原框架和美术资源来自 Bulter，保留已有第三方许可声明；本次没有新增整体项目的许可证授权声明。
+
+
+## 构建当前运行包
+
+在 `my-app` 中运行 `pnpm --filter @smart-hub/web build`，然后在仓库根目录运行 `node tools/package-windows.cjs <新的绝对输出目录>`。打包工具使用本机已有的 Node 和仓库内的固定引擎，不会覆盖已有安装，也不包含私人资料或模型权重。系统运行库要求和使用方法见运行包启动说明。
+
+推送 `main` 只更新源码，不会自动替换 GitHub Releases 中以前上传的 ZIP；二进制发布是另一项操作。

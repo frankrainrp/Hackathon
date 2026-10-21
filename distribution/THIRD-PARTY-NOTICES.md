@@ -23,4 +23,4 @@ Official references reviewed on 21 October 2026:
 - [Pinned HTTP/TLS build configuration](https://github.com/ggml-org/llama.cpp/blob/b11669/vendor/cpp-httplib/CMakeLists.txt), [BoringSSL license](https://github.com/google/boringssl/blob/0.20260929.0/LICENSE).
 - [Microsoft runtime download and prerequisites](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist), [Microsoft redistribution terms](https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files).
 
-Only a local package was generated. No release publication, upload, deployment, push or global system installation was performed.
+Packaging creates a local archive only. It does not publish a release, push repository commits, install system runtimes or download model weights. Repository source updates and binary release publication are separate actions.
