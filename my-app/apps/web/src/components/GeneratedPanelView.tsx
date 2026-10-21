@@ -1,4 +1,7 @@
 "use client";
+import { uiText, localizeExternal } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/GeneratedPanelView.tsx — 声明式「面板应用」渲染器（P1）
@@ -43,6 +46,7 @@ interface Props {
 type SourceState = { loading: boolean; result?: SourceResult };
 
 export default function GeneratedPanelView({ spec, onChange }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const [states, setStates] = useState<Record<string, SourceState>>({});
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -182,7 +186,7 @@ export default function GeneratedPanelView({ spec, onChange }: Props) {
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <span style={{ fontSize: 16 }}>{spec.emoji ?? "🧩"}</span>
             <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "var(--color-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {spec.title}
+              {spec.title || uiText("panels.emptyTitle")}
             </h2>
           </div>
           {spec.description && (
@@ -193,7 +197,7 @@ export default function GeneratedPanelView({ spec, onChange }: Props) {
         </div>
         <button
           onClick={() => { setComposerOpen((v) => !v); setGenError(null); }}
-          title="AI 生成面板"
+          title={uiText("ui.generatedpanelview.8c0de57445")}
           style={{
             display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0,
             height: 32, padding: "0 12px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit",
@@ -203,12 +207,11 @@ export default function GeneratedPanelView({ spec, onChange }: Props) {
             color: "#fff",
           }}
         >
-          <Sparkles size={13} /> AI 生成
-        </button>
+          <Sparkles size={13} />{uiText("ui.generatedpanelview.7714c1cdc1")}</button>
         <button
           onClick={() => setBuilderOpen(true)}
-          title="添加数据源（按需动态配置）"
-          aria-label="添加数据源"
+          title={uiText("ui.generatedpanelview.f2a0958d61")}
+          aria-label={uiText("ui.generatedpanelview.09ecf5b638")}
           style={iconBtn}
         >
           <Plug size={14} />
@@ -218,31 +221,31 @@ export default function GeneratedPanelView({ spec, onChange }: Props) {
           <select
             value={currentRefresh}
             onChange={(e) => setRefreshAll(Number(e.target.value))}
-            title="自动刷新间隔"
-            aria-label="自动刷新间隔"
+            title={uiText("ui.generatedpanelview.fd3177ca8e")}
+            aria-label={uiText("ui.generatedpanelview.fd3177ca8e")}
             style={{
               height: 32, borderRadius: 8, flexShrink: 0, cursor: "pointer",
               border: "1px solid var(--color-border)", background: "var(--color-bg)",
               color: "var(--color-text-muted)", fontSize: 12, fontFamily: "inherit", padding: "0 6px",
             }}
           >
-            <option value={0}>不刷新</option>
-            <option value={30000}>30 秒</option>
-            <option value={60000}>1 分钟</option>
-            <option value={300000}>5 分钟</option>
+            <option value={0}>{uiText("ui.generatedpanelview.b2fa5be9be")}</option>
+            <option value={30000}>{uiText("ui.generatedpanelview.feeed561bd")}</option>
+            <option value={60000}>{uiText("ui.generatedpanelview.49a64a97cd")}</option>
+            <option value={300000}>{uiText("ui.generatedpanelview.9d9a5e5793")}</option>
           </select>
         )}
         <button
           onClick={loadAll}
-          title="刷新数据"
-          aria-label="刷新数据"
+          title={uiText("ui.generatedpanelview.0468ee76ee")}
+          aria-label={uiText("ui.generatedpanelview.0468ee76ee")}
           style={iconBtn}
         >
           <RefreshCw size={14} style={anyLoading ? { animation: "spin 0.8s linear infinite" } : undefined} />
         </button>
         <button
           onClick={editing ? () => setEditing(false) : openEditor}
-          title={editing ? "返回预览" : "编辑 schema"}
+          title={editing ? uiText("ui.generatedpanelview.c568c3012a") : uiText("ui.generatedpanelview.f11f28953e")}
           style={{ ...iconBtn, ...(editing ? { background: "var(--color-primary-soft)", color: "var(--color-primary)" } : null) }}
         >
           {editing ? <Eye size={14} /> : <Code2 size={14} />}
@@ -272,6 +275,7 @@ export default function GeneratedPanelView({ spec, onChange }: Props) {
       ) : (
         <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px", minHeight: 0 }}>
           <div style={{ maxWidth: 860, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>
+            {spec.blocks.length === 0 && <p style={{ gridColumn: "1 / -1", color: "var(--color-text-muted)", lineHeight: 1.6 }}>{uiText("panels.emptyBody")}</p>}
             {spec.blocks.map((block) => (
               <BlockCard key={block.id} block={block} states={states} />
             ))}
@@ -294,6 +298,7 @@ function resolveData(states: Record<string, SourceState>, sourceId?: string): un
 }
 
 function BlockCard({ block, states }: { block: Block; states: Record<string, SourceState> }) {
+  const uiLanguage = useCopyLanguage().lang;
   const fullWidth = (block.span ?? 2) === 2;
   const needsData = block.type !== "markdown" && block.type !== "kpiGrid";
   // 主数据源：块级 sourceId（kpiGrid 用各 metric 自己的 sourceId，不靠块级）
@@ -330,6 +335,7 @@ function BlockCard({ block, states }: { block: Block; states: Record<string, Sou
 }
 
 function BlockBody({ block, data, states }: { block: Block; data: unknown; states: Record<string, SourceState> }) {
+  const uiLanguage = useCopyLanguage().lang;
   const rows = asArray(data);
   switch (block.type) {
     case "markdown":
@@ -438,7 +444,7 @@ function BlockBody({ block, data, states }: { block: Block; data: unknown; state
     }
 
     default:
-      return <ErrorHint msg={`未知块类型：${block.type}`} />;
+      return <ErrorHint msg={uiText("ui.generatedpanelview.2b32c1b105", { value0: block.type })} />;
   }
 }
 
@@ -450,17 +456,17 @@ function inferColumns(rows: Record<string, unknown>[]): TableColumn[] {
 // ============================================================
 // P2 AI 组合器：一句话 → 生成面板
 // ============================================================
-const EXAMPLE_PROMPTS = [
-  "Crypto 市值 Top 10 实时行情",
-  "东南亚 Twitch 主播月收益榜",
-  "USD 对各国汇率仪表盘",
-  "潜力股产业链概览（半导体）",
+const EXAMPLE_PROMPTS = () => [
+  uiText("ui.generatedpanelview.6472013e85"),
+  uiText("ui.generatedpanelview.75307dfe55"),
+  uiText("ui.generatedpanelview.6492000f5f"),
+  uiText("ui.generatedpanelview.4447f80058"),
 ];
-const DEEP_EXAMPLES = [
-  "半导体潜力股产业链分析",
-  "扫地机器人 Top 公司按规格分类",
-  "新能源车电池供应链调研",
-  "东南亚电商平台竞品对比",
+const DEEP_EXAMPLES = () => [
+  uiText("ui.generatedpanelview.3ee97d632c"),
+  uiText("ui.generatedpanelview.9f91616dba"),
+  uiText("ui.generatedpanelview.abdc850630"),
+  uiText("ui.generatedpanelview.e8413c79d8"),
 ];
 
 function PanelComposer({
@@ -476,6 +482,7 @@ function PanelComposer({
   onGenerate: () => void;
   onClose: () => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div
       style={{
@@ -487,8 +494,8 @@ function PanelComposer({
     >
       {/* 模式切换：快速生成 / 深度调研 */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-        <ModePill active={!deepMode} onClick={() => deepMode && onToggleDeep()} icon={<Zap size={12} />} label="快速生成" disabled={generating} />
-        <ModePill active={deepMode} onClick={() => !deepMode && onToggleDeep()} icon={<Users size={12} />} label="深度调研 · 多小队并行" disabled={generating} />
+        <ModePill active={!deepMode} onClick={() => deepMode && onToggleDeep()} icon={<Zap size={12} />} label={uiText("ui.generatedpanelview.893819bb34")} disabled={generating} />
+        <ModePill active={deepMode} onClick={() => !deepMode && onToggleDeep()} icon={<Users size={12} />} label={uiText("ui.generatedpanelview.15d7f2e0cc")} disabled={generating} />
       </div>
 
       <div
@@ -506,8 +513,8 @@ function PanelComposer({
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); onGenerate(); }
           }}
           placeholder={deepMode
-            ? "给个复杂调研目标，例如：半导体潜力股产业链分析 / 扫地机器人 Top 公司按规格分类…（多小队并行调查）"
-            : "描述你想要的面板，例如：做一个长桥持仓 + 当日盈亏的交易台…（⌘/Ctrl+Enter 生成）"}
+            ? uiText("ui.generatedpanelview.e1466fbe96")
+            : uiText("ui.generatedpanelview.2e368bf960")}
           rows={2}
           disabled={generating}
           style={{
@@ -519,8 +526,8 @@ function PanelComposer({
         <button
           onClick={onGenerate}
           disabled={generating || !value.trim()}
-          title="生成（⌘/Ctrl+Enter）"
-          aria-label="生成"
+          title={uiText("ui.generatedpanelview.57015f973e")}
+          aria-label={uiText("ui.generatedpanelview.1ad1463fe1")}
           style={{
             flexShrink: 0, width: 36, height: 36, borderRadius: 9, border: "none",
             background: value.trim() && !generating ? "var(--color-primary)" : "var(--color-border)",
@@ -533,7 +540,7 @@ function PanelComposer({
         </button>
         <button
           onClick={onClose}
-          aria-label="关闭"
+          aria-label={uiText("ui.generatedpanelview.3fd47edce4")}
           style={{ ...iconBtn, width: 30, height: 30, alignSelf: "flex-start" }}
         >
           <X size={13} />
@@ -543,7 +550,7 @@ function PanelComposer({
       {/* 示例 chips（非调研进行时）*/}
       {!research && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-          {(deepMode ? DEEP_EXAMPLES : EXAMPLE_PROMPTS).map((ex) => (
+          {(deepMode ? DEEP_EXAMPLES() : EXAMPLE_PROMPTS()).map((ex) => (
             <button
               key={ex}
               onClick={() => onChange(ex)}
@@ -566,8 +573,7 @@ function PanelComposer({
       {/* 快速生成 loading 提示 */}
       {generating && !deepMode && (
         <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "8px 0 0", display: "flex", alignItems: "center", gap: 6 }}>
-          <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} /> AI 正在搭建面板…（真实公共 API 优先，否则用样本数据保证可用）
-        </p>
+          <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} />{uiText("ui.generatedpanelview.72b4bdbbb8")}</p>
       )}
       {error && (
         <p style={{ fontSize: 12, color: "var(--color-danger)", margin: "8px 0 0", display: "flex", alignItems: "center", gap: 6 }}>
@@ -579,6 +585,7 @@ function PanelComposer({
 }
 
 function ModePill({ active, onClick, icon, label, disabled }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; disabled?: boolean }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <button
       onClick={onClick}
@@ -598,14 +605,15 @@ function ModePill({ active, onClick, icon, label, disabled }: { active: boolean;
 }
 
 const PHASE_LABEL: Record<ResearchProgress["phase"], string> = {
-  planning: "正在拆解调研任务…",
-  investigating: "多小队并行调查中…",
-  assembling: "正在聚合成面板…",
-  done: "完成",
-  error: "出错",
+  get planning() { return uiText("ui.generatedpanelview.fee27f83cf"); },
+  get investigating() { return uiText("ui.generatedpanelview.ea80cf068a"); },
+  get assembling() { return uiText("ui.generatedpanelview.b8c9991a84"); },
+  get done() { return uiText("ui.generatedpanelview.c0b3fbff51"); },
+  get error() { return uiText("ui.generatedpanelview.01ad2bc5d2"); },
 };
 
 function ResearchProgressView({ research }: { research: ResearchProgress }) {
+  const uiLanguage = useCopyLanguage().lang;
   const STATUS_META: Record<string, { color: string; spin?: boolean; icon: React.ReactNode }> = {
     pending: { color: "var(--color-text-faint)", icon: <span style={{ width: 7, height: 7, borderRadius: 999, background: "var(--color-text-faint)" }} /> },
     running: { color: "var(--color-primary)", spin: true, icon: <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} /> },
@@ -664,19 +672,16 @@ function SchemaEditor({
   onApply: () => void;
   onCancel: () => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, padding: "12px 16px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <Code2 size={13} color="var(--color-text-muted)" />
-        <span style={{ fontSize: 12, color: "var(--color-text-muted)", flex: 1 }}>
-          面板 schema（JSON）— 改完点应用即时重渲。P2 起这份由 AI 自动生成。
-        </span>
+        <span style={{ fontSize: 12, color: "var(--color-text-muted)", flex: 1 }}>{uiText("ui.generatedpanelview.29a1d0d442")}</span>
         <button onClick={onApply} style={{ ...pillBtn, background: "var(--color-primary)", color: "#fff", border: "none" }}>
-          <Check size={13} /> 应用
-        </button>
+          <Check size={13} />{uiText("ui.generatedpanelview.63c73c4730")}</button>
         <button onClick={onCancel} style={pillBtn}>
-          <X size={13} /> 取消
-        </button>
+          <X size={13} />{uiText("ui.generatedpanelview.2cd0f3be87")}</button>
       </div>
       <textarea
         value={draft}
@@ -705,13 +710,14 @@ function SchemaEditor({
 // 小件
 // ============================================================
 function Skeleton() {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "16px 0", color: "var(--color-text-faint)", fontSize: 12 }}>
-      <Loader2 size={14} style={{ animation: "spin 0.8s linear infinite" }} /> 加载中…
-    </div>
+      <Loader2 size={14} style={{ animation: "spin 0.8s linear infinite" }} />{uiText("ui.generatedpanelview.4927a53bcc")}</div>
   );
 }
 function ErrorHint({ msg }: { msg: string }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "12px 14px", borderRadius: 10, background: "var(--color-danger-soft)", color: "var(--color-danger)", fontSize: 12, lineHeight: 1.45 }}>
       <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -720,7 +726,8 @@ function ErrorHint({ msg }: { msg: string }) {
   );
 }
 function EmptyHint() {
-  return <div style={{ padding: "20px 8px", textAlign: "center", fontSize: 12, color: "var(--color-text-faint)" }}>暂无数据</div>;
+  const uiLanguage = useCopyLanguage().lang;
+  return <div style={{ padding: "20px 8px", textAlign: "center", fontSize: 12, color: "var(--color-text-faint)" }}>{uiText("ui.generatedpanelview.497c85690c")}</div>;
 }
 
 const iconBtn: React.CSSProperties = {

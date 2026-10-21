@@ -2,6 +2,7 @@
 // apps/web/src/app/layout.tsx
 // 全局根布局 — 挂载 Google Fonts 与全局样式
 // ============================================================
+import { translate } from "@/lib/messages";
 import type { Metadata } from "next";
 import { Inter, Cinzel } from "next/font/google";
 import "./globals.css";
@@ -22,8 +23,8 @@ const cinzel = Cinzel({
 });
 
 export const metadata: Metadata = {
-  title: "Butler — 智能多模态学习管家",
-  description: "AI-powered multimodal learning hub — 让学习更智能、更高效。",
+  title: translate("app.title"),
+  description: translate("app.description"),
   manifest: "/manifest.webmanifest",
   icons: { icon: "/assets/logo.png", apple: "/assets/logo.png" },
 };
@@ -36,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN" className={`${inter.variable} ${cinzel.variable}`}>
+    <html lang="en" className={`${inter.variable} ${cinzel.variable}`}>
       <body>
         <ToastProvider>{children}</ToastProvider>
       </body>

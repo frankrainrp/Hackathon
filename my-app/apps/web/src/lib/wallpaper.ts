@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/wallpaper.ts — [066] 壁纸系统
 //
@@ -27,12 +29,12 @@ export async function setWallpaper(file: File): Promise<Wallpaper> {
   const isVideo = file.type.startsWith("video/");
   const isImage = file.type.startsWith("image/");
   if (!isVideo && !isImage) {
-    throw new Error("只支持图片或视频文件");
+    throw new Error(uiText("ui.wallpaper.7781772ca3"));
   }
   const cap = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
   if (file.size > cap) {
     throw new Error(
-      `文件过大（${(file.size / 1024 / 1024).toFixed(1)} MB），上限 ${cap / 1024 / 1024} MB`,
+      uiText("ui.wallpaper.1ec68e84c1", { value0: (file.size / 1024 / 1024).toFixed(1), value1: cap / 1024 / 1024 }),
     );
   }
   const wp: Wallpaper = {

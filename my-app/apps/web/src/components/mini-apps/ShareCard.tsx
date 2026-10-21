@@ -1,4 +1,8 @@
 "use client";
+import { formatDate } from "@/lib/messages";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/mini-apps/ShareCard.tsx — 学习报告分享卡(G3.2)
@@ -20,6 +24,7 @@ function effStatus(d: DdlItem): "todo" | "in_progress" | "done" {
 }
 
 export default function ShareCard({ ddls = [] }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const stats = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const weekStart = new Date(today);
@@ -38,15 +43,15 @@ export default function ShareCard({ ddls = [] }: Props) {
     for (let i = 0; i < 7; i++) {
       const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
       const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      const label = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
+      const label = [uiText("ui.sharecard.85217f7aff"), uiText("ui.sharecard.51a75f4634"), uiText("ui.sharecard.084b42f6e9"), uiText("ui.sharecard.a4c3313deb"), uiText("ui.sharecard.754a9d5828"), uiText("ui.sharecard.c9b87f516a"), uiText("ui.sharecard.de07b53838")][d.getDay()];
       const count = ddls.filter((it) => effStatus(it) === "done" && it.dueDate === iso).length;
       days.push({ iso, count, label });
     }
     const maxDay = Math.max(1, ...days.map((d) => d.count));
     return { totalDone, totalTodo, weekDone, days, maxDay };
-  }, [ddls]);
+  }, [ddls, uiLanguage]);
 
-  const todayLabel = new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" });
+  const todayLabel = formatDate(new Date(), { year: "numeric", month: "long", day: "numeric" });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -57,9 +62,7 @@ export default function ShareCard({ ddls = [] }: Props) {
           lineHeight: 1.5,
         }}
       >
-        <Share2 size={11} style={{ display: "inline", marginRight: 4, verticalAlign: "-2px" }} />
-        长按图片 / 右键保存,分享到朋友圈 · 小红书 · 微博
-      </div>
+        <Share2 size={11} style={{ display: "inline", marginRight: 4, verticalAlign: "-2px" }} />{uiText("ui.sharecard.7e7ae8dd99")}</div>
 
       {/* 540×800 海报,缩放 0.55 适配 320px 抽屉 */}
       <div
@@ -92,45 +95,33 @@ export default function ShareCard({ ddls = [] }: Props) {
             <rect width="540" height="800" fill="url(#bg)" />
 
             {/* 顶部品牌 */}
-            <text x="50" y="68" fontFamily="Inter, system-ui" fontSize="14" fill="#94a3b8" letterSpacing="3">
-              BUTLER · 学习管家
-            </text>
+            <text x="50" y="68" fontFamily="Inter, system-ui" fontSize="14" fill="#94a3b8" letterSpacing="3">{uiText("ui.sharecard.defc6017bf")}</text>
             <text x="50" y="100" fontFamily="Inter, system-ui" fontSize="13" fill="#64748b">
               {todayLabel}
             </text>
 
             {/* Hero 数字 */}
-            <text x="50" y="200" fontFamily="Inter, system-ui" fontSize="20" fill="#cbd5e1">
-              本周完成
-            </text>
+            <text x="50" y="200" fontFamily="Inter, system-ui" fontSize="20" fill="#cbd5e1">{uiText("ui.sharecard.940cc3d973")}</text>
             <text x="50" y="290" fontFamily="Inter, system-ui" fontSize="100" fontWeight="700" fill="#FFFFFF">
               {stats.weekDone}
             </text>
-            <text x={50 + (stats.weekDone < 10 ? 70 : stats.weekDone < 100 ? 130 : 190)} y="290" fontFamily="Inter, system-ui" fontSize="24" fill="#94a3b8">
-              件任务
-            </text>
+            <text x={50 + (stats.weekDone < 10 ? 70 : stats.weekDone < 100 ? 130 : 190)} y="290" fontFamily="Inter, system-ui" fontSize="24" fill="#94a3b8">{uiText("ui.sharecard.5d8499ed2f")}</text>
 
             {/* 累计 chip */}
             <rect x="50" y="320" width="200" height="42" rx="21" fill="url(#card)" stroke="rgba(255,255,255,0.15)" />
-            <text x="68" y="347" fontFamily="Inter, system-ui" fontSize="14" fill="#cbd5e1">
-              累计完成
-            </text>
+            <text x="68" y="347" fontFamily="Inter, system-ui" fontSize="14" fill="#cbd5e1">{uiText("ui.sharecard.1bad83c67d")}</text>
             <text x="156" y="348" fontFamily="Inter, system-ui" fontSize="18" fontWeight="700" fill="#FFFFFF">
               {stats.totalDone}
             </text>
 
             <rect x="260" y="320" width="200" height="42" rx="21" fill="url(#card)" stroke="rgba(255,255,255,0.15)" />
-            <text x="278" y="347" fontFamily="Inter, system-ui" fontSize="14" fill="#cbd5e1">
-              进行中
-            </text>
+            <text x="278" y="347" fontFamily="Inter, system-ui" fontSize="14" fill="#cbd5e1">{uiText("ui.sharecard.dc9591e56d")}</text>
             <text x="343" y="348" fontFamily="Inter, system-ui" fontSize="18" fontWeight="700" fill="#FFFFFF">
               {stats.totalTodo}
             </text>
 
             {/* 7 天柱图 */}
-            <text x="50" y="430" fontFamily="Inter, system-ui" fontSize="13" fill="#94a3b8" letterSpacing="1">
-              7 天完成趋势
-            </text>
+            <text x="50" y="430" fontFamily="Inter, system-ui" fontSize="13" fill="#94a3b8" letterSpacing="1">{uiText("ui.sharecard.495f6d4738")}</text>
             {stats.days.map((d, idx) => {
               const x = 50 + idx * 64;
               const h = (d.count / stats.maxDay) * 140;
@@ -158,12 +149,8 @@ export default function ShareCard({ ddls = [] }: Props) {
 
             {/* Footer */}
             <line x1="50" y1="680" x2="490" y2="680" stroke="rgba(255,255,255,0.10)" />
-            <text x="50" y="720" fontFamily="Inter, system-ui" fontSize="14" fontWeight="500" fill="#cbd5e1">
-              「让管家帮你管学习」
-            </text>
-            <text x="50" y="752" fontFamily="Inter, system-ui" fontSize="11" fill="#64748b">
-              butler.app · 智能多模态学习管家
-            </text>
+            <text x="50" y="720" fontFamily="Inter, system-ui" fontSize="14" fontWeight="500" fill="#cbd5e1">{uiText("ui.sharecard.dd07bd7345")}</text>
+            <text x="50" y="752" fontFamily="Inter, system-ui" fontSize="11" fill="#64748b">{uiText("ui.sharecard.d4732410d1")}</text>
 
             {/* Logo 小图标占位(墨绿圆) */}
             <circle cx="468" cy="734" r="22" fill="#5FB58F" />

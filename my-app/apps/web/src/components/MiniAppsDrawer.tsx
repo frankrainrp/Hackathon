@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/MiniAppsDrawer.tsx — 右侧"小程序仓库"滑入抽屉
@@ -34,9 +37,9 @@ interface MiniApp {
 }
 
 const APPS: MiniApp[] = [
-  { id: "focus", name: "专注计时", icon: <Target size={16} />, Component: FocusTimer },
-  { id: "stats", name: "学习统计", icon: <BarChart3 size={16} />, Component: StatsApp },
-  { id: "share", name: "分享卡片", icon: <Share2 size={16} />, Component: ShareCard },
+  { id: "focus", get name() { return uiText("ui.miniappsdrawer.9a86da03a6"); }, icon: <Target size={16} />, Component: FocusTimer },
+  { id: "stats", get name() { return uiText("ui.miniappsdrawer.dbd98e064c"); }, icon: <BarChart3 size={16} />, Component: StatsApp },
+  { id: "share", get name() { return uiText("ui.miniappsdrawer.e9dc85ce7f"); }, icon: <Share2 size={16} />, Component: ShareCard },
 ];
 
 interface MiniAppsDrawerProps {
@@ -49,6 +52,7 @@ interface MiniAppsDrawerProps {
 }
 
 export default function MiniAppsDrawer({ open, onClose, ddls = [], onAppendTaskNote }: MiniAppsDrawerProps) {
+  const uiLanguage = useCopyLanguage().lang;
   const [activeId, setActiveId] = useState<string>("focus");
   const active = APPS.find((a) => a.id === activeId) ?? APPS[0];
   const ActiveComponent = active.Component;
@@ -72,7 +76,7 @@ export default function MiniAppsDrawer({ open, onClose, ddls = [], onAppendTaskN
       )}
       {/* 抽屉本体 */}
       <aside
-        aria-label="Mini Apps Drawer"
+        aria-label={uiText("ui.miniappsdrawer.19ba2b069b")}
         aria-hidden={!open}
         style={{
           position: "fixed",
@@ -130,12 +134,10 @@ export default function MiniAppsDrawer({ open, onClose, ddls = [], onAppendTaskN
               letterSpacing: 0.3,
               flex: 1,
             }}
-          >
-            学习工具
-          </h2>
+          >{uiText("ui.miniappsdrawer.814a338103")}</h2>
           <button
             onClick={onClose}
-            aria-label="关闭"
+            aria-label={uiText("ui.miniappsdrawer.3fd47edce4")}
             style={{
               width: 28,
               height: 28,

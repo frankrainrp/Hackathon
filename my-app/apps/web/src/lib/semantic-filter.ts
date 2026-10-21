@@ -1,3 +1,4 @@
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/semantic-filter.ts — 客户端语义粗筛
 //
@@ -31,7 +32,7 @@ let seedVectorPromise: Promise<Float32Array> | null = null;
 // ---- CDN 动态加载（用 new Function 包裹 import 绕开 webpack 静态分析） ----
 async function loadTransformers(): Promise<TransformersGlobal> {
   if (tfPromise) return tfPromise;
-  if (typeof window === "undefined") throw new Error("semantic-filter 仅支持浏览器");
+  if (typeof window === "undefined") throw new Error(uiText("server.bf3b3905a446"));
 
   tfPromise = (async () => {
     // webpack 看到 `import("...")` 会尝试打包，用 Function 构造器隐藏意图

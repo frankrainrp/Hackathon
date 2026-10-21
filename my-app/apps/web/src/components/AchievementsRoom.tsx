@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/AchievementsRoom.tsx — 成就收藏室（观察.txt #3）
@@ -18,15 +21,16 @@ interface Props {
 }
 
 export default function AchievementsRoom({ open, onClose, ctx }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   // 已解锁 = 持久化记录里有 OR 当前条件已满足（双保险，避免漏弹的成就显示为锁定）
-  const unlockedSet = useMemo(() => (open ? getUnlockedSet() : new Set<string>()), [open]);
+  const unlockedSet = useMemo(() => (open ? getUnlockedSet() : new Set<string>()), [open, uiLanguage]);
   const rows = useMemo(
     () =>
       ACHIEVEMENTS.map((a) => ({
         ...a,
         unlocked: unlockedSet.has(a.id) || a.check(ctx),
       })),
-    [unlockedSet, ctx],
+    [unlockedSet, ctx, uiLanguage],
   );
   const unlockedCount = rows.filter((r) => r.unlocked).length;
 
@@ -46,7 +50,7 @@ export default function AchievementsRoom({ open, onClose, ctx }: Props) {
       />
       <div
         role="dialog"
-        aria-label="成就收藏室"
+        aria-label={uiText("ui.achievementsroom.3f69ffe34c")}
         style={{
           position: "fixed",
           top: "50%",
@@ -88,16 +92,12 @@ export default function AchievementsRoom({ open, onClose, ctx }: Props) {
             <Trophy size={18} />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h2 className="font-display" style={{ fontSize: 16, fontWeight: 700, margin: 0, color: "var(--color-text)" }}>
-              成就收藏室
-            </h2>
-            <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "2px 0 0" }}>
-              已解锁 {unlockedCount} / {rows.length}
-            </p>
+            <h2 className="font-display" style={{ fontSize: 16, fontWeight: 700, margin: 0, color: "var(--color-text)" }}>{uiText("ui.achievementsroom.3f69ffe34c")}</h2>
+            <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "2px 0 0" }}>{uiText("ui.achievementsroom.60879a3651", { value0: unlockedCount, value1: rows.length })}</p>
           </div>
           <button
             onClick={onClose}
-            aria-label="关闭"
+            aria-label={uiText("ui.achievementsroom.3fd47edce4")}
             style={{
               width: 28, height: 28, borderRadius: 6, border: "none",
               background: "transparent", cursor: "pointer", color: "var(--color-text-muted)",

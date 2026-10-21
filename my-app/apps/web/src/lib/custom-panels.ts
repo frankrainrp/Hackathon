@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/custom-panels.ts — Phase E 自定义面板
 //
@@ -36,7 +38,7 @@ export async function createCustomPanel(label: string, emoji: string = "📋"): 
   const now = Date.now();
   const panel: CustomPanel = {
     id: "custom-" + uid(),
-    label: label.slice(0, 12).trim() || "新面板",
+    label: label.slice(0, 12).trim() || uiText("ui.custompanels.4d245a898c"),
     emoji: (emoji || "📋").slice(0, 3),
     content: "",
     createdAt: now,
@@ -52,7 +54,7 @@ export async function updateCustomPanel(
   patch: Partial<Pick<CustomPanel, "label" | "emoji" | "content" | "kind" | "url" | "modules" | "spec">>,
 ): Promise<void> {
   const next: Partial<CustomPanel> = { ...patch, updatedAt: Date.now() };
-  if (patch.label !== undefined) next.label = patch.label.slice(0, 12).trim() || "新面板";
+  if (patch.label !== undefined) next.label = patch.label.slice(0, 12).trim() || uiText("ui.custompanels.4d245a898c");
   if (patch.emoji !== undefined) next.emoji = (patch.emoji || "📋").slice(0, 3);
   if (patch.url !== undefined) next.url = patch.url.trim();
   await getDb().customPanels.update(id, next);

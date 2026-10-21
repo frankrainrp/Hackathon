@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/ai-models.ts — 可切换的 AI 模型注册表
 //
@@ -40,9 +42,9 @@ export const AI_MODELS: AiModelMeta[] = [
   {
     id: "deepseek-v4-flash",
     apiModel: "qwen3:0.6b",
-    label: "Primary model",
-    tagline: "Configured in AI setup",
-    desc: "Uses your selected Local or DeepSeek provider. Configure the actual model in Settings → AI setup.",
+    get label() { return uiText("ui.aimodels.51cbaf4cd5"); },
+    get tagline() { return uiText("ui.aimodels.c8bd967ae7"); },
+    get desc() { return uiText("ui.aimodels.6719344a0d"); },
     tier: "low",
     supportsTools: true,
     route: "server",
@@ -50,9 +52,9 @@ export const AI_MODELS: AiModelMeta[] = [
   {
     id: "deepseek-v4-thinking",
     apiModel: "qwen3:0.6b",
-    label: "Alternate route",
-    tagline: "Legacy primary/alternate routing",
-    desc: "In legacy mode, tries the alternate local service first. Otherwise uses the provider and model selected in AI setup.",
+    get label() { return uiText("ui.aimodels.7906d82fcc"); },
+    get tagline() { return uiText("ui.aimodels.1cac84470d"); },
+    get desc() { return uiText("ui.aimodels.0e1146c4ca"); },
     tier: "mid",
     supportsTools: true,
     route: "windows",

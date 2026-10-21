@@ -1,4 +1,8 @@
 "use client";
+import { formatDate } from "@/lib/messages";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/mini-apps/FocusTimer.tsx — 学习专注计时器
@@ -29,6 +33,7 @@ interface Props {
 }
 
 export default function FocusTimer({ ddls = [], onAppendTaskNote }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const toast = useToast();
   const [totalSec, setTotalSec] = useState(25 * 60);  // 总时长
   const [remainSec, setRemainSec] = useState(25 * 60); // 剩余秒
@@ -54,13 +59,13 @@ export default function FocusTimer({ ddls = [], onAppendTaskNote }: Props) {
           setRunning(false);
           playSound("focus-end"); // [056]
           // 用 Toast 替代 alert（Phase 3 接 Tauri 后升级原生通知）
-          toast.success("🎉 专注时段结束,记得休息一下!", { duration: 8000 });
+          toast.success(uiText("ui.focustimer.85a1269d02"), { duration: 8000 });
           // Epic 5.1 把这次专注追加到关联任务的 notes
           const tid = linkedRef.current;
           if (tid && onAppendTaskNote) {
             const min = Math.round(totalSecRef.current / 60);
-            const stamp = new Date().toLocaleString("zh-CN", { hour: "2-digit", minute: "2-digit", month: "2-digit", day: "2-digit" });
-            onAppendTaskNote(tid, `- 专注 ${min} min  ·  ${stamp}`);
+            const stamp = formatDate(new Date(), { hour: "2-digit", minute: "2-digit", month: "2-digit", day: "2-digit" });
+            onAppendTaskNote(tid, uiText("ui.focustimer.348528d7b6", { value0: min, value1: stamp }));
           }
           return 0;
         }
@@ -118,9 +123,7 @@ export default function FocusTimer({ ddls = [], onAppendTaskNote }: Props) {
             letterSpacing: 0.8,
             textTransform: "uppercase",
           }}
-        >
-          Focus Timer
-        </h3>
+        >{uiText("ui.focustimer.38d2547765")}</h3>
       </div>
 
       {/* 倒计时环 */}
@@ -180,7 +183,7 @@ export default function FocusTimer({ ddls = [], onAppendTaskNote }: Props) {
               margin: "6px 0 0",
             }}
           >
-            {running ? "专注中..." : remainSec === 0 ? "完成 🎉" : "准备开始"}
+            {running ? uiText("ui.focustimer.592039f1bc") : remainSec === 0 ? uiText("ui.focustimer.f6fe2c27a8") : uiText("ui.focustimer.c1e032f6be")}
           </p>
         </div>
       </div>
@@ -215,8 +218,7 @@ export default function FocusTimer({ ddls = [], onAppendTaskNote }: Props) {
               gap: 4,
             }}
           >
-            <Link2 size={10} /> 关联任务（结束自动记录到任务备注）
-          </label>
+            <Link2 size={10} />{uiText("ui.focustimer.48f7923c71")}</label>
           <select
             value={linkedTaskId ?? ""}
             onChange={(e) => setLinkedTaskId(e.target.value || null)}
@@ -233,7 +235,7 @@ export default function FocusTimer({ ddls = [], onAppendTaskNote }: Props) {
               outline: "none",
             }}
           >
-            <option value="">— 不关联任务 —</option>
+            <option value="">{uiText("ui.focustimer.50aabdf6f6")}</option>
             {todoTasks.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.taskName}
@@ -278,9 +280,7 @@ export default function FocusTimer({ ddls = [], onAppendTaskNote }: Props) {
           textAlign: "center",
           lineHeight: 1.5,
         }}
-      >
-        Phase 3 桌面壳后会接入<br />系统通知 + 后台保活
-      </p>
+      >{uiText("ui.focustimer.1c3d6194c6")}</p>
     </div>
   );
 }
@@ -293,6 +293,7 @@ function CircleBtn({
   primary?: boolean;
   disabled?: boolean;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [h, setH] = useState(false);
   return (
     <button

@@ -4,6 +4,8 @@ Extract the entire ZIP into a writable local folder. Double-click `Start-Hackath
 
 The first screen is optional AI setup. Manual courses, tasks, calendar and notes remain available if you choose **Skip for now**. Resume using the banner or **Settings → AI connection → Open AI setup**. You can also open `/ai-setup` directly.
 
+English is the default interface language. Select **中文** in the first AI setup screen or **Preferences → Language** to switch instantly; the choice is remembered in that browser. Your existing course titles, notes and conversation history keep their original language. Optional example courses and practice data are clearly labelled and appear only when requested. New panels start empty.
+
 ## Local on this computer
 
 1. Choose **Local on this computer**, then the included Windows x64 CPU engine.

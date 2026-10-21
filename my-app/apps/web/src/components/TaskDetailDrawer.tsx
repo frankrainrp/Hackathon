@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/TaskDetailDrawer.tsx — 任务详情抽屉（C.2-c）
@@ -56,15 +59,15 @@ interface Props {
 }
 
 const STATUS_OPTIONS: { v: TaskStatus; label: string; color: string }[] = [
-  { v: "todo", label: "待办", color: "var(--color-text-muted)" },
-  { v: "in_progress", label: "进行中", color: "var(--color-warning)" },
-  { v: "done", label: "已完成", color: "var(--color-success)" },
+  { v: "todo", get label() { return uiText("ui.taskdetaildrawer.52fdbbaeda"); }, color: "var(--color-text-muted)" },
+  { v: "in_progress", get label() { return uiText("ui.taskdetaildrawer.dc9591e56d"); }, color: "var(--color-warning)" },
+  { v: "done", get label() { return uiText("ui.taskdetaildrawer.f28461bb49"); }, color: "var(--color-success)" },
 ];
 
 const PRIORITY_OPTIONS: { v: TaskPriority; label: string; color: string }[] = [
-  { v: "low", label: "低", color: "var(--color-info)" },
-  { v: "med", label: "中", color: "var(--color-warning)" },
-  { v: "high", label: "高", color: "var(--color-danger)" },
+  { v: "low", get label() { return uiText("ui.taskdetaildrawer.aa9e366f68"); }, color: "var(--color-info)" },
+  { v: "med", get label() { return uiText("ui.taskdetaildrawer.a567bdaa11"); }, color: "var(--color-warning)" },
+  { v: "high", get label() { return uiText("ui.taskdetaildrawer.b1c27820fe"); }, color: "var(--color-danger)" },
 ];
 
 // Epic 5.3 任务快捷模板:常用学生场景一键预填
@@ -77,27 +80,27 @@ interface TaskTemplate {
 const TASK_TEMPLATES: TaskTemplate[] = [
   {
     id: "quiz",
-    label: "Quiz",
+    get label() { return uiText("ui.taskdetaildrawer.03aa7dc167"); },
     emoji: "📝",
-    patch: () => ({ weight: 10, priority: "med",  tags: ["quiz"], description: "复习考点 + 1 套模拟" }),
+    patch: () => ({ weight: 10, priority: "med",  tags: ["quiz"], description: uiText("ui.taskdetaildrawer.84b21a4dc5") }),
   },
   {
     id: "paper",
-    label: "Paper",
+    get label() { return uiText("ui.taskdetaildrawer.35045eff54"); },
     emoji: "📄",
-    patch: () => ({ weight: 30, priority: "high", tags: ["paper"], description: "提纲 → 初稿 → 润色 → 提交" }),
+    patch: () => ({ weight: 30, priority: "high", tags: ["paper"], description: uiText("ui.taskdetaildrawer.1338ee6526") }),
   },
   {
     id: "project",
-    label: "Project",
+    get label() { return uiText("ui.taskdetaildrawer.9859597853"); },
     emoji: "🚀",
-    patch: () => ({ weight: 25, priority: "high", tags: ["project"], description: "拆任务,分工(若小组)", isGroupWork: true }),
+    patch: () => ({ weight: 25, priority: "high", tags: ["project"], description: uiText("ui.taskdetaildrawer.fe9d52816e"), isGroupWork: true }),
   },
   {
     id: "reading",
-    label: "Reading",
+    get label() { return uiText("ui.taskdetaildrawer.463816d070"); },
     emoji: "📖",
-    patch: () => ({ weight: null, priority: "low",  tags: ["reading"], description: "记笔记 + 关键结论 3 句" }),
+    patch: () => ({ weight: null, priority: "low",  tags: ["reading"], description: uiText("ui.taskdetaildrawer.c38d3f0dca") }),
   },
 ];
 
@@ -105,6 +108,7 @@ export default function TaskDetailDrawer({
   target, onCancel, onSubmit, onDelete,
   linkedNote, onCreateLinkedNote, onJumpToNote, onUnlinkNote,
 }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const isEdit = target.mode === "edit";
   const init = isEdit ? target.item : null;
   const initialDate = isEdit ? target.item.dueDate : (target.presetDate ?? todayIso());
@@ -222,12 +226,12 @@ export default function TaskDetailDrawer({
             }}
           >
             <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", margin: 0 }}>
-              {isEdit ? "Task Details" : "New Task"}
+              {isEdit ? uiText("ui.taskdetaildrawer.62bdfcbe3e") : uiText("ui.taskdetaildrawer.718e58cc20")}
             </h2>
             <button
               type="button"
               onClick={onCancel}
-              aria-label="关闭"
+              aria-label={uiText("ui.taskdetaildrawer.3fd47edce4")}
               style={{
                 width: 28, height: 28, borderRadius: 6, border: "none",
                 background: "transparent", cursor: "pointer", color: "var(--color-text-muted)",
@@ -250,9 +254,7 @@ export default function TaskDetailDrawer({
                     fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)",
                     letterSpacing: 0.4, display: "block", marginBottom: 6,
                   }}
-                >
-                  快捷模板
-                </span>
+                >{uiText("ui.taskdetaildrawer.aaaf8f24f2")}</span>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {TASK_TEMPLATES.map((tpl) => (
                     <button
@@ -299,24 +301,24 @@ export default function TaskDetailDrawer({
               </div>
             )}
 
-            <Field label="任务名">
+            <Field label={uiText("ui.taskdetaildrawer.2c43cd7db1")}>
               <input
                 ref={nameRef}
                 value={taskName}
                 onChange={(e) => setTaskName(e.target.value)}
-                placeholder="例如：Assignment 1、和导师开会"
+                placeholder={uiText("ui.taskdetaildrawer.e630238e53")}
                 style={inputStyle}
               />
             </Field>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 80px", gap: 8 }}>
-              <Field label="截止日期">
+              <Field label={uiText("ui.taskdetaildrawer.3180242421")}>
                 <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={inputStyle} />
               </Field>
-              <Field label="时间">
+              <Field label={uiText("ui.taskdetaildrawer.8b6ff49851")}>
                 <input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} style={inputStyle} />
               </Field>
-              <Field label="权重 %">
+              <Field label={uiText("ui.taskdetaildrawer.a22d0e80ef")}>
                 <input
                   type="number" min={0} max={100} step={1}
                   value={weight} onChange={(e) => setWeight(e.target.value)}
@@ -327,7 +329,7 @@ export default function TaskDetailDrawer({
             </div>
 
             {/* 状态 + 优先级（同一行 segmented） */}
-            <Field label="状态">
+            <Field label={uiText("ui.taskdetaildrawer.6320b4a872")}>
               <SegmentedRadio
                 options={STATUS_OPTIONS.map((s) => ({ value: s.v, label: s.label, color: s.color }))}
                 value={status}
@@ -335,10 +337,10 @@ export default function TaskDetailDrawer({
               />
             </Field>
 
-            <Field label="优先级">
+            <Field label={uiText("ui.taskdetaildrawer.565d64601d")}>
               <SegmentedRadio
                 options={[
-                  { value: "", label: "无", color: "var(--color-text-faint)" },
+                  { value: "", label: uiText("ui.taskdetaildrawer.484d556139"), color: "var(--color-text-faint)" },
                   ...PRIORITY_OPTIONS.map((p) => ({ value: p.v, label: p.label, color: p.color })),
                 ]}
                 value={priority}
@@ -346,11 +348,11 @@ export default function TaskDetailDrawer({
               />
             </Field>
 
-            <Field label="标签（逗号分隔）">
+            <Field label={uiText("ui.taskdetaildrawer.34544a9272")}>
               <input
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
-                placeholder="例如：C245, 期末, 论文"
+                placeholder={uiText("ui.taskdetaildrawer.154e285ad5")}
                 style={inputStyle}
               />
               {tagsInput.trim() && (
@@ -384,23 +386,21 @@ export default function TaskDetailDrawer({
                 onChange={(e) => setIsGroupWork(e.target.checked)}
                 style={{ width: 16, height: 16, accentColor: "var(--color-primary)", cursor: "pointer" }}
               />
-              <Users size={14} color="var(--color-info)" />
-              小组协作任务
-            </label>
+              <Users size={14} color="var(--color-info)" />{uiText("ui.taskdetaildrawer.311c6ee884")}</label>
 
-            <Field label="说明">
+            <Field label={uiText("ui.taskdetaildrawer.4262c45dc7")}>
               <textarea
                 value={description} onChange={(e) => setDescription(e.target.value)}
-                placeholder="可选，比如「Submit via Blackboard」"
+                placeholder={uiText("ui.taskdetaildrawer.10c56d9992")}
                 rows={2}
                 style={{ ...inputStyle, resize: "vertical", minHeight: 52 }}
               />
             </Field>
 
-            <Field label="备注（长篇）">
+            <Field label={uiText("ui.taskdetaildrawer.86318d6db9")}>
               <textarea
                 value={notes} onChange={(e) => setNotes(e.target.value)}
-                placeholder="可写更详细的笔记、关键信息提醒、链接等"
+                placeholder={uiText("ui.taskdetaildrawer.36ff1196c8")}
                 rows={3}
                 style={{ ...inputStyle, resize: "vertical", minHeight: 72 }}
               />
@@ -410,7 +410,7 @@ export default function TaskDetailDrawer({
 
             {/* B1 关联笔记（仅 edit 模式 + 父组件传入 callbacks 时显示） */}
             {isEdit && init && (onCreateLinkedNote || linkedNote) && (
-              <Field label="关联笔记">
+              <Field label={uiText("ui.taskdetaildrawer.2b8d28b9b4")}>
                 {linkedNote ? (
                   <div
                     style={{
@@ -435,23 +435,21 @@ export default function TaskDetailDrawer({
                         textOverflow: "ellipsis",
                       }}
                     >
-                      {linkedNote.title || "(无标题)"}
+                      {linkedNote.title || uiText("ui.taskdetaildrawer.415ac660f5")}
                     </span>
                     {onJumpToNote && (
                       <button
                         type="button"
                         onClick={() => onJumpToNote(linkedNote.id)}
-                        title="在 Notes 打开"
+                        title={uiText("ui.taskdetaildrawer.a7aa9ab60d")}
                         style={smallBtnStyle()}
-                      >
-                        打开
-                      </button>
+                      >{uiText("ui.taskdetaildrawer.c771248e51")}</button>
                     )}
                     {onUnlinkNote && (
                       <button
                         type="button"
                         onClick={() => onUnlinkNote(init.id)}
-                        title="解除关联"
+                        title={uiText("ui.taskdetaildrawer.f48551f0b9")}
                         style={smallBtnStyle(true)}
                       >
                         <Unlink size={11} />
@@ -489,8 +487,7 @@ export default function TaskDetailDrawer({
                         el.style.color = "var(--color-text-muted)";
                       }}
                     >
-                      <BookOpen size={13} /> 创建关联笔记
-                    </button>
+                      <BookOpen size={13} />{uiText("ui.taskdetaildrawer.8c9109456f")}</button>
                   )
                 )}
               </Field>
@@ -511,7 +508,7 @@ export default function TaskDetailDrawer({
                 <button
                   type="button"
                   onClick={() => {
-                    if (init && confirm(`删除「${init.taskName}」？`)) onDelete(init.id);
+                    if (init && confirm(uiText("ui.taskdetaildrawer.927ea75a5d", { value0: init.taskName }))) onDelete(init.id);
                   }}
                   style={{
                     display: "flex", alignItems: "center", gap: 4,
@@ -522,8 +519,7 @@ export default function TaskDetailDrawer({
                     fontFamily: "inherit",
                   }}
                 >
-                  <Trash2 size={12} /> 删除
-                </button>
+                  <Trash2 size={12} />{uiText("ui.taskdetaildrawer.2f9daa8289")}</button>
               )}
             </div>
             <div style={{ display: "flex", gap: 6 }}>
@@ -536,9 +532,7 @@ export default function TaskDetailDrawer({
                   fontSize: 13, fontWeight: 500, color: "var(--color-text-muted)", cursor: "pointer",
                   fontFamily: "inherit",
                 }}
-              >
-                取消
-              </button>
+              >{uiText("ui.taskdetaildrawer.2cd0f3be87")}</button>
               <button
                 type="submit"
                 disabled={!canSubmit}
@@ -550,7 +544,7 @@ export default function TaskDetailDrawer({
                   fontFamily: "inherit",
                 }}
               >
-                {isEdit ? "保存" : "创建"}
+                {isEdit ? uiText("ui.taskdetaildrawer.a3030bf8f1") : uiText("ui.taskdetaildrawer.cde2cd071d")}
               </button>
             </div>
           </footer>
@@ -585,6 +579,7 @@ function SegmentedRadio<T extends string>({
   value: T;
   onChange: (v: T) => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div
       style={{
@@ -642,6 +637,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
       <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: 0.4 }}>
@@ -661,6 +657,7 @@ function AttachmentsEditor({
   attachments: DdlAttachment[];
   setAttachments: React.Dispatch<React.SetStateAction<DdlAttachment[]>>;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [adding, setAdding] = useState<null | "url" | "filepath">(null);
   const [input, setInput] = useState("");
   const [labelInput, setLabelInput] = useState("");
@@ -716,9 +713,7 @@ function AttachmentsEditor({
           fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)",
           letterSpacing: 0.4, display: "block", marginBottom: 6,
         }}
-      >
-        附件
-      </span>
+      >{uiText("ui.taskdetaildrawer.c7225dbf10")}</span>
 
       {attachments.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
@@ -751,9 +746,9 @@ function AttachmentsEditor({
       )}
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        <AddBtn icon={<Link2 size={11} />} label="链接" onClick={() => setAdding("url")} />
-        <AddBtn icon={<FolderOpen size={11} />} label="路径" onClick={() => setAdding("filepath")} />
-        <AddBtn icon={<Upload size={11} />} label={uploading ? "上传中…" : "上传"} onClick={() => fileRef.current?.click()} />
+        <AddBtn icon={<Link2 size={11} />} label={uiText("ui.taskdetaildrawer.305378ddd2")} onClick={() => setAdding("url")} />
+        <AddBtn icon={<FolderOpen size={11} />} label={uiText("ui.taskdetaildrawer.77e1ea5c56")} onClick={() => setAdding("filepath")} />
+        <AddBtn icon={<Upload size={11} />} label={uploading ? uiText("ui.taskdetaildrawer.ce1c9d6156") : uiText("ui.taskdetaildrawer.9e07e3c053")} onClick={() => fileRef.current?.click()} />
         <input ref={fileRef} type="file" multiple style={{ display: "none" }} onChange={handleUpload} />
       </div>
     </div>
@@ -761,6 +756,7 @@ function AttachmentsEditor({
 }
 
 function AttChip({ att, onRemove }: { att: DdlAttachment; onRemove: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   const Icon = att.kind === "url" ? Link2 : att.kind === "filepath" ? FolderOpen : pickBlobIcon(att);
   return (
     <div
@@ -776,7 +772,7 @@ function AttChip({ att, onRemove }: { att: DdlAttachment; onRemove: () => void }
         {att.label}
       </span>
       <button
-        type="button" onClick={onRemove} aria-label="移除"
+        type="button" onClick={onRemove} aria-label={uiText("ui.taskdetaildrawer.6135d4159e")}
         style={{
           width: 16, height: 16, borderRadius: 4, border: "none", padding: 0,
           background: "transparent", cursor: "pointer", color: "var(--color-text-faint)",
@@ -797,6 +793,7 @@ function pickBlobIcon(a: DdlAttachment) {
 }
 
 function AddBtn({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [h, setH] = useState(false);
   return (
     <button

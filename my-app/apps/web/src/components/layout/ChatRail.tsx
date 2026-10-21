@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/layout/ChatRail.tsx
@@ -30,6 +33,7 @@ export default function ChatRail({
   onRename,
   onDelete,
 }: ChatRailProps) {
+  const uiLanguage = useCopyLanguage().lang;
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState("");
@@ -47,17 +51,17 @@ export default function ChatRail({
 
   return (
     <>
-      <RailPrimaryBtn icon={<Plus size={14} />} label="New Chat" onClick={onCreate} />
+      <RailPrimaryBtn icon={<Plus size={14} />} label={uiText("ui.chatrail.0d33235199")} onClick={onCreate} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, overflow: "hidden" }}>
-        <RailGroupTitle>Recent Chats</RailGroupTitle>
+        <RailGroupTitle>{uiText("ui.chatrail.e4583ba608")}</RailGroupTitle>
 
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
           {recent.length === 0 && (
             <div style={{ padding: "20px 8px", textAlign: "center", color: "var(--color-text-faint)" }}>
               {/* [068] 管家化空态：白手套呈递空托盘 */}
               <EmptyButlerTray size={120} />
-              <p style={{ fontSize: 12, margin: "8px 0 0" }}>还没有对话<br />点上方 + 开始第一个</p>
+              <p style={{ fontSize: 12, margin: "8px 0 0" }}>{uiText("ui.chatrail.330be413c1")}<br />{uiText("ui.chatrail.f7824d83d2")}</p>
             </div>
           )}
 
@@ -102,7 +106,7 @@ export default function ChatRail({
               <div key={s.id} style={{ position: "relative" }}>
                 <RailItem
                   icon={<MessageSquare size={14} />}
-                  label={s.title || "新对话"}
+                  label={s.title || uiText("ui.chatrail.ea4b29f58f")}
                   active={isActive}
                   onClick={() => onSelect(s.id)}
                   onMenuClick={() => setMenuOpenId(menuOpenId === s.id ? null : s.id)}
@@ -128,7 +132,7 @@ export default function ChatRail({
                       }}
                     >
                       <MiniMenuBtn
-                        label="重命名"
+                        label={uiText("ui.chatrail.0d0cbac2ee")}
                         onClick={() => {
                           setRenamingId(s.id);
                           setRenameVal(s.title);
@@ -136,10 +140,10 @@ export default function ChatRail({
                         }}
                       />
                       <MiniMenuBtn
-                        label="删除"
+                        label={uiText("ui.chatrail.2f9daa8289")}
                         danger
                         onClick={() => {
-                          if (confirm(`删除会话「${s.title}」？此操作不可撤销`)) {
+                          if (confirm(uiText("ui.chatrail.e5e337cae2", { value0: s.title }))) {
                             onDelete(s.id);
                           }
                           setMenuOpenId(null);
@@ -164,9 +168,7 @@ export default function ChatRail({
                 padding: "6px 8px",
                 textAlign: "left",
               }}
-            >
-              View all ({sessions.length})
-            </button>
+            >{uiText("ui.chatrail.42aa50c455", { value0: sessions.length })}</button>
           )}
         </div>
       </div>
@@ -183,6 +185,7 @@ function MiniMenuBtn({
   onClick: () => void;
   danger?: boolean;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   return (
     <button

@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/Toast.tsx — 全局 Toast 通知系统
@@ -63,6 +66,7 @@ const KIND_META: Record<ToastKind, { color: string; bg: string; icon: React.Reac
 const uid = () => "t-" + Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [items, setItems] = useState<ToastItem[]>([]);
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -130,6 +134,7 @@ export function useToast(): ToastContextValue {
 // 渲染层
 // ============================================================
 function ToastStack({ items, onDismiss }: { items: ToastItem[]; onDismiss: (id: string) => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   if (items.length === 0) return null;
   return (
     <div
@@ -153,6 +158,7 @@ function ToastStack({ items, onDismiss }: { items: ToastItem[]; onDismiss: (id: 
 }
 
 function ToastRow({ item, onDismiss }: { item: ToastItem; onDismiss: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   const meta = KIND_META[item.kind ?? "info"];
   // error toast 进场后抖动一下（配 toast-error 音）
   const isError = item.kind === "error";
@@ -213,7 +219,7 @@ function ToastRow({ item, onDismiss }: { item: ToastItem; onDismiss: () => void 
       </div>
       <button
         onClick={onDismiss}
-        aria-label="关闭"
+        aria-label={uiText("ui.toast.3fd47edce4")}
         style={{
           width: 20,
           height: 20,

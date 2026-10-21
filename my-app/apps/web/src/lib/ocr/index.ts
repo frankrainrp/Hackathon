@@ -1,3 +1,6 @@
+import { uiText } from "../messages.ts";
+
+import { appFetch as fetch } from "../messages.ts";
 // ============================================================
 // lib/ocr/index.ts — OCR 客户端统一入口
 //
@@ -22,7 +25,7 @@ export async function runOcr(file: File): Promise<OcrResponse> {
   if (file.size > 50 * 1024 * 1024) {
     return {
       ok: false,
-      error: `文件过大：${(file.size / 1024 / 1024).toFixed(1)} MB（上限 50 MB）。建议先压缩或裁剪。`,
+      error: uiText("server.54f363b629d9", { value0: (file.size / 1024 / 1024).toFixed(1) }),
     };
   }
 
@@ -33,7 +36,7 @@ export async function runOcr(file: File): Promise<OcrResponse> {
   try {
     res = await fetch("/api/ocr", { method: "POST", body: form });
   } catch (err) {
-    return { ok: false, error: `网络请求失败：${(err as Error).message}` };
+    return { ok: false, error: uiText("server.1964cdf5cabd", { value0: (err as Error).message }) };
   }
 
   if (!res.ok) {
@@ -49,7 +52,7 @@ export async function runOcr(file: File): Promise<OcrResponse> {
 
   try {
     const j = await res.json();
-    if (!j.ok) return { ok: false, error: j.error || "未知错误" };
+    if (!j.ok) return { ok: false, error: j.error || uiText("server.13a46616e16f") };
     return {
       ok: true,
       text: j.text || "",
@@ -58,6 +61,6 @@ export async function runOcr(file: File): Promise<OcrResponse> {
       ocrUsed: !!j.ocrUsed,
     };
   } catch (err) {
-    return { ok: false, error: `响应解析失败：${(err as Error).message}` };
+    return { ok: false, error: uiText("server.03c46491c76c", { value0: (err as Error).message }) };
   }
 }

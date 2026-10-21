@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/DailyBrief.tsx — [065] 每日仪式 · 今日简报
@@ -26,14 +29,15 @@ function effStatus(d: DdlItem): "todo" | "in_progress" | "done" {
   return d.status ?? (d.completed ? "done" : "todo");
 }
 function greetByHour(h: number): string {
-  if (h < 5) return "夜深了";
-  if (h < 11) return "早上好";
-  if (h < 14) return "中午好";
-  if (h < 18) return "下午好";
-  return "晚上好";
+  if (h < 5) return uiText("ui.dailybrief.659983ea32");
+  if (h < 11) return uiText("ui.dailybrief.3cc2e31eb2");
+  if (h < 14) return uiText("ui.dailybrief.fceb19622c");
+  if (h < 18) return uiText("ui.dailybrief.552594ef80");
+  return uiText("ui.dailybrief.d8e9a7fa20");
 }
 
-export default function DailyBrief({ ddls, streakDays = 0, userName = "Feng", onStartFocus, onJumpToTask, onDismiss }: Props) {
+export default function DailyBrief({ ddls, streakDays = 0, userName = "", onStartFocus, onJumpToTask, onDismiss }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const now = new Date();
   const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const todo = ddls.filter((d) => effStatus(d) !== "done");
@@ -43,15 +47,15 @@ export default function DailyBrief({ ddls, streakDays = 0, userName = "Feng", on
 
   // 摘要文案
   const parts: string[] = [];
-  if (overdue.length > 0) parts.push(`${overdue.length} 项逾期`);
-  if (todayDue.length > 0) parts.push(`今天 ${todayDue.length} 项到期`);
+  if (overdue.length > 0) parts.push(uiText("ui.dailybrief.dc64f958b2", { value0: overdue.length }));
+  if (todayDue.length > 0) parts.push(uiText("ui.dailybrief.92c4b28278", { value0: todayDue.length }));
   const summary =
     parts.length > 0
-      ? `你有 ${parts.join("、")}。`
-      : "今天没有到期任务，轻松一下 ☕。";
+      ? uiText("ui.dailybrief.3d839a34ac", { value0: parts.join("、") })
+      : uiText("ui.dailybrief.e92ecfc0fb");
   const suggestion = nearest
-    ? `要不要先专注 25 分钟，搞定「${nearest.taskName}」？`
-    : "要不要开一个 25 分钟专注，开个好头？";
+    ? uiText("ui.dailybrief.97cb194906", { value0: nearest.taskName })
+    : uiText("ui.dailybrief.2dec6d2ebb");
 
   return (
     <div
@@ -92,7 +96,7 @@ export default function DailyBrief({ ddls, streakDays = 0, userName = "Feng", on
           </span>
           {streakDays > 0 && (
             <span
-              title={`连续打开 ${streakDays} 天`}
+              title={uiText("ui.dailybrief.475b638bf5", { value0: streakDays })}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 3,
                 padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 600,
@@ -100,16 +104,13 @@ export default function DailyBrief({ ddls, streakDays = 0, userName = "Feng", on
                 color: "var(--color-warning)",
               }}
             >
-              <Flame size={11} /> {streakDays} 天
-            </span>
+              <Flame size={11} />{uiText("ui.dailybrief.42651e9d3f", { value0: streakDays })}</span>
           )}
         </div>
         <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "4px 0 0", lineHeight: 1.5 }}>
           {summary}
           {nearest && (
-            <>
-              {" "}最近：
-              <button
+            <>{uiText("ui.dailybrief.736cfd4510")}<button
                 onClick={() => onJumpToTask?.(nearest.id)}
                 style={{
                   border: "none", background: "transparent", padding: 0, cursor: "pointer",
@@ -131,16 +132,15 @@ export default function DailyBrief({ ddls, streakDays = 0, userName = "Feng", on
             className="glass-btn glass-btn-primary"
             style={{ height: 32, padding: "0 14px", fontSize: 13 }}
           >
-            <Timer size={14} /> 开始专注
-          </button>
+            <Timer size={14} />{uiText("ui.dailybrief.033df8fb6e")}</button>
         </div>
       </div>
 
       {/* 关闭 */}
       <button
         onClick={onDismiss}
-        aria-label="知道了"
-        title="知道了"
+        aria-label={uiText("ui.dailybrief.de32e20193")}
+        title={uiText("ui.dailybrief.de32e20193")}
         style={{
           width: 26, height: 26, borderRadius: 6, border: "none", flexShrink: 0,
           background: "transparent", color: "var(--color-text-faint)", cursor: "pointer",

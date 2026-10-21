@@ -1,3 +1,4 @@
+import { uiText } from "./messages.ts";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync, copyFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { lookup } from "node:dns/promises";
@@ -26,7 +27,7 @@ for (const [ip, prefix] of [["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10],
 for (const [ip, prefix] of [["::", 96], ["fc00::", 7], ["fe80::", 10], ["ff00::", 8], ["2001:db8::", 32]] as const) blocked.addSubnet(ip, prefix, "ipv6");
 export async function requirePublicHost(host: string, resolveHost = lookup) {
   const addresses = await resolveHost(host, { all: true });
-  if (!addresses.length || addresses.some(({ address, family }) => !isIP(address) || blocked.check(address, family === 6 ? "ipv6" : "ipv4"))) throw new Error("The school domain resolves to a private or reserved network address.");
+  if (!addresses.length || addresses.some(({ address, family }) => !isIP(address) || blocked.check(address, family === 6 ? "ipv6" : "ipv4"))) throw new Error(uiText("server.5aa54a6ce3be"));
 }
 
 export function readCatalog(profileId: string, path = configPath()) {

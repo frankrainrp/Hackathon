@@ -1,4 +1,9 @@
 "use client";
+import { appFetch as fetch } from "@/lib/messages";
+
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // app/page.tsx — 主页面：4 面板路由 + 真实 AI 对话 + AI 驱动 CRUD
@@ -45,7 +50,7 @@ import {
   type CardInfo,
 } from "@/lib/billing";
 import type { ChatMessage, ChatSession, ProcessingPipeline, DdlItem, NavId, UploadedFile, DdlAttachment, Note, CustomPanel } from "@/lib/types";
-import { INITIAL_STEPS } from "@/lib/mock-pipeline";
+import { INITIAL_STEPS } from "@/lib/document-pipeline";
 import { streamChat, type ApiMessage } from "@/lib/chat-client";
 import { createToolExecutor } from "@/lib/tool-executor";
 import { type PendingBatch, type PendingChange, makeBatch, makeChangeId, applyBatch, extractNoteDrafts, extractCustomPanelDrafts } from "@/lib/pending";
@@ -85,6 +90,7 @@ import type { RecurringTask } from "@/lib/types";
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 
 export default function HomePage() {
+  const uiLanguage = useCopyLanguage().lang;
   const toast = useToast();
   const { t, lang } = useT();
   const cc = courseCopy[lang];
@@ -202,10 +208,10 @@ export default function HomePage() {
         normalized.forEach(m => seen.add(m.id));
         if (fresh.length) {
           const latest = fresh[fresh.length - 1];
-          toast.info("学校课程和作业有新消息", { duration: 10000,
-            action: { label: "查看提醒", onClick: () => { setActiveNav("chat"); setActiveSessionId(latest.sessionId); } } });
+          toast.info(uiText("ui.page.2e6362ac2f"), { duration: 10000,
+            action: { label: uiText("ui.page.630cc69459"), onClick: () => { setActiveNav("chat"); setActiveSessionId(latest.sessionId); } } });
           if ("Notification" in window && Notification.permission === "granted") {
-            try { new Notification("Butler · 学习提醒", { body: latest.content.slice(0, 160), tag: "lms-update" }); } catch { /* optional */ }
+            try { new Notification(uiText("ui.page.ff739a48b1"), { body: latest.content.slice(0, 160), tag: "lms-update" }); } catch { /* optional */ }
           }
         }
       } catch { /* Next poll retries. Local tasks remain available when the bridge is offline. */ }
@@ -253,7 +259,7 @@ export default function HomePage() {
           const now = Date.now();
           const fresh: ChatSession = {
             id: "sess-" + Math.random().toString(36).slice(2, 9) + now.toString(36),
-            title: "新对话",
+            title: uiText("ui.page.ea4b29f58f"),
             createdAt: now,
             updatedAt: now,
           };
@@ -357,9 +363,9 @@ export default function HomePage() {
     const snapshot = notes.find((n) => n.id === id);
     if (!snapshot) return;
     setNotes((prev) => prev.filter((n) => n.id !== id));
-    toast.success(`已删除笔记「${snapshot.title || "(无标题)"}」`, {
+    toast.success(uiText("ui.page.0006e4556c", { value0: snapshot.title || uiText("ui.page.415ac660f5") }), {
       action: {
-        label: "撤销",
+        label: uiText("ui.page.926a50b98e"),
         onClick: () => setNotes((prev) => [snapshot, ...prev]),
       },
     });
@@ -394,7 +400,7 @@ export default function HomePage() {
   // 当前 session 的消息（派生）
   const visibleMessages = useMemo(
     () => (activeSessionId ? messages.filter((m) => m.sessionId === activeSessionId) : []),
-    [messages, activeSessionId],
+    [messages, activeSessionId, uiLanguage],
   );
 
   // 触碰当前 session 的 updatedAt（用户新发消息时调用，让它冒到列表顶部）
@@ -405,7 +411,7 @@ export default function HomePage() {
       if (s.id !== sid) return s;
       const next: ChatSession = { ...s, updatedAt: Date.now() };
       // 默认标题 → 用首条消息前 24 字
-      if (titleHint && s.title === "新对话") {
+      if (titleHint && s.title === uiText("ui.page.ea4b29f58f")) {
         const t = titleHint.trim().slice(0, 24);
         if (t) next.title = t;
       }
@@ -468,11 +474,11 @@ export default function HomePage() {
     try {
       // ---- Step 1: 解析 / OCR + 双重粗筛（关键词 → 语义） ----
       setStep(0, "running");
-      if (!uploaded.file) throw new Error("文件对象丢失");
+      if (!uploaded.file) throw new Error(uiText("ui.page.25521b92e4"));
 
       // 大文件 warning（10 MB+）
       if (uploaded.file.size > 10 * 1024 * 1024) {
-        setStep(0, "running", `${(uploaded.file.size / 1024 / 1024).toFixed(1)} MB 大文件，请稍候…`);
+        setStep(0, "running", uiText("ui.page.0e5a1156d0", { value0: (uploaded.file.size / 1024 / 1024).toFixed(1) }));
       }
 
       const { parseDocument, filterDdlRelevant } = await import("@/lib/document-parser");
@@ -488,7 +494,7 @@ export default function HomePage() {
       }
 
       const sourceLabel = parsed.source === "unpdf"
-        ? "本地解析 (unpdf)"
+        ? uiText("ui.page.4152410bfc")
         : parsed.source.startsWith("ocr-")
         ? `OCR (${parsed.source.replace("ocr-", "")})`
         : parsed.source;
@@ -498,9 +504,9 @@ export default function HomePage() {
 
       // 1b. 语义粗筛（MiniLM embedding，首次加载 ~22MB；失败降级到纯关键词）
       let finalMd = keywordFiltered;
-      let semDetail = "（仅关键词筛）";
+      let semDetail = uiText("ui.page.20b70c3550");
       try {
-        setStep(0, "running", `${sourceLabel} · ${parsed.pages} 页 → ${parsed.text.length} 字 → 关键词 ${keywordFiltered.length} 字，正在语义粗筛…`);
+        setStep(0, "running", uiText("ui.page.29c3992ff4", { value0: sourceLabel, value1: parsed.pages, value2: parsed.text.length, value3: keywordFiltered.length }));
         const { filterBySemantic } = await import("@/lib/semantic-filter");
         // 实测数据：相关段相似度 0.55+，弱相关 0.15-0.30，垃圾 <0.15
         // 阈值 0.35 + topK 20 既能砍掉模板段又保住所有真 DDL
@@ -508,13 +514,13 @@ export default function HomePage() {
         const sem = await filterBySemantic(parsed.text, { topK: 30, minSim: 0.35 });
         if (sem.kept > 0) {
           finalMd = sem.text;
-          semDetail = `→ 语义 ${sem.kept}/${sem.total} 段 ${sem.text.length} 字 (top sim ${sem.topSim.toFixed(2)})`;
+          semDetail = uiText("ui.page.93d92085a9", { value0: sem.kept, value1: sem.total, value2: sem.text.length, value3: sem.topSim.toFixed(2) });
         }
       } catch (e) {
         // 模型下载失败 / 浏览器不支持 → 降级
         console.warn("semantic filter unavailable, fallback to keyword only:", e);
       }
-      setStep(0, "success", `${sourceLabel} · ${parsed.pages} 页 → ${parsed.text.length} 字 → 关键词 ${keywordFiltered.length} 字 ${semDetail}`);
+      setStep(0, "success", uiText("ui.page.c1b62d61bf", { value0: sourceLabel, value1: parsed.pages, value2: parsed.text.length, value3: keywordFiltered.length, value4: semDetail }));
 
       // ---- Step 2: V4 Flash 提取 DDL ----
       setStep(1, "running");
@@ -525,21 +531,19 @@ export default function HomePage() {
         body: JSON.stringify({ markdown: finalMd, filename: uploaded.name, currentDate: isoToday }),
       });
       const json = await res.json();
-      if (!json.ok) { setStep(1, "failed", json.error || "提取失败"); finishPipeline("failed"); return; }
+      if (!json.ok) { setStep(1, "failed", json.error || uiText("ui.page.a1d66d5b15")); finishPipeline("failed"); return; }
       const items: Array<Omit<DdlItem, "id" | "source" | "completed">> = json.items || [];
-      setStep(1, "success", `V4 Flash 提取 ${items.length} 条`);
+      setStep(1, "success", uiText("ui.page.6282769942", { value0: items.length }));
 
       // ---- Step 3: 写入日历（暂跳过，Phase 4 接 Google Cal）----
-      setStep(2, "running");
-      await new Promise((r) => setTimeout(r, 300));
-      setStep(2, "success", "（已跳过，Phase 4 接 Google Calendar）");
+      setStep(2, "success", uiText("ui.page.5be6cdc475"));
 
       // ---- Step 4: 落入待核实队列（v2：不直接 setDdls，需用户核实）----
       setStep(3, "running");
       const newDdls: DdlItem[] = items.map((it) => ({
         ...it,
         id: uid(),
-        source: `${uploaded.name}（待核实）`,
+        source: uiText("ui.page.a841eb1ff3", { value0: uploaded.name }),
         completed: false,
         weight: it.weight ?? null,
         dueTime: it.dueTime || "23:59",
@@ -550,12 +554,12 @@ export default function HomePage() {
       const batch = makeBatch(
         sid,
         "pdf-extract",
-        `我从「${uploaded.name}」中识别到 ${newDdls.length} 条待办，请核实后再写入：`,
+        uiText("ui.page.2b9989e3a6", { value0: uploaded.name, value1: newDdls.length }),
       );
       batch.changes = newDdls.map<PendingChange>((d) => ({
         id: makeChangeId(),
         kind: "create",
-        summary: `${d.taskName} · ${d.dueDate || "待定"}${d.dueTime ? " " + d.dueTime : ""}${d.weight != null ? ` · ${d.weight}%` : ""}`,
+        summary: `${d.taskName} · ${d.dueDate || uiText("ui.page.63ec276c63")}${d.dueTime ? " " + d.dueTime : ""}${d.weight != null ? ` · ${d.weight}%` : ""}`,
         draft: d,
       }));
       setPendingBatches((prev) => ({ ...prev, [batch.id]: batch }));
@@ -575,7 +579,7 @@ export default function HomePage() {
       setPointoutHold(true);
       setTimeout(() => setPointoutHold(false), 5000);
 
-      setStep(3, "success", `识别到 ${newDdls.length} 条，已加入待核实队列`);
+      setStep(3, "success", uiText("ui.page.1fe8046f72", { value0: newDdls.length }));
 
       finishPipeline("completed", newDdls.length);
     } catch (err) {
@@ -596,7 +600,7 @@ export default function HomePage() {
     // 如果当前 send 还没建过 batch，建一个 + push confirm 消息到聊天流
     let batchId = currentBatchIdRef.current;
     if (!batchId) {
-      const batch = makeBatch(sid, "ai-chat", "我准备为你做以下改动，请核实：");
+      const batch = makeBatch(sid, "ai-chat", uiText("ui.page.594ebb8889"));
       batchId = batch.id;
       currentBatchIdRef.current = batchId;
       setPendingBatches((prev) => ({ ...prev, [batch.id]: { ...batch, changes: [change] } }));
@@ -701,7 +705,7 @@ export default function HomePage() {
     if (isLoading || hasAiPending) return "serving";
 
     return "standing";
-  }, [pointoutHold, pendingBatches, isLoading, aiActivity]);
+  }, [pointoutHold, pendingBatches, isLoading, aiActivity, uiLanguage]);
 
   // ---------- [079] 周期任务 ----------
   const [recurringOpen, setRecurringOpen] = useState(false);
@@ -713,7 +717,7 @@ export default function HomePage() {
       const { newTasks, updatedRoutines, changed } = materializeDue(routines);
       if (newTasks.length > 0) {
         setDdls((prev) => [...prev, ...newTasks]);
-        toast.info(`🔁 已自动生成 ${newTasks.length} 个周期任务`);
+        toast.info(uiText("ui.page.11ac89f8e9", { value0: newTasks.length }));
       }
       if (changed) await bulkPutRecurring(updatedRoutines);
     } catch (e) {
@@ -738,24 +742,24 @@ export default function HomePage() {
       addPending: addPendingChange,
       addRecurring,
     }),
-    [addPendingChange, addRecurring],
+    [addPendingChange, addRecurring, uiLanguage],
   );
 
   // ---------- 构建 contextSummary 给 AI ----------
   const buildContextSummary = useCallback((items: DdlItem[]): string => {
-    if (items.length === 0) return "用户当前没有任何任务/事件。";
+    if (items.length === 0) return uiText("ui.page.69a0fdca45");
     const sorted = [...items].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     const cap = sorted.slice(0, 20);
     const lines = cap.map((d) => {
       const flags: string[] = [];
-      if (d.completed) flags.push("✓已完成");
-      if (d.isGroupWork) flags.push("小组");
+      if (d.completed) flags.push(uiText("ui.page.1b1fcbb1ac"));
+      if (d.isGroupWork) flags.push(uiText("ui.page.c648500895"));
       if (d.weight != null) flags.push(`${d.weight}%`);
       const tag = flags.length ? ` [${flags.join(" ")}]` : "";
       return `- (id=${d.id}) ${d.taskName} — ${d.dueDate} ${d.dueTime}${tag}`;
     });
-    const tail = items.length > 20 ? `\n（仅显示最近 20 条，总共 ${items.length} 条）` : "";
-    return `当前任务/事件列表：\n${lines.join("\n")}${tail}`;
+    const tail = items.length > 20 ? uiText("ui.page.c28323cf56", { value0: items.length }) : "";
+    return uiText("ui.page.50db941f41", { value0: lines.join("\n"), value1: tail });
   }, []);
 
   // 历史消息截断上限：避免长会话 input token 线性爆炸（system prompt 已含 contextSummary）
@@ -864,7 +868,7 @@ export default function HomePage() {
         messages: historyApi,
         courseNoteId: sessions.find(s => s.id === sid)?.courseNoteId,
         contextSummary: buildContextSummary(ddlsRef.current),
-        userName: "Feng",
+        userName: "",
         includeTools: true,
         model: selectedModel,
         personality: getStoredPersonality(),
@@ -901,16 +905,16 @@ export default function HomePage() {
             console.log("[tool] start", call.function.name, call.function.arguments);
             // 1.3 实时提示用户:Butler 正在调什么工具
             const labels: Record<string, string> = {
-              create_item: "正在新建任务草稿",
-              update_item: "正在修改任务草稿",
-              delete_item: "正在准备删除",
-              toggle_complete: "正在勾选完成",
-              list_items: "正在查询任务列表",
-              create_note: "正在生成笔记草稿",
-              create_custom_panel: "正在生成自定义面板草稿",
-              create_recurring_task: "正在创建周期任务",
+              create_item: uiText("ui.page.9925207ba4"),
+              update_item: uiText("ui.page.8498452d9b"),
+              delete_item: uiText("ui.page.8496d012ce"),
+              toggle_complete: uiText("ui.page.7adf3f7860"),
+              list_items: uiText("ui.page.bce2293afd"),
+              create_note: uiText("ui.page.96c9399765"),
+              create_custom_panel: uiText("ui.page.7a6f3c27c2"),
+              create_recurring_task: uiText("ui.page.1674e5c0a1"),
             };
-            const label = labels[call.function.name] ?? `正在调用 ${call.function.name}`;
+            const label = labels[call.function.name] ?? uiText("ui.page.ec456f17e9", { value0: call.function.name });
             toast.info(`⚙ Butler ${label}…`, { id: "ai-tool-call", duration: 1500 });
           },
           onToolCallEnd: (call, result) => {
@@ -920,7 +924,7 @@ export default function HomePage() {
           onError: (err) => {
             setMessages((prev) => [
               ...prev,
-              { id: uid(), sessionId: sid, role: "assistant", content: `❌ 出错了：${err.message}`, isError: true, timestamp: new Date() },
+              { id: uid(), sessionId: sid, role: "assistant", content: uiText("ui.page.9e71ea4c86", { value0: err.message }), isError: true, timestamp: new Date() },
             ]);
           },
         },
@@ -955,12 +959,12 @@ export default function HomePage() {
       await streamChat({
         messages: [{
           role: "user",
-          content: `请根据下面这段对话生成一个 4-8 个汉字的中文标题,直接输出标题文本本身,不要任何解释、标点、引号、emoji 或前后缀。\n\n用户:${userText.slice(0, 200)}\nAI:${assistantText.slice(0, 200)}`,
+          content: uiText("ui.page.832d5a8b0d", { value0: userText.slice(0, 200), value1: assistantText.slice(0, 200) }),
         }],
-        userName: "Feng",
+        userName: "",
         includeTools: false,
         model: "deepseek-v4-flash",
-        executeToolCall: async () => ({ ok: false, message: "not allowed" }),
+        executeToolCall: async () => ({ ok: false, message: uiText("ui.page.a26075ed2e") }),
         callbacks: {
           onContentDelta: (d) => { title += d; },
           onError: () => { /* 静默,不阻塞 */ },
@@ -969,8 +973,8 @@ export default function HomePage() {
     } catch { /* ignore */ }
     // 清理:去标点 / 引号 / 换行,限制 20 字
     const cleaned = title.replace(/["""《》「」<>【】[\]:：。.!！?？\n\r\s]/g, "").trim().slice(0, 20);
-    if (cleaned && cleaned !== "新对话") {
-      setSessions((prev) => prev.map((s) => (s.id === sid && s.title === "新对话" ? { ...s, title: cleaned } : s)));
+    if (cleaned && cleaned !== uiText("ui.page.ea4b29f58f")) {
+      setSessions((prev) => prev.map((s) => (s.id === sid && s.title === uiText("ui.page.ea4b29f58f") ? { ...s, title: cleaned } : s)));
     }
   }, []);
 
@@ -981,7 +985,7 @@ export default function HomePage() {
     if (!sid) return;
     if (titleRequestedRef.current.has(sid)) return;
     const session = sessions.find((s) => s.id === sid);
-    if (!session || session.title !== "新对话") return;
+    if (!session || session.title !== uiText("ui.page.ea4b29f58f")) return;
     const sessMsgs = messages.filter((m) => m.sessionId === sid && (m.role === "user" || m.role === "assistant"));
     const lastUser = [...sessMsgs].reverse().find((m) => m.role === "user");
     const lastAssistant = [...sessMsgs].reverse().find((m) => m.role === "assistant" && !m.isError && m.content.length > 5);
@@ -1060,15 +1064,15 @@ export default function HomePage() {
           const hoursLeft = Math.round((dueTs - now) / 3600000);
           deadlineNotifiedRef.current.add(d.id);
           // Toast 一定弹
-          toast.warning(`⏰ 「${d.taskName}」还有约 ${hoursLeft} 小时截止`, {
+          toast.warning(uiText("ui.page.77846468ee", { value0: d.taskName, value1: hoursLeft }), {
             duration: 10000,
-            action: { label: "查看", onClick: () => handleJumpToTask(d.id) },
+            action: { label: uiText("ui.page.db8db05304"), onClick: () => handleJumpToTask(d.id) },
           });
           // 浏览器 Notification(可选,需授权)
           if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
             try {
-              new Notification("Butler · 临近截止", {
-                body: `${d.taskName} · ${d.dueDate} ${d.dueTime || "23:59"}（约 ${hoursLeft}h）`,
+              new Notification(uiText("ui.page.6498225f39"), {
+                body: uiText("ui.page.e6a739160c", { value0: d.taskName, value1: d.dueDate, value2: d.dueTime || "23:59", value3: hoursLeft }),
                 icon: "/assets/logo.png",
                 tag: `deadline-${d.id}`,
               });
@@ -1101,7 +1105,7 @@ export default function HomePage() {
     // 当前 session 已是空白默认对话 → 只切回 chat 面板，不开新 session
     const sid = activeSessionIdRef.current;
     const cur = sid ? sessions.find((s) => s.id === sid) : null;
-    const curEmpty = cur && cur.title === "新对话" &&
+    const curEmpty = cur && cur.title === uiText("ui.page.ea4b29f58f") &&
       !messages.some((m) => m.sessionId === sid);
     if (curEmpty) {
       setActiveNav("chat");
@@ -1111,7 +1115,7 @@ export default function HomePage() {
     const now = Date.now();
     const fresh: ChatSession = {
       id: "sess-" + Math.random().toString(36).slice(2, 9) + now.toString(36),
-      title: "新对话",
+      title: uiText("ui.page.ea4b29f58f"),
       createdAt: now,
       updatedAt: now,
     };
@@ -1149,7 +1153,7 @@ export default function HomePage() {
           const now = Date.now();
           const fresh: ChatSession = {
             id: "sess-" + Math.random().toString(36).slice(2, 9) + now.toString(36),
-            title: "新对话",
+            title: uiText("ui.page.ea4b29f58f"),
             createdAt: now,
             updatedAt: now,
           };
@@ -1160,9 +1164,9 @@ export default function HomePage() {
       return remaining;
     });
 
-    toast.success(`已删除会话「${sessionSnapshot.title}」`, {
+    toast.success(uiText("ui.page.daeaf52820", { value0: sessionSnapshot.title }), {
       action: {
-        label: "撤销",
+        label: uiText("ui.page.926a50b98e"),
         onClick: () => {
           setSessions((prev) => [sessionSnapshot, ...prev.filter((s) => s.id !== sessionSnapshot.id)]);
           setMessages((prev) => [...prev, ...messagesSnapshot]);
@@ -1182,7 +1186,7 @@ export default function HomePage() {
     return [...sessions]
       .filter((s) => interacted.has(s.id))
       .sort((a, b) => b.updatedAt - a.updatedAt);
-  }, [sessions, messages]);
+  }, [sessions, messages, uiLanguage]);
 
   // 任务计数（用于 TasksRail 的 views）
   const taskCounts = useMemo(() => {
@@ -1198,7 +1202,7 @@ export default function HomePage() {
       ).length,
       completed: ddls.filter((d) => effStatus(d) === "done").length,
     };
-  }, [ddls]);
+  }, [ddls, uiLanguage]);
 
   const handleQuickAction = useCallback((prompt: string) => {
     setInputValue(prompt);
@@ -1293,11 +1297,11 @@ export default function HomePage() {
   // Phase E 创建新面板：建一条 + 立即激活
   const handleCreateCustomPanel = useCallback(async () => {
     try {
-      const p = await createCustomPanel("新面板");
+      const p = await createCustomPanel(uiText("ui.page.4d245a898c"));
       setActiveCustomPanelId(p.id);
       playSound("panel-create"); // [056]
     } catch (e) {
-      toast.error(`创建失败：${(e as Error).message}`);
+      toast.error(uiText("ui.page.a761787ca9", { value0: (e as Error).message }));
     }
   }, [toast]);
 
@@ -1314,9 +1318,9 @@ export default function HomePage() {
         setActiveCustomPanelId(null);
         setActiveNav("chat");
       }
-      toast.success("已删除面板");
+      toast.success(uiText("ui.page.77a5886604"));
     } catch (e) {
-      toast.error(`删除失败：${(e as Error).message}`);
+      toast.error(uiText("ui.page.af397613f7", { value0: (e as Error).message }));
     }
   }, [activeCustomPanelId, toast]);
 
@@ -1348,7 +1352,7 @@ export default function HomePage() {
     if (!hydrated) return null;
     const buckets: Record<string, number> = { 早晨: 0, 上午: 0, 中午: 0, 下午: 0, 傍晚: 0, 晚上: 0, 深夜: 0 };
     const classify = (h: number) =>
-      h < 6 ? "深夜" : h < 9 ? "早晨" : h < 12 ? "上午" : h < 14 ? "中午" : h < 17 ? "下午" : h < 19 ? "傍晚" : h < 23 ? "晚上" : "深夜";
+      h < 6 ? uiText("ui.page.30003ad423") : h < 9 ? uiText("ui.page.119af509ad") : h < 12 ? uiText("ui.page.298336ec2c") : h < 14 ? uiText("ui.page.5422a304a0") : h < 17 ? uiText("ui.page.af81dcf37a") : h < 19 ? uiText("ui.page.1bd701b264") : h < 23 ? uiText("ui.page.a9b1124b34") : uiText("ui.page.30003ad423");
     for (const m of messages) {
       if (m.role !== "user") continue;
       const ts = m.timestamp instanceof Date ? m.timestamp : new Date(m.timestamp as unknown as string);
@@ -1360,7 +1364,7 @@ export default function HomePage() {
     const top = Object.entries(buckets).sort((a, b) => b[1] - a[1])[0];
     if (!top || top[1] < 2) return null;
     return top[0];
-  }, [hydrated, messages]);
+  }, [hydrated, messages, uiLanguage]);
   // G2.1 hydrate 后 touchStreak;若是新一天 toast 一下
   useEffect(() => {
     if (!hydrated) return;
@@ -1369,9 +1373,9 @@ export default function HomePage() {
       const { newDay, broken, state } = touchStreak();
       setStreakDays(state.currentDays);
       if (newDay && state.currentDays > 1 && !broken) {
-        toast.success(`🔥 连续打开 Butler ${state.currentDays} 天!继续保持`, { duration: 5000 });
+        toast.success(uiText("ui.page.35552ec457", { value0: state.currentDays }), { duration: 5000 });
       } else if (newDay && broken) {
-        toast.info(`👋 欢迎回来,重新开始 streak`);
+        toast.info(uiText("ui.page.643caa30b2"));
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1417,7 +1421,7 @@ export default function HomePage() {
       // 弹解锁 Toast(每个 0.5s 错开)
       newly.forEach((a, i) => {
         setTimeout(() => {
-          toast.success(`${a.emoji} 解锁成就「${a.label}」— ${a.desc}`, { duration: 6000 });
+          toast.success(uiText("ui.page.597ffa411c", { value0: a.emoji, value1: a.label, value2: a.desc }), { duration: 6000 });
         }, i * 500);
       });
       void ACHIEVEMENTS; // 仅为静默 lint
@@ -1525,7 +1529,7 @@ export default function HomePage() {
   // C4 拖动改时间:快速 patch dueDate + dueTime（不走 TaskDetailDrawer）
   const handleMoveEvent = useCallback((id: string, newDate: string, newTime: string) => {
     setDdls((prev) => prev.map((d) => (d.id === id ? { ...d, dueDate: newDate, dueTime: newTime } : d)));
-    toast.info(`已移动到 ${newDate} ${newTime}`);
+    toast.info(uiText("ui.page.b93e573532", { value0: newDate, value1: newTime }));
   }, [toast]);
 
   // G1.1 一键填入 Demo 数据(激活新用户;支持 Undo)
@@ -1536,10 +1540,10 @@ export default function HomePage() {
     const prevNotes = notes;
     setDdls((p) => [...p, ...demoDdls]);
     setNotes((p) => [...demoNotes, ...p]);
-    toast.success(`已加入 ${demoDdls.length} 个示例任务 + ${demoNotes.length} 篇笔记`, {
+    toast.success(uiText("ui.page.98a5f46dc8", { value0: demoDdls.length, value1: demoNotes.length }), {
       duration: 8000,
       action: {
-        label: "撤销",
+        label: uiText("ui.page.926a50b98e"),
         onClick: () => {
           setDdls(prevDdls);
           setNotes(prevNotes);
@@ -1562,7 +1566,7 @@ export default function HomePage() {
       dueTime: "23:59",
       description: "",
       isGroupWork: false,
-      source: "笔记自动同步",
+      source: uiText("ui.page.81bf0d5fd1"),
       completed: false,
       status: "todo",
       noteId,
@@ -1588,11 +1592,11 @@ export default function HomePage() {
       dueTime: "23:59",
       description: "",
       isGroupWork: false,
-      source: "推荐任务",
+      source: uiText("ui.page.fb230ae157"),
       completed: false,
       status: "todo",
     }]);
-    toast.success(`已添加：${title}`);
+    toast.success(uiText("ui.page.393bf53cdd", { value0: title }));
     playSound("panel-create");
   }, [toast]);
 
@@ -1612,7 +1616,7 @@ export default function HomePage() {
       if (editing?.mode === "edit") {
         return prev.map((d) => d.id === editing.item.id ? { ...d, ...data, completed } : d);
       }
-      return [...prev, { ...data, id: uid(), completed, source: "手动添加" }];
+      return [...prev, { ...data, id: uid(), completed, source: uiText("ui.page.ddfe2c796c") }];
     });
     setEditing(null);
   }, [editing]);
@@ -1624,9 +1628,9 @@ export default function HomePage() {
     // 注意:暂不立刻清 blob — 等 5s 撤销窗口过后再清。简化版:撤销不恢复 blob（已存的 ref 仍有效）
     setDdls((prev) => prev.filter((d) => d.id !== id));
     setEditing(null);
-    toast.success(`已删除任务「${target.taskName}」`, {
+    toast.success(uiText("ui.page.09a785d9d8", { value0: target.taskName }), {
       action: {
-        label: "撤销",
+        label: uiText("ui.page.926a50b98e"),
         onClick: () => setDdls((prev) => [...prev, target]),
       },
     });
@@ -1637,16 +1641,16 @@ export default function HomePage() {
     const { downloadIcs } = await import("@/lib/ics-export");
     const r = downloadIcs(ddlsRef.current);
     if (r.count === 0) {
-      toast.warning("当前没有可导出的事件（待定任务会被跳过）");
+      toast.warning(uiText("ui.page.21c6ace78a"));
     } else {
-      toast.success(`已导出 ${r.count} 条事件为 .ics`);
+      toast.success(uiText("ui.page.335a9a41b5", { value0: r.count }));
     }
   }, [toast]);
 
   const handleExportJson = useCallback(async () => {
     const { exportToJson } = await import("@/lib/json-export");
     exportToJson(ddlsRef.current);
-    toast.success(`已导出 ${ddlsRef.current.length} 条任务为 .json`);
+    toast.success(uiText("ui.page.cd82180a82", { value0: ddlsRef.current.length }));
   }, [toast]);
 
   // G1.4 导入 .ics 课表文件 → 批量创建任务
@@ -1658,18 +1662,18 @@ export default function HomePage() {
       const text = await file.text();
       const events = parseIcs(text);
       if (events.length === 0) {
-        toast.warning("没有从 .ics 文件中解析到事件");
+        toast.warning(uiText("ui.page.3756218aef"));
         return;
       }
       const newDdls = icsEventsToDdls(events, file.name);
       const prevSnap = ddlsRef.current;
       setDdls((p) => [...p, ...newDdls]);
-      toast.success(`已导入 ${newDdls.length} 个事件来自「${file.name}」`, {
+      toast.success(uiText("ui.page.87b19a62a2", { value0: newDdls.length, value1: file.name }), {
         duration: 8000,
-        action: { label: "撤销", onClick: () => setDdls(prevSnap) },
+        action: { label: uiText("ui.page.926a50b98e"), onClick: () => setDdls(prevSnap) },
       });
     } catch (e) {
-      toast.error("解析 .ics 失败:" + (e instanceof Error ? e.message : String(e)));
+      toast.error(uiText("ui.page.aae98aef35") + (e instanceof Error ? e.message : String(e)));
     }
   }, [toast]);
 
@@ -1678,9 +1682,9 @@ export default function HomePage() {
     const file = await pickJsonFile();
     if (!file) return;
     const r = await importFromFile(file, ddlsRef.current);
-    if (r.ok !== true) { toast.error("导入失败:" + r.error); return; }
+    if (r.ok !== true) { toast.error(uiText("ui.page.a9f7f2c786") + r.error); return; }
     setDdls(r.merged);
-    toast.success(`导入完成:新增 ${r.added} 条,更新 ${r.updated} 条`);
+    toast.success(uiText("ui.page.ee513d2f8a", { value0: r.added, value1: r.updated }));
   }, [toast]);
 
   // ---------- 渲染 ----------
@@ -1782,7 +1786,7 @@ export default function HomePage() {
             const newNotes = oldNotes ? `${oldNotes}\n${line}` : line;
             return { ...d, notes: newNotes };
           }));
-          toast.info(`已追加到任务备注`);
+          toast.info(uiText("ui.page.820d4b888f"));
         }}
       />
 

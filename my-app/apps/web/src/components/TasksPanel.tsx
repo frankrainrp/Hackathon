@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/TasksPanel.tsx — 「每日任务」面板
@@ -40,11 +43,11 @@ interface Props {
 }
 
 const VIEW_TITLE: Record<TaskViewId, string> = {
-  active: "Active",
-  in_progress: "In Progress",
+  get active() { return uiText("ui.taskspanel.9234069589"); },
+  get in_progress() { return uiText("ui.taskspanel.b4cc4b07c3"); },
   upcoming: "Upcoming",
-  all: "All Tasks",
-  completed: "Completed",
+  get all() { return uiText("ui.taskspanel.0799351bbf"); },
+  get completed() { return uiText("ui.taskspanel.22a970d2e5"); },
 };
 
 /** 把 ddls 按当前 view 过滤 */
@@ -77,33 +80,33 @@ function computeUrgency(d: DdlItem): { color: string; title: string } | null {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const due = new Date(d.dueDate);
     const days = (due.getTime() - today.getTime()) / 86400000;
-    if (days < 0) return { color: "var(--color-danger)", title: `已逾期 ${Math.abs(Math.floor(days))} 天` };
-    if (days < 1) return { color: "var(--color-danger)", title: "今日截止" };
-    if (days < 3) return { color: "#ea580c",            title: `${Math.ceil(days)} 天内截止` };
-    if (days < 7) return { color: "var(--color-warning)", title: `${Math.ceil(days)} 天内截止` };
-    return { color: "var(--color-success)", title: `${Math.ceil(days)} 天后截止` };
+    if (days < 0) return { color: "var(--color-danger)", title: uiText("ui.taskspanel.71637cbe12", { value0: Math.abs(Math.floor(days)) }) };
+    if (days < 1) return { color: "var(--color-danger)", title: uiText("ui.taskspanel.87b9b65996") };
+    if (days < 3) return { color: "#ea580c",            title: uiText("ui.taskspanel.3a92bbe000", { value0: Math.ceil(days) }) };
+    if (days < 7) return { color: "var(--color-warning)", title: uiText("ui.taskspanel.3a92bbe000", { value0: Math.ceil(days) }) };
+    return { color: "var(--color-success)", title: uiText("ui.taskspanel.e21fcb44c8", { value0: Math.ceil(days) }) };
   }
   // 无 deadline 退回 priority
   if (d.priority) {
-    return { color: PRIORITY_META[d.priority].color, title: `优先级 ${PRIORITY_META[d.priority].label}` };
+    return { color: PRIORITY_META[d.priority].color, title: uiText("ui.taskspanel.f60a60869c", { value0: PRIORITY_META[d.priority].label }) };
   }
   return null;
 }
 
 const PRIORITY_META: Record<TaskPriority, { label: string; color: string }> = {
-  high: { label: "高", color: "var(--color-danger)" },
-  med: { label: "中", color: "var(--color-warning)" },
-  low: { label: "低", color: "var(--color-info)" },
+  high: { get label() { return uiText("ui.taskspanel.b1c27820fe"); }, color: "var(--color-danger)" },
+  med: { get label() { return uiText("ui.taskspanel.a567bdaa11"); }, color: "var(--color-warning)" },
+  low: { get label() { return uiText("ui.taskspanel.aa9e366f68"); }, color: "var(--color-info)" },
 };
 
 type GroupKey = "tbd" | "today" | "thisWeek" | "later" | "done";
 
 const GROUP_META: Record<GroupKey, { label: string; color: string }> = {
-  tbd:      { label: "待定",   color: "var(--color-warning)" },
-  today:    { label: "今天",   color: "var(--color-danger)" },
-  thisWeek: { label: "本周",   color: "var(--color-warning)" },
-  later:    { label: "之后",   color: "var(--color-primary)" },
-  done:     { label: "已完成", color: "var(--color-success)" },
+  tbd:      { get label() { return uiText("ui.taskspanel.63ec276c63"); },   color: "var(--color-warning)" },
+  today:    { get label() { return uiText("ui.taskspanel.d5f5a7a010"); },   color: "var(--color-danger)" },
+  thisWeek: { get label() { return uiText("ui.taskspanel.b4c6c3eb0b"); },   color: "var(--color-warning)" },
+  later:    { get label() { return uiText("ui.taskspanel.28ff471d9a"); },   color: "var(--color-primary)" },
+  done:     { get label() { return uiText("ui.taskspanel.f28461bb49"); }, color: "var(--color-success)" },
 };
 
 function classifyGroup(ddl: DdlItem): GroupKey {
@@ -123,8 +126,9 @@ export default function TasksPanel({
   onRequestPreview, onRequestNotesPreview, onExportIcs, onExportJson, onImportJson, onImportIcs, onOpenRecurring, view,
   highlightTaskId,
 }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const isMobile = useIsMobile();
-  const filteredDdls = useMemo(() => filterByView(ddls, view), [ddls, view]);
+  const filteredDdls = useMemo(() => filterByView(ddls, view), [ddls, view, uiLanguage]);
 
   // B3 高亮目标 row 时 scrollIntoView（CSS 闪烁由 className 控制）
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -142,7 +146,7 @@ export default function TasksPanel({
       g[k].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     }
     return g;
-  }, [filteredDdls]);
+  }, [filteredDdls, uiLanguage]);
 
   const totalActive = ddls.filter((d) => effectiveStatus(d) !== "done").length;
   const totalDone = ddls.filter((d) => effectiveStatus(d) === "done").length;
@@ -162,7 +166,7 @@ export default function TasksPanel({
       .map(([tag, s]) => ({ tag, ...s }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 12);
-  }, [ddls]);
+  }, [ddls, uiLanguage]);
 
   return (
     <div
@@ -205,21 +209,21 @@ export default function TasksPanel({
               }}
             >
               {filteredDdls.length > 0
-                ? `当前视图 ${filteredDdls.length} 项 · 全部 ${ddls.length}（${totalActive} 待办 / ${totalDone} 已完成）`
-                : "当前视图无任务 — 切换左侧 View 或上传课件 / 对 Butler 说话创建"}
+                ? uiText("ui.taskspanel.70d4733886", { value0: filteredDdls.length, value1: ddls.length, value2: totalActive, value3: totalDone })
+                : uiText("ui.taskspanel.83024d4782")}
             </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {onOpenRecurring && (
-              <ToolbarBtn onClick={onOpenRecurring} icon={<Repeat size={13} />} label="周期任务" tooltip="管理重复任务（如每周健身 4 次），每到新周期自动生成" compact={isMobile} />
+              <ToolbarBtn onClick={onOpenRecurring} icon={<Repeat size={13} />} label={uiText("ui.taskspanel.aa8986d701")} tooltip={uiText("ui.taskspanel.41d0b583d9")} compact={isMobile} />
             )}
-            <ToolbarBtn onClick={onExportIcs} icon={<CalendarPlus size={13} />} label="订阅日历" tooltip="下载 .ics → 导入手机/电脑系统日历自动提醒" compact={isMobile} />
-            <ToolbarBtn onClick={onExportJson} icon={<Download size={13} />} label="导出" tooltip="导出全部任务为 JSON 文件备份" compact={isMobile} />
-            <ToolbarBtn onClick={onImportJson} icon={<Upload size={13} />} label="导入 JSON" tooltip="从 JSON 文件合并任务（按 ID 去重）" compact={isMobile} />
+            <ToolbarBtn onClick={onExportIcs} icon={<CalendarPlus size={13} />} label={uiText("ui.taskspanel.b03e896b1d")} tooltip={uiText("ui.taskspanel.2a4eac44ed")} compact={isMobile} />
+            <ToolbarBtn onClick={onExportJson} icon={<Download size={13} />} label={uiText("ui.taskspanel.76420433f2")} tooltip={uiText("ui.taskspanel.85bcc10eed")} compact={isMobile} />
+            <ToolbarBtn onClick={onImportJson} icon={<Upload size={13} />} label={uiText("ui.taskspanel.8f6e8682a3")} tooltip={uiText("ui.taskspanel.c3fa34b385")} compact={isMobile} />
             {onImportIcs && (
-              <ToolbarBtn onClick={onImportIcs} icon={<CalendarPlus size={13} />} label="导入 ICS" tooltip="从 .ics 课表文件批量导入事件" compact={isMobile} />
+              <ToolbarBtn onClick={onImportIcs} icon={<CalendarPlus size={13} />} label={uiText("ui.taskspanel.4913417b7f")} tooltip={uiText("ui.taskspanel.e5138d806c")} compact={isMobile} />
             )}
-            <PrimaryBtn onClick={onRequestCreate} icon={<Plus size={14} />} label={isMobile ? "新建" : "New Task"} />
+            <PrimaryBtn onClick={onRequestCreate} icon={<Plus size={14} />} label={isMobile ? uiText("ui.taskspanel.50ef2f4cf6") : uiText("ui.taskspanel.718e58cc20")} />
           </div>
         </header>
 
@@ -238,7 +242,7 @@ export default function TasksPanel({
               return (
                 <span
                   key={t.tag}
-                  title={`#${t.tag} · ${t.done}/${t.total} 已完成`}
+                  title={uiText("ui.taskspanel.2cb8e37729", { value0: t.tag, value1: t.done, value2: t.total })}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -328,6 +332,7 @@ function TaskGroup({
   highlightId?: string | null;
   rowRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const meta = GROUP_META[groupKey];
   return (
     <section>
@@ -407,6 +412,7 @@ function TaskRow({
   highlight?: boolean;
   rowRef?: (el: HTMLDivElement | null) => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   const displayDate = formatDate(item.dueDate);
   return (
@@ -448,7 +454,7 @@ function TaskRow({
       <div
         style={{ flex: 1, minWidth: 0, cursor: "pointer" }}
         onClick={() => onEdit(item)}
-        title="点击编辑"
+        title={uiText("ui.taskspanel.74a439cbff")}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <span
@@ -471,12 +477,10 @@ function TaskRow({
                 padding: "1px 6px",
                 borderRadius: 4,
               }}
-            >
-              进行中
-            </span>
+            >{uiText("ui.taskspanel.dc9591e56d")}</span>
           )}
           {item.isGroupWork && (
-            <span title="小组作业" style={{ display: "inline-flex", color: "var(--color-info)" }}>
+            <span title={uiText("ui.taskspanel.8f951e05c4")} style={{ display: "inline-flex", color: "var(--color-info)" }}>
               <Users size={12} />
             </span>
           )}
@@ -537,7 +541,7 @@ function TaskRow({
                   e.stopPropagation();
                   onNotesPreview(item);
                 }}
-                title="点击查看完整备注"
+                title={uiText("ui.taskspanel.c0ea507d17")}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -552,9 +556,7 @@ function TaskRow({
                   cursor: "pointer",
                   fontFamily: "inherit",
                 }}
-              >
-                📝 备注
-              </button>
+              >{uiText("ui.taskspanel.6180aa8242")}</button>
             )}
             {item.attachments?.map((att) => (
               <AttachmentChip
@@ -579,14 +581,14 @@ function TaskRow({
           pointerEvents: hov ? "auto" : "none",
         }}
       >
-        <RowIconBtn label="编辑" onClick={() => onEdit(item)}>
+        <RowIconBtn label={uiText("ui.taskspanel.0518365699")} onClick={() => onEdit(item)}>
           <Pencil size={12} />
         </RowIconBtn>
         <RowIconBtn
-          label="删除"
+          label={uiText("ui.taskspanel.2f9daa8289")}
           danger
           onClick={() => {
-            if (confirm(`删除「${item.taskName}」？`)) onDelete(item.id);
+            if (confirm(uiText("ui.taskspanel.927ea75a5d", { value0: item.taskName }))) onDelete(item.id);
           }}
         >
           <Trash2 size={12} />
@@ -594,7 +596,7 @@ function TaskRow({
       </div>
 
       <span
-        title={`来源：${item.source}`}
+        title={uiText("ui.taskspanel.018e36ca2e", { value0: item.source })}
         style={{
           display: "flex",
           alignItems: "center",
@@ -619,6 +621,7 @@ function TaskRow({
 }
 
 function AttachmentChip({ att, onClick }: { att: DdlAttachment; onClick: (e: React.MouseEvent) => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [h, setH] = useState(false);
   const Icon = att.kind === "url" ? Link2
     : att.kind === "filepath" ? FolderOpen
@@ -666,6 +669,7 @@ function RowIconBtn({
   label: string;
   danger?: boolean;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [h, setH] = useState(false);
   return (
     <button
@@ -704,6 +708,7 @@ function RowIconBtn({
 // 复选框
 // ============================================================
 function Checkbox({ checked, onClick }: { checked: boolean; onClick: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   // 勾选完成时弹跳一下（配 task-complete 服务铃，观察.txt #1：音效配 UI 动画）
   const [popping, setPopping] = useState(false);
   const prevChecked = useRef(checked);
@@ -719,7 +724,7 @@ function Checkbox({ checked, onClick }: { checked: boolean; onClick: () => void 
   return (
     <button
       onClick={onClick}
-      aria-label={checked ? "标记未完成" : "标记完成"}
+      aria-label={checked ? uiText("ui.taskspanel.6a60c94d6c") : uiText("ui.taskspanel.94efe277bf")}
       className={popping ? "fx-pop" : undefined}
       style={{
         width: 18,
@@ -753,6 +758,7 @@ function ToolbarBtn({
   /** 手机：仅图标方块，节省顶部空间 */
   compact?: boolean;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [h, setH] = useState(false);
   return (
     <button
@@ -794,6 +800,7 @@ function PrimaryBtn({
   label: string;
   onClick: () => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [h, setH] = useState(false);
   return (
     <button
@@ -826,15 +833,16 @@ function PrimaryBtn({
 // 空状态
 // ============================================================
 // #16 推荐每日任务：降低启动门槛，一键添加
-const RECOMMENDED_TASKS = [
-  "复习今天的笔记 25 分钟",
-  "规划明天的 3 件事",
-  "整理待办收件箱",
-  "运动 / 散步 15 分钟",
-  "读 10 页书",
+const RECOMMENDED_TASKS = () => [
+  uiText("ui.taskspanel.49b7552431"),
+  uiText("ui.taskspanel.738cd504a9"),
+  uiText("ui.taskspanel.aa07200a74"),
+  uiText("ui.taskspanel.cd0b915f3d"),
+  uiText("ui.taskspanel.dc87906483"),
 ];
 
 function EmptyState({ onCreate, onQuickAdd }: { onCreate: () => void; onQuickAdd?: (title: string) => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div
       style={{
@@ -849,12 +857,8 @@ function EmptyState({ onCreate, onQuickAdd }: { onCreate: () => void; onQuickAdd
       <div style={{ marginBottom: 14 }}>
         <EmptyTasks size={180} />
       </div>
-      <p style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)", margin: "0 0 6px" }}>
-        还没有任何任务
-      </p>
-      <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "0 0 8px" }}>
-        切到 <strong style={{ color: "var(--color-text)" }}>Chat</strong> 上传课件，或点下方按钮手动添加
-      </p>
+      <p style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)", margin: "0 0 6px" }}>{uiText("ui.taskspanel.5fb9b6da46")}</p>
+      <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "0 0 8px" }}>{uiText("ui.taskspanel.376f91b047")}<strong style={{ color: "var(--color-text)" }}>{uiText("ui.taskspanel.460b3a7da0")}</strong>{uiText("ui.taskspanel.ebba540196")}</p>
       {/* Epic 6.5 管家小气泡 */}
       <p
         style={{
@@ -867,18 +871,14 @@ function EmptyState({ onCreate, onQuickAdd }: { onCreate: () => void; onQuickAdd
           display: "inline-block",
           margin: "0 0 16px",
         }}
-      >
-        ☕「放假了？让我陪你休息一下」— Butler
-      </p>
+      >{uiText("ui.taskspanel.2fd6d8fbe6")}</p>
 
       {/* #16 推荐任务：一键启动，降低门槛 */}
       {onQuickAdd && (
         <div style={{ marginBottom: 18 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.6, textTransform: "uppercase", color: "var(--color-text-faint)", margin: "0 0 8px" }}>
-            管家推荐 · 点一下即添加
-          </p>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.6, textTransform: "uppercase", color: "var(--color-text-faint)", margin: "0 0 8px" }}>{uiText("ui.taskspanel.ee26a0556e")}</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", maxWidth: 460, margin: "0 auto" }}>
-            {RECOMMENDED_TASKS.map((t) => (
+            {RECOMMENDED_TASKS().map((t) => (
               <RecommendChip key={t} label={t} onClick={() => onQuickAdd(t)} />
             ))}
           </div>
@@ -886,13 +886,14 @@ function EmptyState({ onCreate, onQuickAdd }: { onCreate: () => void; onQuickAdd
       )}
 
       <div>
-        <PrimaryBtn onClick={onCreate} icon={<Plus size={14} />} label="New Task" />
+        <PrimaryBtn onClick={onCreate} icon={<Plus size={14} />} label={uiText("ui.taskspanel.718e58cc20")} />
       </div>
     </div>
   );
 }
 
 function RecommendChip({ label, onClick }: { label: string; onClick: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   return (
     <button
@@ -921,6 +922,7 @@ function RecommendChip({ label, onClick }: { label: string; onClick: () => void 
 }
 
 function ViewEmptyState({ viewTitle }: { viewTitle: string }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div
       style={{
@@ -933,25 +935,21 @@ function ViewEmptyState({ viewTitle }: { viewTitle: string }) {
     >
       {/* [056] 漏斗插画：视图筛选为空 */}
       <div style={{ marginBottom: 8 }}><EmptyFilter size={88} /></div>
-      <p style={{ fontSize: 14, color: "var(--color-text-muted)", margin: 0 }}>
-        当前视图「{viewTitle}」下没有任务
-      </p>
-      <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: "6px 0 0" }}>
-        切换左侧 Views 看其他视图
-      </p>
+      <p style={{ fontSize: 14, color: "var(--color-text-muted)", margin: 0 }}>{uiText("ui.taskspanel.6538341781", { value0: viewTitle })}</p>
+      <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: "6px 0 0" }}>{uiText("ui.taskspanel.eaa8968900")}</p>
     </div>
   );
 }
 
 function formatDate(iso: string): string {
-  if (!iso) return "待定";
+  if (!iso) return uiText("ui.taskspanel.63ec276c63");
   const d = new Date(iso);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const diff = Math.floor((d.getTime() - today.getTime()) / 86400000);
-  if (diff === 0) return "今天";
-  if (diff === 1) return "明天";
-  if (diff === -1) return "昨天";
-  if (diff > 0 && diff < 7) return `${diff} 天后`;
-  return `${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+  if (diff === 0) return uiText("ui.taskspanel.d5f5a7a010");
+  if (diff === 1) return uiText("ui.taskspanel.b1d841b978");
+  if (diff === -1) return uiText("ui.taskspanel.0c184871f6");
+  if (diff > 0 && diff < 7) return uiText("ui.taskspanel.75d6840390", { value0: diff });
+  return uiText("ui.taskspanel.c5f0a95550", { value0: d.getMonth() + 1, value1: d.getDate() });
 }

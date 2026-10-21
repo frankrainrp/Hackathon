@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/ChatCanvas.tsx — 漫画式对话主区（居中管家版）
@@ -25,35 +28,35 @@ import InputPod from "./InputPod";
 export type Message = ChatMessage;
 
 // 新对话快捷提示词：3 类（进度追踪 / 面板创建 / AI 工作流）
-const PROMPT_GROUPS: { id: string; title: string; icon: React.ReactNode; prompts: string[] }[] = [
+const PROMPT_GROUPS = (): { id: string; title: string; icon: React.ReactNode; prompts: string[] }[] => [
   {
     id: "progress",
-    title: "进度追踪",
+    get title() { return uiText("ui.chatcanvas.d0788c1fca"); },
     icon: <TrendingUp size={15} color="var(--color-primary)" />,
     prompts: [
-      "我这周完成了多少任务？还剩哪些？",
-      "最近有哪些临近的 deadline？",
-      "我的连续学习天数和完成率如何？",
+      uiText("ui.chatcanvas.bfdac3adab"),
+      uiText("ui.chatcanvas.cc912c0e01"),
+      uiText("ui.chatcanvas.704c7aa5b1"),
     ],
   },
   {
     id: "panel",
-    title: "面板创建",
+    get title() { return uiText("ui.chatcanvas.86e90e330e"); },
     icon: <LayoutDashboard size={15} color="var(--color-primary)" />,
     prompts: [
-      "做一个我的任务进度统计面板",
-      "建一个加密货币实时行情面板",
-      "给我做一个本周复习计划看板",
+      uiText("ui.chatcanvas.0ea4742b8d"),
+      uiText("ui.chatcanvas.5e153affb8"),
+      uiText("ui.chatcanvas.e5376745a2"),
     ],
   },
   {
     id: "workflow",
-    title: "AI 工作流",
+    get title() { return uiText("ui.chatcanvas.1b0717562c"); },
     icon: <Workflow size={15} color="var(--color-primary)" />,
     prompts: [
-      "帮我建每周健身 3 次的周期任务",
-      "每周一自动生成「写周报」任务",
-      "调研半导体潜力股，做成面板",
+      uiText("ui.chatcanvas.4f39153743"),
+      uiText("ui.chatcanvas.9490634d9e"),
+      uiText("ui.chatcanvas.d65b0f8dae"),
     ],
   },
 ];
@@ -64,11 +67,11 @@ const CONTENT_MAX = 800;
 // 时段问候（本地，零 token）
 function greetingHeadline(): string {
   const h = new Date().getHours();
-  if (h < 6) return "夜深了";
-  if (h < 11) return "早上好";
-  if (h < 14) return "中午好";
-  if (h < 18) return "下午好";
-  return "晚上好";
+  if (h < 6) return uiText("ui.chatcanvas.659983ea32");
+  if (h < 11) return uiText("ui.chatcanvas.3cc2e31eb2");
+  if (h < 14) return uiText("ui.chatcanvas.fceb19622c");
+  if (h < 18) return uiText("ui.chatcanvas.552594ef80");
+  return uiText("ui.chatcanvas.d8e9a7fa20");
 }
 
 interface ChatCanvasProps {
@@ -115,6 +118,7 @@ interface ChatCanvasProps {
 // 用户消息：简单墨绿淡底气泡（右对齐）
 // ============================================================
 function UserBubble({ msg }: { msg: ChatMessage }) {
+  const uiLanguage = useCopyLanguage().lang;
   const hasFiles = msg.files && msg.files.length > 0;
   return (
     <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -164,6 +168,7 @@ function UserBubble({ msg }: { msg: ChatMessage }) {
 }
 
 function UserFileChip({ file }: { file: UploadedFile }) {
+  const uiLanguage = useCopyLanguage().lang;
   const isImage = file.mime.startsWith("image/");
   const isPdf = file.mime === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
   const Icon = isImage ? ImageIcon : isPdf ? FileText : FileIcon;
@@ -206,6 +211,7 @@ function UserFileChip({ file }: { file: UploadedFile }) {
 function ReasoningPanel({
   reasoning, thinkingActive,
 }: { reasoning: string; thinkingActive: boolean }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [forced, setForced] = useState<boolean | null>(null);
   const open = forced ?? thinkingActive;
   return (
@@ -237,7 +243,7 @@ function ReasoningPanel({
       >
         <Brain size={13} color="var(--color-primary)" style={{ flexShrink: 0 }} />
         <span style={{ fontWeight: 600 }}>
-          {thinkingActive ? "思考中…" : "已思考"}
+          {thinkingActive ? uiText("ui.chatcanvas.64088d8cd7") : uiText("ui.chatcanvas.356e173b72")}
         </span>
         {thinkingActive && (
           <span
@@ -298,6 +304,7 @@ function MessageToolbar({
   /** error 消息常显工具栏；普通消息仅 hover 显示 */
   alwaysVisible?: boolean;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     try {
@@ -322,8 +329,8 @@ function MessageToolbar({
     >
       <button
         onClick={handleCopy}
-        aria-label={copied ? "已复制" : "复制"}
-        title={copied ? "已复制" : "复制"}
+        aria-label={copied ? uiText("ui.chatcanvas.8f6f8d979c") : uiText("ui.chatcanvas.63d90d9773")}
+        title={copied ? uiText("ui.chatcanvas.8f6f8d979c") : uiText("ui.chatcanvas.63d90d9773")}
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -342,13 +349,13 @@ function MessageToolbar({
         onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
       >
         {copied ? <CheckIcon size={11} /> : <Copy size={11} />}
-        {copied ? "已复制" : "复制"}
+        {copied ? uiText("ui.chatcanvas.8f6f8d979c") : uiText("ui.chatcanvas.63d90d9773")}
       </button>
       {onRegenerate && (
         <button
           onClick={onRegenerate}
-          aria-label={isError ? "重试" : "重新生成"}
-          title={isError ? "重试" : "重新生成"}
+          aria-label={isError ? uiText("ui.chatcanvas.b8784c8dd5") : uiText("ui.chatcanvas.3221a042ea")}
+          title={isError ? uiText("ui.chatcanvas.b8784c8dd5") : uiText("ui.chatcanvas.3221a042ea")}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -367,7 +374,7 @@ function MessageToolbar({
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
         >
           <RefreshCw size={11} />
-          {isError ? "重试" : "重新生成"}
+          {isError ? uiText("ui.chatcanvas.b8784c8dd5") : uiText("ui.chatcanvas.3221a042ea")}
         </button>
       )}
     </div>
@@ -376,6 +383,7 @@ function MessageToolbar({
 
 /** 思考点：AI 首字未到时的「管家斟酌中」指示（3 点错相跳动）*/
 function TypingDots() {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 18, padding: "2px 0" }}>
       {[0, 1, 2].map((i) => (
@@ -398,6 +406,7 @@ function TypingDots() {
 /** 管家头顶漫画思考框：thinking 阶段缩放弹入，思考完淡出（纯 CSS，零素材）。
  *  主泡 + 两个递减尾泡指向左下管家头，内嵌 TypingDots 跳动点。 */
 function ThoughtBubble({ visible }: { visible: boolean }) {
+  const uiLanguage = useCopyLanguage().lang;
   const bubble: React.CSSProperties = {
     position: "absolute",
     background: "var(--color-surface)",
@@ -449,6 +458,7 @@ function ButlerBubble({
   /** 重新生成 / 重试 callback；缺省则不显示该按钮 */
   onRegenerate?: () => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const hasReasoning = showReasoning && !!(reasoning && reasoning.trim());
   // 思考过程已结束的判断：reasoning 存在但正文已经开始（content 非空）
   const thinkingActive = hasReasoning && !content;
@@ -516,6 +526,7 @@ function ButlerBubble({
 // 主组件
 // ============================================================
 export default function ChatCanvas(props: ChatCanvasProps) {
+  const uiLanguage = useCopyLanguage().lang;
   const {
     messages,
     pipelines,
@@ -593,7 +604,7 @@ export default function ChatCanvas(props: ChatCanvasProps) {
       if (messages[i].role === "assistant") return messages[i].id;
     }
     return null;
-  }, [messages]);
+  }, [messages, uiLanguage]);
 
   const isEmpty = messages.length === 0;
   const isMobile = useIsMobile();
@@ -668,11 +679,9 @@ export default function ChatCanvas(props: ChatCanvasProps) {
           >
             <div style={{ textAlign: "center" }}>
               <h2 className="font-display" style={{ fontSize: 27, fontWeight: 700, color: "var(--color-text)", margin: 0, letterSpacing: "-0.4px" }}>
-                {greetingHeadline()}，Feng
+                {greetingHeadline()}
               </h2>
-              <p style={{ fontSize: 14, color: "var(--color-text-muted)", margin: "8px 0 0", lineHeight: 1.5 }}>
-                有什么可以帮你？告诉我安排、让我搭个面板，或拖一份课件给我整理。
-              </p>
+              <p style={{ fontSize: 14, color: "var(--color-text-muted)", margin: "8px 0 0", lineHeight: 1.5 }}>{uiText("ui.chatcanvas.e54b7026ef")}</p>
             </div>
 
             {/* 居中输入框（新对话焦点）*/}
@@ -694,9 +703,7 @@ export default function ChatCanvas(props: ChatCanvasProps) {
             {/* 3 类快捷提示词 */}
             <PromptSuggestions onPick={onQuickAction} onLoadDemo={!hasAnyData ? onLoadDemo : undefined} />
 
-            <p style={{ fontSize: 11, color: "var(--color-text-faint)", margin: 0 }}>
-              Butler 可能犯错，重要信息请自行核实。
-            </p>
+            <p style={{ fontSize: 11, color: "var(--color-text-faint)", margin: 0 }}>{uiText("ui.chatcanvas.dbe482749d")}</p>
           </div>
         ) : (
           /* 历史消息流：去 max-width 居中容器,让 AI 气泡彻底贴 main 左 padding */
@@ -792,9 +799,7 @@ export default function ChatCanvas(props: ChatCanvasProps) {
               color: "var(--color-text-faint)",
               margin: 0,
             }}
-          >
-            Butler 可能犯错，重要信息请自行核实。
-          </p>
+          >{uiText("ui.chatcanvas.dbe482749d")}</p>
         </div>
       )}
 
@@ -833,6 +838,7 @@ export default function ChatCanvas(props: ChatCanvasProps) {
 // 新对话快捷提示词（Claude 式 3 类卡片）
 // ============================================================
 function PromptSuggestions({ onPick, onLoadDemo }: { onPick: (prompt: string) => void; onLoadDemo?: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   const isMobile = useIsMobile();
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
@@ -844,7 +850,7 @@ function PromptSuggestions({ onPick, onLoadDemo }: { onPick: (prompt: string) =>
           alignItems: "start", // 折叠卡各自自然高度，展开某张不撑高同行其它卡
         }}
       >
-        {PROMPT_GROUPS.map((g) => (
+        {PROMPT_GROUPS().map((g) => (
           <PromptGroupCard key={g.id} group={g} onPick={onPick} />
         ))}
       </div>
@@ -864,9 +870,7 @@ function PromptSuggestions({ onPick, onLoadDemo }: { onPick: (prompt: string) =>
           }}
           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-primary)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-primary)"; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border)"; }}
-        >
-          还没有数据？点这里先看个 Demo →
-        </button>
+        >{uiText("ui.chatcanvas.4f91aa0247")}</button>
       )}
     </div>
   );
@@ -879,6 +883,7 @@ function PromptGroupCard({
   group: { id: string; title: string; icon: React.ReactNode; prompts: string[] };
   onPick: (prompt: string) => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [open, setOpen] = useState(false);
   const [hov, setHov] = useState(false);
   return (
@@ -928,6 +933,7 @@ function PromptGroupCard({
 }
 
 function PromptLine({ text, onClick }: { text: string; onClick: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   return (
     <button

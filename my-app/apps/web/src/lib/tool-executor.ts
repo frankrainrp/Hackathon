@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/tool-executor.ts — AI tool_call 执行器
 //
@@ -44,7 +46,7 @@ export function createToolExecutor(deps: ToolExecutorDeps) {
     try {
       args = JSON.parse(call.function.arguments || "{}");
     } catch {
-      return { ok: false, message: `工具参数 JSON 解析失败：${call.function.arguments}` };
+      return { ok: false, message: uiText("ui.toolexecutor.94d6ec5f01", { value0: call.function.arguments }) };
     }
 
     switch (call.function.name as ToolCall["name"]) {
@@ -65,7 +67,7 @@ export function createToolExecutor(deps: ToolExecutorDeps) {
       case "create_recurring_task":
         return execCreateRecurring(args as CreateRecurringTaskArgs, deps);
       default:
-        return { ok: false, message: `未知工具：${call.function.name}` };
+        return { ok: false, message: uiText("ui.toolexecutor.c5187c04a4", { value0: call.function.name }) };
     }
   };
 }
@@ -75,11 +77,11 @@ export function createToolExecutor(deps: ToolExecutorDeps) {
 // ============================================================
 function execCreate(args: CreateItemArgs, { addPending }: ToolExecutorDeps): ToolResult {
   if (!args.taskName) {
-    return { ok: false, message: "缺少必填字段 taskName" };
+    return { ok: false, message: uiText("ui.toolexecutor.4ee9eda09f") };
   }
   const dueDate = args.dueDate ?? "";
   if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
-    return { ok: false, message: `dueDate 必须是 YYYY-MM-DD 或空串，当前传入：${dueDate}` };
+    return { ok: false, message: uiText("ui.toolexecutor.83b54dfe1e", { value0: dueDate }) };
   }
   const status = args.status ?? "todo";
   const draft: DdlItem = {
@@ -90,14 +92,14 @@ function execCreate(args: CreateItemArgs, { addPending }: ToolExecutorDeps): Too
     dueTime: args.dueTime || "23:59",
     description: args.description || "",
     isGroupWork: args.isGroupWork ?? false,
-    source: "AI 创建（待核实）",
+    source: uiText("ui.toolexecutor.eee78fc268"),
     completed: status === "done",
     status,
     ...(args.tags && args.tags.length > 0 ? { tags: args.tags } : {}),
     ...(args.priority ? { priority: args.priority } : {}),
     ...(args.notes ? { notes: args.notes } : {}),
   };
-  const dateLabel = draft.dueDate || "待定";
+  const dateLabel = draft.dueDate || uiText("ui.toolexecutor.63ec276c63");
   addPending({
     id: makeChangeId(),
     kind: "create",
@@ -106,7 +108,7 @@ function execCreate(args: CreateItemArgs, { addPending }: ToolExecutorDeps): Too
   });
   return {
     ok: true,
-    message: `已生成「新建」草稿：${draft.taskName}（${dateLabel}）。已加入待核实队列，等用户在卡片上点击「接受」后才会真正写入。`,
+    message: uiText("ui.toolexecutor.2fc3d1a544", { value0: draft.taskName, value1: dateLabel }),
     data: compactItem(draft),
   };
 }
@@ -119,11 +121,11 @@ function execUpdate(args: UpdateItemArgs, { getDdls, addPending }: ToolExecutorD
   if (!target) {
     return {
       ok: false,
-      message: `找不到匹配的任务（itemId=${args.itemId}, taskNameFuzzy=${args.taskNameFuzzy}）。建议先调 list_items 查询。`,
+      message: uiText("ui.toolexecutor.b21ac5811b", { value0: args.itemId, value1: args.taskNameFuzzy }),
     };
   }
   if (args.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(args.dueDate)) {
-    return { ok: false, message: `dueDate 必须是 YYYY-MM-DD，当前传入：${args.dueDate}` };
+    return { ok: false, message: uiText("ui.toolexecutor.93fc1e9a33", { value0: args.dueDate }) };
   }
 
   const patch: Partial<DdlItem> = {
@@ -139,7 +141,7 @@ function execUpdate(args: UpdateItemArgs, { getDdls, addPending }: ToolExecutorD
     ...(args.notes !== undefined ? { notes: args.notes } : {}),
   };
   if (Object.keys(patch).length === 0) {
-    return { ok: false, message: "update_item 至少需要 1 个待修改字段" };
+    return { ok: false, message: uiText("ui.toolexecutor.b7f755e48f") };
   }
 
   addPending({
@@ -153,7 +155,7 @@ function execUpdate(args: UpdateItemArgs, { getDdls, addPending }: ToolExecutorD
 
   return {
     ok: true,
-    message: `已生成「修改」草稿：${target.taskName}。已加入待核实队列。`,
+    message: uiText("ui.toolexecutor.a2a33b9bbc", { value0: target.taskName }),
     data: compactItem({ ...target, ...patch }),
   };
 }
@@ -166,7 +168,7 @@ function execDelete(args: DeleteItemArgs, { getDdls, addPending }: ToolExecutorD
   if (!target) {
     return {
       ok: false,
-      message: `找不到匹配的任务（itemId=${args.itemId}, taskNameFuzzy=${args.taskNameFuzzy}）`,
+      message: uiText("ui.toolexecutor.add02ffc65", { value0: args.itemId, value1: args.taskNameFuzzy }),
     };
   }
   addPending({
@@ -178,7 +180,7 @@ function execDelete(args: DeleteItemArgs, { getDdls, addPending }: ToolExecutorD
   });
   return {
     ok: true,
-    message: `已生成「删除」草稿：${target.taskName}。已加入待核实队列。`,
+    message: uiText("ui.toolexecutor.8998450882", { value0: target.taskName }),
     data: { id: target.id },
   };
 }
@@ -189,13 +191,13 @@ function execDelete(args: DeleteItemArgs, { getDdls, addPending }: ToolExecutorD
 function execToggle(args: ToggleCompleteArgs, { getDdls, setDdls }: ToolExecutorDeps): ToolResult {
   const target = findItem(getDdls(), args.itemId, args.taskNameFuzzy);
   if (!target) {
-    return { ok: false, message: `找不到匹配的任务` };
+    return { ok: false, message: uiText("ui.toolexecutor.1242d9b3c5") };
   }
   const nextCompleted = args.completed !== undefined ? args.completed : !target.completed;
   setDdls((prev) => prev.map((it) => (it.id === target.id ? { ...it, completed: nextCompleted } : it)));
   return {
     ok: true,
-    message: nextCompleted ? `已标记完成：${target.taskName}` : `已取消完成：${target.taskName}`,
+    message: nextCompleted ? uiText("ui.toolexecutor.cff48eda87", { value0: target.taskName }) : uiText("ui.toolexecutor.abdeba607c", { value0: target.taskName }),
     data: { id: target.id, completed: nextCompleted },
   };
 }
@@ -223,7 +225,7 @@ function execList(args: ListItemsArgs, { getDdls }: ToolExecutorDeps): ToolResul
 
   return {
     ok: true,
-    message: `当前匹配 ${filtered.length} 条`,
+    message: uiText("ui.toolexecutor.a28cd03f92", { value0: filtered.length }),
     data: filtered.map(compactItem),
   };
 }
@@ -233,7 +235,7 @@ function execList(args: ListItemsArgs, { getDdls }: ToolExecutorDeps): ToolResul
 // ============================================================
 function execCreateNote(args: CreateNoteArgs, { addPending }: ToolExecutorDeps): ToolResult {
   if (!args.title || !args.content) {
-    return { ok: false, message: "create_note 需要 title 和 content" };
+    return { ok: false, message: uiText("ui.toolexecutor.0a305e9385") };
   }
   const now = Date.now();
   const noteDraft: Note = {
@@ -252,7 +254,7 @@ function execCreateNote(args: CreateNoteArgs, { addPending }: ToolExecutorDeps):
   });
   return {
     ok: true,
-    message: `已生成笔记草稿:「${noteDraft.title}」(${noteDraft.content.length} 字)。已加入待核实队列。`,
+    message: uiText("ui.toolexecutor.6eeb88792d", { value0: noteDraft.title, value1: noteDraft.content.length }),
     data: { id: noteDraft.id, title: noteDraft.title, length: noteDraft.content.length },
   };
 }
@@ -262,15 +264,15 @@ function execCreateNote(args: CreateNoteArgs, { addPending }: ToolExecutorDeps):
 // ============================================================
 function execCreateCustomPanel(args: CreateCustomPanelArgs, { addPending }: ToolExecutorDeps): ToolResult {
   if (!args.label || !args.label.trim()) {
-    return { ok: false, message: "create_custom_panel 需要 label" };
+    return { ok: false, message: uiText("ui.toolexecutor.862634f8f3") };
   }
   const kind: "markdown" | "iframe" | "modules" =
     args.kind === "iframe" ? "iframe" : args.kind === "modules" ? "modules" : "markdown";
   if (kind === "iframe" && (!args.url || !args.url.trim())) {
-    return { ok: false, message: "kind=iframe 必须传 url" };
+    return { ok: false, message: uiText("ui.toolexecutor.22ffe6185f") };
   }
   if (kind === "modules" && (!args.modules || args.modules.length === 0)) {
-    return { ok: false, message: "kind=modules 必须传至少 1 个 module" };
+    return { ok: false, message: uiText("ui.toolexecutor.c3e40d62a8") };
   }
   const now = Date.now();
   // [064] 给每个模组补 id（AI 不传 id）
@@ -280,7 +282,7 @@ function execCreateCustomPanel(args: CreateCustomPanelArgs, { addPending }: Tool
       : undefined;
   const panelDraft: CustomPanel = {
     id: "custom-" + uid(),
-    label: args.label.slice(0, 12).trim() || "新面板",
+    label: args.label.slice(0, 12).trim() || uiText("ui.toolexecutor.4d245a898c"),
     emoji: (args.emoji || "📋").slice(0, 3),
     content: args.content ?? "",
     kind,
@@ -293,13 +295,13 @@ function execCreateCustomPanel(args: CreateCustomPanelArgs, { addPending }: Tool
     id: makeChangeId(),
     kind: "create-custom-panel",
     summary: kind === "modules"
-      ? `${panelDraft.emoji} ${panelDraft.label}（${modules!.length} 个模组）`
+      ? uiText("ui.toolexecutor.ec5e7a205d", { value0: panelDraft.emoji, value1: panelDraft.label, value2: modules!.length })
       : `${panelDraft.emoji} ${panelDraft.label}`,
     panelDraft,
   });
   return {
     ok: true,
-    message: `已生成自定义面板草稿:「${panelDraft.label}」(${kind})。已加入待核实队列。`,
+    message: uiText("ui.toolexecutor.1aa35a5884", { value0: panelDraft.label, value1: kind }),
     data: { id: panelDraft.id, label: panelDraft.label, kind },
   };
 }
@@ -309,13 +311,13 @@ function execCreateCustomPanel(args: CreateCustomPanelArgs, { addPending }: Tool
 // ============================================================
 function execCreateRecurring(args: CreateRecurringTaskArgs, { addRecurring }: ToolExecutorDeps): ToolResult {
   if (!args.taskName || !args.taskName.trim()) {
-    return { ok: false, message: "create_recurring_task 需要 taskName" };
+    return { ok: false, message: uiText("ui.toolexecutor.3358504dca") };
   }
   if (args.cadence !== "daily" && args.cadence !== "weekly" && args.cadence !== "monthly") {
-    return { ok: false, message: "cadence 必须是 daily / weekly / monthly" };
+    return { ok: false, message: uiText("ui.toolexecutor.4bce584319") };
   }
   if (!addRecurring) {
-    return { ok: false, message: "周期任务功能未就绪" };
+    return { ok: false, message: uiText("ui.toolexecutor.2cd3f489e6") };
   }
   const times = Math.max(1, Math.min(args.timesPerPeriod || 1, 31));
   const routine = makeRecurring({
@@ -328,10 +330,10 @@ function execCreateRecurring(args: CreateRecurringTaskArgs, { addRecurring }: To
     emoji: args.emoji,
   });
   addRecurring(routine);
-  const freq = `${CADENCE_LABEL[args.cadence]}${times > 1 ? ` ${times} 次` : ""}`;
+  const freq = `${CADENCE_LABEL[args.cadence]}${times > 1 ? uiText("ui.toolexecutor.51b51f5c69", { value0: times }) : ""}`;
   return {
     ok: true,
-    message: `已创建周期任务「${routine.taskName}」（${freq}），并已生成当前周期的实例到任务清单。之后每到新周期会自动续期。`,
+    message: uiText("ui.toolexecutor.5480fcb138", { value0: routine.taskName, value1: freq }),
     data: { id: routine.id, taskName: routine.taskName, cadence: routine.cadence, timesPerPeriod: times },
   };
 }

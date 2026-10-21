@@ -1,3 +1,6 @@
+import { uiText } from "../../../lib/messages.ts";
+import { generationLanguage } from "@/lib/api-language";
+import { withUiLanguage } from "@/lib/api-language";
 import { completeWithProvider, providerError } from "@/lib/ai-provider";
 import { isLocalAiRequest } from "@/lib/ai-config";
 // ============================================================
@@ -29,7 +32,7 @@ const EXTRACT_TOOL = {
   type: "function" as const,
   function: {
     name: "extract_ddls",
-    description: "把文档里所有的 deadline / 作业 / 考试 / 测验 / 提交节点一次性返回成结构化数组。如果文档没有明确日期，按学期 16 周推算（开学日通常是月初）。",
+    description: "把文档里所有的 deadline / 作业 / 考试 / 测验 / 提交节点一次性返回成结构化数组。没有明确日期时留空，不推测开学日或学期周数。",
     parameters: {
       type: "object" as const,
       properties: {
@@ -54,11 +57,11 @@ const EXTRACT_TOOL = {
   },
 };
 
-export async function POST(req: Request) {
-  if (!isLocalAiRequest(req, true)) return Response.json({ error: "Local access only." }, { status: 403 });
+async function handlePOST(req: Request) {
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: uiText("server.641c510983e7") }, { status: 403 });
   const body: ExtractRequest = await req.json();
   if (!body.markdown || body.markdown.length < 20) {
-    return Response.json({ ok: false, error: "markdown 内容过短或缺失" }, { status: 400 });
+    return Response.json({ ok: false, error: uiText("server.c5a76f41ea06") }, { status: 400 });
   }
 
 
@@ -82,7 +85,7 @@ export async function POST(req: Request) {
   try {
     const completion = await completeWithProvider({
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: (systemPrompt) + "\n\n" + generationLanguage(req) },
         { role: "user", content: `文档名：${body.filename}\n\n文档内容：\n${body.markdown}` },
       ],
       tools: [EXTRACT_TOOL],
@@ -93,7 +96,7 @@ export async function POST(req: Request) {
 
     const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
-      return Response.json({ ok: false, error: "AI 未调用 extract_ddls 工具", raw: completion.choices[0]?.message?.content }, { status: 500 });
+      return Response.json({ ok: false, error: uiText("server.fa949aa39a54"), raw: completion.choices[0]?.message?.content }, { status: 500 });
     }
 
     const parsed = JSON.parse(toolCall.function.arguments) as { items: ExtractedDdl[] };
@@ -106,3 +109,5 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, error: providerError(err) }, { status: 500 });
   }
 }
+
+export const POST = withUiLanguage(handlePOST);

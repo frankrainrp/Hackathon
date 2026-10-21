@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/OnboardingTour.tsx — 5 步首次使用引导
@@ -25,32 +28,32 @@ interface Step {
 const STEPS: Step[] = [
   {
     placement: "center",
-    title: "👋 你好,我是 Butler",
-    body: "你的智能学习管家。30 秒带你看完最核心的 5 件事。",
+    get title() { return uiText("ui.onboardingtour.e61603a855"); },
+    get body() { return uiText("ui.onboardingtour.b30c3fa566"); },
   },
   {
     selector: "header nav",
     placement: "bottom",
-    title: "1️⃣ 4 个面板",
-    body: "Chat 找我对话 · Tasks 任务清单 · Calendar 日历 · Notes 笔记。\n按 ⌘N 在当前 Tab 快速新建。",
+    get title() { return uiText("ui.onboardingtour.717d69cce2"); },
+    get body() { return uiText("ui.onboardingtour.b7b68f1886"); },
   },
   {
     selector: "#chat-input",
     placement: "top",
-    title: "2️⃣ 跟我自然对话",
-    body: "试着说「明天 9 点开会」,我会自动建任务。\n或者拖一份 PDF 课件给我,我帮你提取所有 DDL。",
+    get title() { return uiText("ui.onboardingtour.53276a0ebf"); },
+    get body() { return uiText("ui.onboardingtour.bca02f78ec"); },
   },
   {
     selector: "[id=\"model-selector-btn\"]",
     placement: "top",
-    title: "3️⃣ 切换 AI 模型",
-    body: "Flash 模式日常用、速度快;思考模式适合复杂题,可看 CoT 推理。",
+    get title() { return uiText("ui.onboardingtour.5dc5a810c3"); },
+    get body() { return uiText("ui.onboardingtour.88defc8130"); },
   },
   {
-    selector: "input[placeholder*=\"Search\"]",
+    selector: "input[data-global-search]",
     placement: "bottom",
-    title: "4️⃣ 全局搜索 ⌘K",
-    body: "按 ⌘K 搜任何任务 / 笔记 / 对话,点结果可跳转高亮。\n按 ? 查看全部快捷键。",
+    get title() { return uiText("ui.onboardingtour.d917dde769"); },
+    get body() { return uiText("ui.onboardingtour.2e6a94e1d5"); },
   },
 ];
 
@@ -64,6 +67,7 @@ interface Props {
 }
 
 export default function OnboardingTour({ forceOpen = null, onClose }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const [open, setOpen] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
@@ -243,8 +247,8 @@ export default function OnboardingTour({ forceOpen = null, onClose }: Props) {
           </div>
           <button
             onClick={() => close(true)}
-            aria-label="跳过"
-            title="跳过引导"
+            aria-label={uiText("ui.onboardingtour.fc50a99caa")}
+            title={uiText("ui.onboardingtour.ca28c968a7")}
             style={{
               width: 22, height: 22, border: "none", background: "transparent",
               cursor: "pointer", color: "var(--color-text-muted)",
@@ -279,8 +283,7 @@ export default function OnboardingTour({ forceOpen = null, onClose }: Props) {
               gap: 3,
             }}
           >
-            <SkipForward size={11} /> 跳过
-          </button>
+            <SkipForward size={11} />{uiText("ui.onboardingtour.fc50a99caa")}</button>
           <div style={{ display: "flex", gap: 6 }}>
             {!isFirst && (
               <button
@@ -299,8 +302,7 @@ export default function OnboardingTour({ forceOpen = null, onClose }: Props) {
                   gap: 3,
                 }}
               >
-                <ArrowLeft size={11} /> 上一步
-              </button>
+                <ArrowLeft size={11} />{uiText("ui.onboardingtour.da336fdc0d")}</button>
             )}
             <button
               onClick={() => (isLast ? close(true) : setStepIdx((i) => i + 1))}
@@ -319,7 +321,7 @@ export default function OnboardingTour({ forceOpen = null, onClose }: Props) {
                 gap: 3,
               }}
             >
-              {isLast ? "开始使用 ✓" : "下一步"} {!isLast && <ArrowRight size={11} />}
+              {isLast ? uiText("ui.onboardingtour.9640b92522") : uiText("ui.onboardingtour.acfc4e74a6")} {!isLast && <ArrowRight size={11} />}
             </button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { uiText } from "../messages.ts";
 // ============================================================
 // lib/ocr/providers.ts — OCR 服务商注册表
 //
@@ -28,28 +29,28 @@ export const OCR_PROVIDERS: OcrProviderMeta[] = [
   {
     id: "mistral",
     label: "Mistral OCR",
-    pricing: "$0.001/页（1000 页 $1）",
+    get pricing() { return uiText("ocr.metadata.pricing"); },
     needsEnvKey: "MISTRAL_API_KEY",
     tier: "low",
-    desc: "业内最便宜的专业 OCR，中文/表格/数学公式都强。推荐默认。",
+    get desc() { return uiText("ocr.metadata.consent"); },
     implemented: true,
   },
   {
     id: "deepseek-vl",
-    label: "DeepSeek-VL（占位）",
-    pricing: "复用 DEEPSEEK_API_KEY（按 token 算，约 ¥0.01-0.05/页）",
+    get label() { return uiText("ocr.metadata.deepseek"); },
+    get pricing() { return uiText("ocr.metadata.unavailable"); },
     needsEnvKey: "DEEPSEEK_API_KEY",
     tier: "low",
-    desc: "复用现有 DeepSeek key 无需新申请。但非专业 OCR，复杂版面可能不如 Mistral。",
+    get desc() { return uiText("ocr.metadata.unimplemented"); },
     implemented: false,
   },
   {
     id: "tesseract",
-    label: "Tesseract.js（客户端）",
-    pricing: "0 成本（首次下载 ~10MB 模型）",
+    get label() { return uiText("ocr.metadata.tesseract"); },
+    get pricing() { return uiText("ocr.metadata.unavailable"); },
     needsEnvKey: null,
     tier: "low",
-    desc: "0 key 0 钱，但中文识别一般、复杂表格弱、速度慢（1-3s/页）。完全本地。",
+    get desc() { return uiText("ocr.metadata.localMissing"); },
     implemented: false,
   },
 ];

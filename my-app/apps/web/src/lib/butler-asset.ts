@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/butler-asset.ts — Phase C 用户自定义管家形象
 //
@@ -25,7 +27,7 @@ function loadImage(file: File | Blob): Promise<HTMLImageElement> {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("图片解码失败")); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(uiText("ui.butlerasset.a3a188b7ee"))); };
     img.src = url;
   });
 }
@@ -38,7 +40,7 @@ interface TrimResult { blob: Blob; width: number; height: number }
  */
 async function trimAndCrop(file: File): Promise<TrimResult> {
   if (file.size > MAX_UPLOAD_BYTES) {
-    throw new Error(`文件过大（${(file.size / 1024 / 1024).toFixed(1)} MB），上限 4 MB`);
+    throw new Error(uiText("ui.butlerasset.5c7855ac5e", { value0: (file.size / 1024 / 1024).toFixed(1) }));
   }
   const img = await loadImage(file);
 
@@ -47,7 +49,7 @@ async function trimAndCrop(file: File): Promise<TrimResult> {
   c1.width = img.naturalWidth;
   c1.height = img.naturalHeight;
   const ctx1 = c1.getContext("2d", { willReadFrequently: true });
-  if (!ctx1) throw new Error("Canvas 上下文不可用");
+  if (!ctx1) throw new Error(uiText("ui.butlerasset.e3e308d95e"));
   ctx1.drawImage(img, 0, 0);
 
   const imgData = ctx1.getImageData(0, 0, c1.width, c1.height);
@@ -74,7 +76,7 @@ async function trimAndCrop(file: File): Promise<TrimResult> {
       }
     }
   }
-  if (!hasAny) throw new Error("抠图后图像全透明（可能是纯白图）");
+  if (!hasAny) throw new Error(uiText("ui.butlerasset.8f0fe5acbe"));
 
   ctx1.putImageData(imgData, 0, 0);
 
@@ -85,11 +87,11 @@ async function trimAndCrop(file: File): Promise<TrimResult> {
   c2.width = cropW;
   c2.height = cropH;
   const ctx2 = c2.getContext("2d");
-  if (!ctx2) throw new Error("Canvas 上下文不可用");
+  if (!ctx2) throw new Error(uiText("ui.butlerasset.e3e308d95e"));
   ctx2.drawImage(c1, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
 
   const blob: Blob = await new Promise((resolve, reject) => {
-    c2.toBlob((b) => b ? resolve(b) : reject(new Error("PNG 编码失败")), "image/png");
+    c2.toBlob((b) => b ? resolve(b) : reject(new Error(uiText("ui.butlerasset.245c58a5dd"))), "image/png");
   });
   return { blob, width: cropW, height: cropH };
 }

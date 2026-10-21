@@ -1,12 +1,12 @@
 {
-  "name": "Butler — 智能多模态学习管家",
+  "name": "Butler — Your study workspace",
   "short_name": "Butler",
-  "description": "AI-powered Personal Learning OS",
+  "description": "Organize courses, tasks, notes and study plans.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",
   "theme_color": "#1B3D2F",
-  "lang": "zh-CN",
+  "lang": "en",
   "orientation": "any",
   "icons": [
     {

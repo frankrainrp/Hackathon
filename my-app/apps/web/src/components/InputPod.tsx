@@ -1,4 +1,7 @@
 "use client";
+import { uiText, appFetch } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/InputPod.tsx — 悬浮底栏输入舱（含文件上传 + 拖拽）
@@ -35,6 +38,7 @@ export default function InputPod({
   selectedModel = "deepseek-v4-flash",
   onSelectModel,
 }: InputPodProps) {
+  const uiLanguage = useCopyLanguage().lang;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
@@ -44,6 +48,22 @@ export default function InputPod({
   const modelBtnRef = useRef<HTMLButtonElement>(null);
   const [modelMenuPos, setModelMenuPos] = useState<{ left: number; bottom: number } | null>(null);
   const modelMeta = getModelMeta(selectedModel);
+  const [connection, setConnection] = useState<{ settings: { mode: string }; modelNames: { primary: string | null; alternate: string | null } } | null>(null);
+  const [connectionFailed, setConnectionFailed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => { void appFetch("/api/ai/setup", { cache: "no-store" }).then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(value => { if (active) { setConnection(value); setConnectionFailed(false); } }).catch(() => { if (active) setConnectionFailed(true); }); };
+    refresh(); window.addEventListener("butler:ai-settings-change", refresh);
+    return () => { active = false; window.removeEventListener("butler:ai-settings-change", refresh); };
+  }, []);
+  const modelLabel = (id: AiModelId) => {
+    if (connectionFailed) return uiText("ai.connectionUnavailable");
+    if (!connection) return uiText("ai.readingConnection");
+    if (connection.settings.mode === "none") return uiText("ai.off");
+    const alternate = id === "deepseek-v4-thinking";
+    const name = (alternate && connection.modelNames.alternate) || connection.modelNames.primary;
+    return name ? uiText(alternate ? "ai.alternateWithModel" : "ai.primaryWithModel", { model: name }) : uiText("ai.modelNeeded");
+  };
 
   const toggleModelMenu = () => {
     if (!modelMenuOpen && modelBtnRef.current) {
@@ -128,9 +148,7 @@ export default function InputPod({
             background: "var(--color-primary-soft)",
             color: "var(--color-primary)", fontSize: 13, fontWeight: 600,
             letterSpacing: 0.2,
-          }}>
-            释放即可上传文档
-          </div>
+          }}>{uiText("ui.inputpod.d30cd60cb2")}</div>
         )}
 
         {/* 附件 chips */}
@@ -157,8 +175,8 @@ export default function InputPod({
             onBlur={() => setFocused(false)}
             placeholder={
               attachedFiles.length > 0
-                ? "添加备注后按 Enter 发送，AI 将解析文档并提取 DDL…"
-                : "向 Butler 提问，或拖拽 PDF / 课件到此处自动整理 DDL…"
+                ? uiText("ui.inputpod.fa358003a2")
+                : uiText("ui.inputpod.e52ea4984a")
             }
             rows={1}
             style={{
@@ -200,7 +218,7 @@ export default function InputPod({
               }}
             >
               <ModelDot tier={modelMeta.tier} />
-              <span style={{ fontWeight: 500 }}>{modelMeta.label}</span>
+              <span title={modelLabel(selectedModel)} style={{ fontWeight: 500, maxWidth: "min(42vw, 320px)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{modelLabel(selectedModel)}</span>
               <ChevronDown size={12} color="var(--color-text-muted)" style={{
                 transform: modelMenuOpen ? "rotate(180deg)" : "rotate(0)",
                 transition: "transform 0.15s",
@@ -230,7 +248,7 @@ export default function InputPod({
                   {AI_MODELS.map((m, idx) => (
                     <ModelOption
                       key={m.id}
-                      meta={m}
+                      meta={{ ...m, label: modelLabel(m.id) }}
                       isActive={m.id === selectedModel}
                       isLast={idx === AI_MODELS.length - 1}
                       onClick={() => {
@@ -246,7 +264,7 @@ export default function InputPod({
             {/* 附件 */}
             <button
               id="attach-btn"
-              aria-label="附加文件"
+              aria-label={uiText("ui.inputpod.e3bc92c218")}
               onClick={() => fileInputRef.current?.click()}
               style={{
                 width: 32, height: 32, borderRadius: 8,
@@ -278,7 +296,7 @@ export default function InputPod({
             {isLoading && onStop ? (
               <GlassButton
                 id="stop-btn"
-                aria-label="停止生成"
+                aria-label={uiText("ui.inputpod.9ad0aac32e")}
                 onClick={onStop}
                 variant="primary"
                 circle
@@ -289,7 +307,7 @@ export default function InputPod({
             ) : (
               <GlassButton
                 id="send-btn"
-                aria-label="发送消息"
+                aria-label={uiText("ui.inputpod.008814832c")}
                 onClick={onSend}
                 disabled={!canSend}
                 variant="primary"
@@ -310,6 +328,7 @@ export default function InputPod({
 // 本时段（5h 窗口）免费额度消耗百分比，环形进度 + 中心 % + 悬浮明细。
 // 耗尽转危险色、≥80% 转琥珀。点击/悬浮 title 提示余量与回满倒计时。
 function UsageRing() {
+  const uiLanguage = useCopyLanguage().lang;
   const u = useUsage().window;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -332,8 +351,8 @@ function UsageRing() {
 
   return (
     <div
-      title={`本时段免费额度 ¥${u.spend.toFixed(2)} / ¥${u.budget.toFixed(2)}（已用 ${pct}%）· ${reset} 后回满`}
-      aria-label={`免费额度已用 ${pct}%`}
+      title={uiText("ui.inputpod.2aa975c0e2", { value0: u.spend.toFixed(2), value1: u.budget.toFixed(2), value2: pct, value3: reset })}
+      aria-label={uiText("ui.inputpod.22f6f29d02", { value0: pct })}
       style={{ width: size, height: size, position: "relative", flexShrink: 0 }}
     >
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)", display: "block" }}>
@@ -366,6 +385,7 @@ function UsageRing() {
 
 // ---- 文件 chip ----
 function FileChip({ file, onRemove }: { file: UploadedFile; onRemove: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   const isImage = file.mime.startsWith("image/");
   const isPdf = file.mime === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
@@ -395,7 +415,7 @@ function FileChip({ file, onRemove }: { file: UploadedFile; onRemove: () => void
         {formatSize(file.size)}
       </span>
       <button
-        aria-label="移除附件"
+        aria-label={uiText("ui.inputpod.7ee8b2d0ae")}
         onClick={onRemove}
         style={{
           width: 18, height: 18, borderRadius: 4, border: "none",
@@ -420,6 +440,7 @@ function formatSize(bytes: number): string {
 /** 餐厅前台服务铃铛（台铃）：点一下"叮"——呼应管家签名服务铃音效 [060]，
  *  发送 = 按铃唤管家的巴甫洛夫闭环。currentColor 跟随按钮文字色。 */
 function ServiceBell({ size = 18 }: { size?: number }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       {/* 顶部按钮 + 短杆 */}
@@ -437,6 +458,7 @@ function ServiceBell({ size = 18 }: { size?: number }) {
 // 模型相关：tier 圆点 + 紧凑下拉项
 // ============================================================
 function ModelDot({ tier }: { tier: "low" | "mid" | "high" }) {
+  const uiLanguage = useCopyLanguage().lang;
   const color = tier === "low" ? "#22c55e" : tier === "mid" ? "#f59e0b" : "#ef4444";
   return (
     <span
@@ -460,6 +482,7 @@ function ModelOption({
   isLast: boolean;
   onClick: () => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   const isPlaceholder = !!meta.placeholder; // #12 接口预留：不可选
   // 注意：不再用 inline style 残留改 background。背景完全由 state 派生

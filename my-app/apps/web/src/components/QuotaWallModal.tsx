@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/QuotaWallModal.tsx — [087] 免费额度耗尽 softwall
@@ -29,6 +32,7 @@ interface QuotaWallModalProps {
 export default function QuotaWallModal({
   open, resetAt, canFallbackFlash, onSwitchFlash, onTopUp, onUpgrade, onClose,
 }: QuotaWallModalProps) {
+  const uiLanguage = useCopyLanguage().lang;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!open) return;
@@ -61,7 +65,7 @@ export default function QuotaWallModal({
         <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid var(--color-border-soft)", position: "relative" }}>
           <button
             onClick={onClose}
-            aria-label="关闭"
+            aria-label={uiText("ui.quotawallmodal.3fd47edce4")}
             style={{
               position: "absolute", top: 14, right: 14, width: 28, height: 28,
               display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -72,16 +76,9 @@ export default function QuotaWallModal({
             <X size={16} />
           </button>
           <div style={{ fontSize: 24, lineHeight: 1, marginBottom: 8 }}>🔥</div>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>
-            本时段免费额度用完了
-          </h2>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "6px 0 0", lineHeight: 1.5 }}>
-            你这阵和 Butler 聊得火热。每 5 小时免费额度（¥{WINDOW_BUDGET.toFixed(1)}）会回满，
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, color: "var(--color-text)", fontWeight: 600 }}>
-              <Clock size={12} /> {reset} 后回满
-            </span>
-            。现在想继续：
-          </p>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>{uiText("ui.quotawallmodal.383674bfdc")}</h2>
+          <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "6px 0 0", lineHeight: 1.5 }}>{uiText("ui.quotawallmodal.d7cc2ae28d", { value0: WINDOW_BUDGET.toFixed(1) })}<span style={{ display: "inline-flex", alignItems: "center", gap: 3, color: "var(--color-text)", fontWeight: 600 }}>
+              <Clock size={12} />{uiText("ui.quotawallmodal.8bc1598729", { value0: reset })}</span>{uiText("ui.quotawallmodal.4dc7854c43")}</p>
         </div>
 
         {/* options */}
@@ -89,23 +86,23 @@ export default function QuotaWallModal({
           {canFallbackFlash && (
             <OptionRow
               icon={<Zap size={18} />}
-              title="切回 DeepSeek Flash"
-              desc="依然免费，日常对话/任务管理足够用"
+              title={uiText("ui.quotawallmodal.7390c0d026")}
+              desc={uiText("ui.quotawallmodal.bfcb6f7142")}
               primary
-              badge="推荐"
+              badge={uiText("ui.quotawallmodal.1452deafc6")}
               onClick={onSwitchFlash}
             />
           )}
           <OptionRow
             icon={<Wallet size={18} />}
-            title="充值钱包，按量继续"
-            desc="按真实用量计费（成本 ×1.3），随用随扣"
+            title={uiText("ui.quotawallmodal.b6f401ef25")}
+            desc={uiText("ui.quotawallmodal.b0ee706c9d")}
             onClick={onTopUp}
           />
           <OptionRow
             icon={<Crown size={18} />}
-            title="开会员，更高额度 + 全模型解锁"
-            desc="折合单价比按量省 ~25%，Pro/Max 自动解锁高端模型"
+            title={uiText("ui.quotawallmodal.8305f87f5a")}
+            desc={uiText("ui.quotawallmodal.8b42c5c5dc")}
             onClick={onUpgrade}
           />
         </div>
@@ -124,6 +121,7 @@ function OptionRow({
   badge?: string;
   onClick: () => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   return (
     <button

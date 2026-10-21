@@ -1,3 +1,5 @@
+
+import { uiText, translate, getUiLanguage, type Lang, type MessageParams } from "./messages.ts";
 import type { LmsSnapshot } from "./lms-schema";
 import type { ChatMessage, ChatSession, DdlItem, Note } from "./types";
 import type { ProfileSettings } from "./lms-profile";
@@ -54,7 +56,8 @@ function localDue(value: string | null, timeZone: string) {
 }
 
 /** Deterministic facts are authoritative; AI only supplies a bounded optional brief. */
-export function buildLmsFeed(snapshot: LmsSnapshot, previous: LmsFeed, now = Date.now()): LmsFeed {
+export function buildLmsFeed(snapshot: LmsSnapshot, previous: LmsFeed, now = Date.now(), language: Lang = getUiLanguage()): LmsFeed {
+  const uiText = (key: string, params?: MessageParams) => translate(key, language, params);
   const prefix = lmsScopePrefix(snapshot);
   const sessionId = `${prefix}session`;
   const tasks = new Map(previous.ddls.map(d => [d.id, d]));
@@ -78,24 +81,24 @@ export function buildLmsFeed(snapshot: LmsSnapshot, previous: LmsFeed, now = Dat
       const done = state === "submitted";
       const task: DdlItem = { id, taskName: assignment.title, source: course.moduleName, weight: null,
         dueDate, dueTime, completed: done, status: done ? "done" : "todo", isGroupWork: false,
-        description: `${snapshot.school} · ${snapshot.timezone} · ${assignment.submissionState === "unknown" ? "本轮提交状态待核实" : done ? "网站已确认提交" : "网站未找到提交记录"}`,
+        description: `${snapshot.school} · ${snapshot.timezone} · ${assignment.submissionState === "unknown" ? uiText("ui.lmssync.aaabf6d98f") : done ? uiText("ui.lmssync.c6cbb39cc9") : uiText("ui.lmssync.db929e1912")}`,
         priority: assignment.dueAt && new Date(assignment.dueAt).getTime() - now <= 86400000 && !done ? "high" : "med",
         tags: ["LMS", snapshot.school], lmsSubmissionState: state, lmsDueAt: assignment.dueAt,
-        attachments: [{ id: `${id}-link`, kind: "url", label: "打开学校作业", ref: assignment.url }],
+        attachments: [{ id: `${id}-link`, kind: "url", label: uiText("ui.lmssync.d88fb3e36f"), ref: assignment.url }],
         lmsProfileId: snapshot.profileId, lmsSemesterId: snapshot.semesterId,
       };
       if (old) { task.notes = old.notes; task.noteId = old.noteId; }
       if (old && old.lmsSubmissionState === state) { task.status = old.status; task.completed = old.completed; }
       tasks.set(id, task);
-      if (!old) changes.push(`${course.moduleName}：新增作业「${assignment.title}」（${state === "submitted" ? "网站已确认提交" : state === "missing" ? "未提交" : "提交状态待核实"}）`);
-      else if (old.lmsDueAt !== assignment.dueAt) changes.push(`${assignment.title}：截止时间有更新`);
-      else if (old.lmsSubmissionState !== state) changes.push(`${assignment.title}：${state === "submitted" ? "已提交" : "提交状态有更新"}`);
+      if (!old) changes.push(uiText("ui.lmssync.eee4f71f3b", { value0: course.moduleName, value1: assignment.title, value2: state === "submitted" ? uiText("lms.submitted") : state === "missing" ? uiText("lms.missing") : uiText("lms.unknown") }));
+      else if (old.lmsDueAt !== assignment.dueAt) changes.push(uiText("ui.lmssync.9961992fc6", { value0: assignment.title }));
+      else if (old.lmsSubmissionState !== state) changes.push(`${assignment.title}：${state === "submitted" ? uiText("ui.lmssync.bc37a6110a") : uiText("ui.lmssync.c3e1b36bcd")}`);
       if (assignment.submissionState === "missing" && assignment.dueAt) {
         const left = new Date(assignment.dueAt).getTime() - now;
         if (left <= 86400000) {
           const band = left <= 0 ? 3 : left <= 21600000 ? 2 : 1;
           reminderBand = Math.max(reminderBand, band);
-          nearDue.push(`- ${assignment.title}（${course.moduleName}）：${left <= 0 ? "已逾期" : `约 ${Math.ceil(left / 3600000)} 小时后截止`}，${dueDate} ${dueTime} ${snapshot.timezone}；[查看](${assignment.url})`);
+          nearDue.push(uiText("ui.lmssync.b7c6ced888", { value0: assignment.title, value1: course.moduleName, value2: left <= 0 ? uiText("lms.overdue") : uiText("lms.hoursLeft", { count: Math.ceil(left / 3600000) }), value3: dueDate, value4: dueTime, value5: snapshot.timezone, value6: assignment.url }));
         }
       }
     }
@@ -103,33 +106,33 @@ export function buildLmsFeed(snapshot: LmsSnapshot, previous: LmsFeed, now = Dat
     const oldCourse = courses.get(noteId);
     courses.set(noteId, { ...course, assignments: course.assignments.map(a => a.submissionState === "unknown" ? { ...a, submissionState: oldCourse?.assignments.find(old => old.id === a.id)?.submissionState || "unknown" } : a), school: snapshot.school, noteId,
       profileId: snapshot.profileId, semesterId: snapshot.semesterId, semesterLabel: snapshot.semesterLabel });
-    const content = [`# ${course.moduleName}`, "", `学校：${snapshot.school}`, "", ...course.lessons.flatMap(l => [
-      `## ${l.number === null ? "Resources" : `${l.kind ?? "Lesson"} ${String(l.number).padStart(2, "0")}${l.endNumber && l.endNumber !== l.number ? `-${String(l.endNumber).padStart(2, "0")}` : ""}`} · ${l.title}`,
-      ...l.materials.map(m => `- [${m.title}](${m.url})${m.filePath ? ` · 已归档：${m.filePath}` : ""}`), "",
-    ]), "## 学校通知", "", ...course.announcements.map(a => `- [${a.title}](${a.url})\n${a.text}`)].join("\n");
+    const content = [`# ${course.moduleName}`, "", uiText("ui.lmssync.ad27a9923a", { value0: snapshot.school }), "", ...course.lessons.flatMap(l => [
+      `## ${l.number === null ? uiText("course.resources") : `${l.kind ?? uiText("course.lesson")} ${String(l.number).padStart(2, "0")}${l.endNumber && l.endNumber !== l.number ? `-${String(l.endNumber).padStart(2, "0")}` : ""}`} · ${l.title}`,
+      ...l.materials.map(m => `- [${m.title}](${m.url})${m.filePath ? uiText("ui.lmssync.7a46a5d99a", { value0: m.filePath }) : ""}`), "",
+    ]), uiText("ui.lmssync.43f01c86a3"), "", ...course.announcements.map(a => `- [${a.title}](${a.url})\n${a.text}`)].join("\n");
     const oldNote = notes.get(noteId);
     const materials = course.lessons.flatMap(l => l.materials);
     const oldMaterials = new Map((oldNote?.lmsMaterials || []).map(m => [m.id, m]));
     const changed = materials.filter(m => !oldMaterials.has(m.id) || oldMaterials.get(m.id)?.modifiedAt !== m.modifiedAt);
-    if (changed.length) changes.push(`${course.moduleName}：${changed.length} 份课件新增或更新`);
+    if (changed.length) changes.push(uiText("ui.lmssync.61492a6a78", { value0: course.moduleName, value1: changed.length }));
     const announcementVersion = signature(course.announcements);
-    if (course.announcements.length && oldNote?.lmsAnnouncements !== announcementVersion) changes.push(`${course.moduleName}：学校通知有更新`);
+    if (course.announcements.length && oldNote?.lmsAnnouncements !== announcementVersion) changes.push(uiText("ui.lmssync.32bbe06169", { value0: course.moduleName }));
     notes.set(noteId, { id: noteId, title: course.moduleName, content, tags: ["LMS", snapshot.school], lmsCompletedLessons: oldNote?.lmsCompletedLessons,
       createdAt: oldNote?.createdAt || now, updatedAt: oldNote?.content === content ? oldNote.updatedAt : now,
       lmsMaterials: materials.map(m => ({ id: m.id, modifiedAt: m.modifiedAt || null })), lmsAnnouncements: announcementVersion });
   }
   if (changes.length) addMessage(`${prefix}changes-${snapshot.syncedAt.replace(/[^0-9]/g, "")}`,
-    `学校同步完成：\n\n${changes.slice(0, 20).map(c => `- ${c}`).join("\n")}${changes.length > 20 ? `\n另有 ${changes.length - 20} 项更新，详见任务和课程笔记。` : ""}`);
+    uiText("ui.lmssync.a2c6c12126", { value0: changes.slice(0, 20).map(c => `- ${c}`).join("\n"), value1: changes.length > 20 ? uiText("lms.moreChanges", { count: changes.length - 20 }) : "" }));
   if (nearDue.length) addMessage(`${prefix}reminder-${day}-${reminderBand}`,
-    `还有 ${nearDue.length} 项作业未提交：\n\n${nearDue.slice(0, 20).join("\n")}\n\n先处理最近截止的一项，再安排其他任务。`);
+    uiText("ui.lmssync.606075bff9", { value0: nearDue.length, value1: nearDue.slice(0, 20).join("\n") }));
   const oldStatus = previous.status;
   if (snapshot.status === "login_required" && oldStatus?.status !== "login_required") {
-    addMessage(`${prefix}login-${now}`, "学校登录已失效，课程同步暂停。请在同步器中重新登录；现有课件和作业记录已保留。");
+    addMessage(`${prefix}login-${now}`, uiText("ui.lmssync.53c730fe4e"));
   } else if (snapshot.status !== "ok" && snapshot.status !== "login_required" && signature(oldStatus?.warnings) !== signature(snapshot.warnings)) {
-    addMessage(`${prefix}warning-${now}`, `学校同步需要检查：\n\n${snapshot.warnings.slice(0, 10).map(w => `- ${w}`).join("\n")}`);
+    addMessage(`${prefix}warning-${now}`, uiText("ui.lmssync.6d7fe061cc", { value0: snapshot.warnings.slice(0, 10).map(w => `- ${w}`).join("\n") }));
   }
   const sessions = previous.sessions.filter(s => s.id !== sessionId);
-  sessions.push({ id: sessionId, title: `${snapshot.school} · 学习提醒`, createdAt: previous.sessions.find(s => s.id === sessionId)?.createdAt || now,
+  sessions.push({ id: sessionId, title: uiText("ui.lmssync.bcd581c37b", { value0: snapshot.school }), createdAt: previous.sessions.find(s => s.id === sessionId)?.createdAt || now,
     updatedAt: messages.size !== previous.messages.length ? now : previous.sessions.find(s => s.id === sessionId)?.updatedAt || now });
   const syncHistory = (previous.syncHistory || []).filter(s => !(s.profileId === snapshot.profileId && s.semesterId === snapshot.semesterId && s.syncedAt === snapshot.syncedAt));
   syncHistory.push({ profileId: snapshot.profileId, semesterId: snapshot.semesterId, syncedAt: snapshot.syncedAt, status: snapshot.status, warnings: snapshot.warnings });

@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/theme.ts — Phase B 颜色自定义工具
 //
@@ -16,12 +18,12 @@ export const DEFAULT_ACCENT = "#1B3D2F"; // 墨绿（与 globals.css :root 一�
 
 /** UI 用快捷预设 — 横排 swatch 一键应用 */
 export const ACCENT_PRESETS: Array<{ label: string; value: string }> = [
-  { label: "墨绿", value: "#1B3D2F" }, // 默认 forest
-  { label: "海军蓝", value: "#1E3A5F" },
-  { label: "紫罗兰", value: "#5B3A8E" },
-  { label: "玫瑰红", value: "#9D2B4F" },
-  { label: "杏橙", value: "#A8541E" },
-  { label: "石墨灰", value: "#374151" },
+  { get label() { return uiText("ui.theme.2803b877f2"); }, value: "#1B3D2F" }, // 默认 forest
+  { get label() { return uiText("ui.theme.29d3c90c87"); }, value: "#1E3A5F" },
+  { get label() { return uiText("ui.theme.2a2e1b4f30"); }, value: "#5B3A8E" },
+  { get label() { return uiText("ui.theme.5641959682"); }, value: "#9D2B4F" },
+  { get label() { return uiText("ui.theme.ff9a890eb8"); }, value: "#A8541E" },
+  { get label() { return uiText("ui.theme.bdf7aab1f6"); }, value: "#374151" },
 ];
 
 // ---------- 颜色换算 ----------

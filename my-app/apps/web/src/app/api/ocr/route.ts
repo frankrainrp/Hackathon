@@ -1,3 +1,5 @@
+import { uiText, localizeExternal, requestLanguage } from "../../../lib/messages.ts";
+import { withUiLanguage } from "@/lib/api-language";
 import { readAiSettings, isLocalAiRequest } from "@/lib/ai-config";
 // ============================================================
 // app/api/ocr/route.ts — 多模态 OCR 路由
@@ -22,9 +24,9 @@ export const dynamic = "force-dynamic";
 
 const MAX_BYTES = 50 * 1024 * 1024; // 50 MB
 
-export async function POST(req: Request) {
-  if (!isLocalAiRequest(req, true)) return Response.json({ error: "Local access only." }, { status: 403 });
-  if (!readAiSettings().cloudOcr) return jsonErr("Cloud OCR is off. Scanned files require the separate Mistral cloud service and may upload the selected document. Open Settings → AI setup to opt in. Local text AI does not make OCR offline; text PDFs and manual notes still work.", 403, true);
+async function handlePOST(req: Request) {
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: uiText("server.641c510983e7") }, { status: 403 });
+  if (!readAiSettings().cloudOcr) return jsonErr(uiText("server.156da65e3d8c"), 403, true);
   // 1. 选 provider（环境变量 OCR_PROVIDER，默认 mistral）
   const providerEnv = process.env.OCR_PROVIDER || DEFAULT_OCR_PROVIDER;
   const providerId: OcrProviderId = isValidOcrProviderId(providerEnv) ? providerEnv : DEFAULT_OCR_PROVIDER;
@@ -32,7 +34,7 @@ export async function POST(req: Request) {
 
   if (!providerMeta.implemented) {
     return jsonErr(
-      `OCR provider「${providerMeta.label}」尚未实现接入。请设置 OCR_PROVIDER=mistral 或等待后续版本。`,
+      uiText("server.75db0ad9c832", { value0: localizeExternal(providerMeta.label, requestLanguage(req)) }),
       501,
       true,
     );
@@ -43,7 +45,7 @@ export async function POST(req: Request) {
     const key = process.env[providerMeta.needsEnvKey];
     if (!key || key.startsWith("sk-xxx") || key === "your-key-here") {
       return jsonErr(
-        `OCR 需要配置 ${providerMeta.needsEnvKey}（${providerMeta.pricing}）。\n请在 apps/web/.env.local 中填入真实 key 后重启 dev server。\nMistral 注册：https://console.mistral.ai/`,
+        uiText("server.856b6ee1f21c", { value0: providerMeta.needsEnvKey, value1: localizeExternal(providerMeta.pricing, requestLanguage(req)) }),
         500,
         true,
       );
@@ -55,15 +57,15 @@ export async function POST(req: Request) {
   try {
     const form = await req.formData();
     const f = form.get("file");
-    if (!(f instanceof File)) return jsonErr("缺少 file 字段", 400);
+    if (!(f instanceof File)) return jsonErr(uiText("server.e3943e2e642d"), 400);
     file = f;
   } catch (err) {
-    return jsonErr(`FormData 解析失败：${(err as Error).message}`, 400);
+    return jsonErr(uiText("server.c2f7f04fa999", { value0: (err as Error).message }), 400);
   }
 
-  if (file.size === 0) return jsonErr("空文件", 400);
+  if (file.size === 0) return jsonErr(uiText("server.d350d798f368"), 400);
   if (file.size > MAX_BYTES) {
-    return jsonErr(`文件过大：${(file.size / 1024 / 1024).toFixed(1)} MB（上限 50 MB）`, 413);
+    return jsonErr(uiText("server.19e5b41d254b", { value0: (file.size / 1024 / 1024).toFixed(1) }), 413);
   }
   if (file.size > 10 * 1024 * 1024) {
     console.warn(`[ocr] 大文件 ${(file.size / 1024 / 1024).toFixed(1)} MB，可能较慢`);
@@ -74,7 +76,7 @@ export async function POST(req: Request) {
     return runMistralOcr(file);
   }
 
-  return jsonErr(`未知 provider：${providerId}`, 500);
+  return jsonErr(uiText("server.b6b7f0ae9f4f", { value0: providerId }), 500);
 }
 
 // ============================================================
@@ -91,7 +93,7 @@ async function runMistralOcr(file: File): Promise<Response> {
     const buf = Buffer.from(await file.arrayBuffer());
     dataUrl = `data:${file.type || "application/octet-stream"};base64,${buf.toString("base64")}`;
   } catch (err) {
-    return jsonErr(`文件读取失败：${(err as Error).message}`, 500);
+    return jsonErr(uiText("server.8686fcd5de2f", { value0: (err as Error).message }), 500);
   }
 
   // Mistral OCR API 区分 PDF / image
@@ -115,7 +117,7 @@ async function runMistralOcr(file: File): Promise<Response> {
       }),
     });
   } catch (err) {
-    return jsonErr(`Mistral API 网络失败：${(err as Error).message}`, 502);
+    return jsonErr(uiText("server.7b35e94fd071", { value0: (err as Error).message }), 502);
   }
 
   if (!mistralRes.ok) {
@@ -124,14 +126,14 @@ async function runMistralOcr(file: File): Promise<Response> {
       const j = await mistralRes.json();
       detail = j.message || j.error?.message || JSON.stringify(j).slice(0, 200);
     } catch { /* ignore */ }
-    return jsonErr(`Mistral OCR 调用失败：${detail}`, 502);
+    return jsonErr(uiText("server.8c91d0b250aa", { value0: detail }), 502);
   }
 
   let json: MistralOcrResponse;
   try {
     json = await mistralRes.json();
   } catch (err) {
-    return jsonErr(`Mistral 响应解析失败：${(err as Error).message}`, 502);
+    return jsonErr(uiText("server.501d0886338a", { value0: (err as Error).message }), 502);
   }
 
   // 合并所有页的 markdown
@@ -139,7 +141,7 @@ async function runMistralOcr(file: File): Promise<Response> {
   const text = pages.map((p) => p.markdown || "").join("\n\n").trim();
 
   if (!text) {
-    return jsonErr("Mistral OCR 返回为空（可能是无法识别的图像或扫描质量过低）", 422);
+    return jsonErr(uiText("server.f23ab33dbb16"), 422);
   }
 
   return new Response(
@@ -175,3 +177,5 @@ function jsonErr(error: string, status = 500, needsConfig = false): Response {
     { status, headers: { "Content-Type": "application/json" } },
   );
 }
+
+export const POST = withUiLanguage(handlePOST);

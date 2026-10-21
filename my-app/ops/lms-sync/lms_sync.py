@@ -120,7 +120,8 @@ def push(config, snapshot):
         token = load_secret(Path(config["private_dir"]) / "bridge.enc")["token"]
     body = json.dumps(snapshot, ensure_ascii=False).encode()
     req = Request(config["butler_url"].rstrip("/") + "/api/lms/ingest", data=body,
-                  headers={"Content-Type": "application/json", "Authorization": "Bearer " + token}, method="POST")
+                  headers={"Content-Type": "application/json", "Authorization": "Bearer " + token,
+                           "X-Butler-Language": "zh" if config.get("language") == "zh" else "en"}, method="POST")
     # Redirects are forbidden so the bridge token cannot follow an external redirect.
     from urllib.request import HTTPRedirectHandler, build_opener
     class NoRedirect(HTTPRedirectHandler):
@@ -226,7 +227,7 @@ async def sync(config, metadata_only=False, catalog_only=False):
                         if name in seen_folders:
                             course["moduleName"] += f" [{course['id']}]"
                         seen_folders[name] = course["id"]
-                        export_course(Path(config["output_dir"]) / config["profile_id"] / config["semester_id"], config["school"], course)
+                        export_course(Path(config["output_dir"]) / config["profile_id"] / config["semester_id"], config["school"], course, config.get("language", "en"))
                         snapshot["courses"].append(course)
                     except AccessUnavailable as error:
                         snapshot["warnings"].append(f"{source['name']}: {error}")
@@ -240,7 +241,7 @@ async def sync(config, metadata_only=False, catalog_only=False):
                     except Exception:
                         LOG.info("Initial metadata delivery pending; downloads continue and final delivery retries.")
                     for course in snapshot["courses"]:
-                        folder = export_course(Path(config["output_dir"]) / config["profile_id"] / config["semester_id"], config["school"], course)
+                        folder = export_course(Path(config["output_dir"]) / config["profile_id"] / config["semester_id"], config["school"], course, config.get("language", "en"))
                         for lesson in course["lessons"]:
                             for material in lesson["materials"]:
                                 if not material["downloadable"]:
@@ -260,7 +261,7 @@ async def sync(config, metadata_only=False, catalog_only=False):
                                     material.update(extract_material(path))
                                 except AccessUnavailable as error:
                                     snapshot["warnings"].append(f"{course['moduleName']}: {material['title']} - {error}")
-                        export_course(Path(config["output_dir"]) / config["profile_id"] / config["semester_id"], config["school"], course)
+                        export_course(Path(config["output_dir"]) / config["profile_id"] / config["semester_id"], config["school"], course, config.get("language", "en"))
                     # Bound school-text payloads; retrieval reports truncation rather than inventing content.
                     remaining = 1_200_000
                     for course in snapshot["courses"]:

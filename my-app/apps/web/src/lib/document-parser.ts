@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/document-parser.ts — 客户端文档解析（PDF / image / OCR 路由）
 //
@@ -37,7 +39,7 @@ export async function parseDocument(file: File): Promise<ParseResult> {
     if (ocr.ok !== true) {
       return {
         ok: false,
-        error: `PDF 看起来是扫描件（unpdf 仅提取到 ${local.ok ? local.text.length : 0} 字符），需要 OCR：${ocr.error}`,
+        error: uiText("ui.documentparser.99f8ea70c3", { value0: local.ok ? local.text.length : 0, value1: ocr.error }),
         needsConfig: ocr.needsConfig,
       };
     }
@@ -66,7 +68,7 @@ export async function parseDocument(file: File): Promise<ParseResult> {
   // ---- 其他（docx/ppt 占位） ----
   return {
     ok: false,
-    error: `暂不支持类型：${mime || name}（当前支持：PDF + image/*）。docx/ppt 待后续接入。`,
+    error: uiText("ui.documentparser.08575f0e50", { value0: mime || name }),
   };
 }
 

@@ -1,3 +1,4 @@
+import { uiText } from "./messages.ts";
 import { z } from "zod";
 
 const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/);
@@ -6,11 +7,11 @@ export function supportsSchoolConnection(domain: string, platform: string) {
   return platform === "brightspace" && ["tplms.polite.edu.sg", "rplms.polite.edu.sg"].includes(domain);
 }
 export function schoolEntry(value: string) {
-  if (/[\\\s\x00-\x1f]/.test(value.trim()) || /^https:\/\/[^/]*@/i.test(value.trim())) throw new Error("Use a public HTTPS LMS URL without credentials, spaces or backslashes.");
+  if (/[\\\s\x00-\x1f]/.test(value.trim()) || /^https:\/\/[^/]*@/i.test(value.trim())) throw new Error(uiText("server.6ce73397d1d2"));
   const url = new URL(value.trim());
   const host = url.hostname.toLowerCase();
-  if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash || (url.port && url.port !== "443")) throw new Error("Use HTTPS on port 443, without credentials, query or fragment.");
-  if (!/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(host) || /\.(?:localhost|local|internal|test|invalid|home|lan)$/.test(host)) throw new Error("The LMS must use a public DNS hostname, not a local address or IP.");
+  if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash || (url.port && url.port !== "443")) throw new Error(uiText("server.2b9c33109d09"));
+  if (!/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(host) || /\.(?:localhost|local|internal|test|invalid|home|lan)$/.test(host)) throw new Error(uiText("server.f996d830ecdd"));
   return { entryUrl: url.href, origin: url.origin, domain: host };
 }
 
@@ -31,13 +32,13 @@ export interface ProfileSettings { version: 1; activeProfileId: string | null; p
 export const emptyProfiles = (): ProfileSettings => ({ version: 1, activeProfileId: null, profiles: [] });
 export function previewProfile(raw: unknown) {
   const input = profileInput.parse(raw) as ProfileInput;
-  if (new Set(input.semester.courses.map(c => c.id)).size !== input.semester.courses.length) throw new Error("Course IDs must be unique.");
+  if (new Set(input.semester.courses.map(c => c.id)).size !== input.semester.courses.length) throw new Error(uiText("server.9494ad775a30"));
   return { ...input, ...schoolEntry(input.entryUrl) };
 }
 export function confirmProfile(settings: ProfileSettings, raw: unknown, now = new Date().toISOString()): ProfileSettings {
   const input = previewProfile(raw);
   const old = settings.profiles.find(p => p.id === input.id);
-  if (old && (old.origin !== input.origin || old.school !== input.school)) throw new Error("Create a new school profile when changing school or domain. Its login remains separate.");
+  if (old && (old.origin !== input.origin || old.school !== input.school)) throw new Error(uiText("server.c493436e31d2"));
   const { semester: nextSemester, ...fields } = input;
   const semesters = (old?.semesters || []).filter(s => s.id !== nextSemester.id).concat(nextSemester);
   const profile = { ...fields, confirmedAt: now, semesters, activeSemesterId: nextSemester.id };

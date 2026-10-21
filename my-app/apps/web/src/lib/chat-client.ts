@@ -1,3 +1,7 @@
+
+import { appFetch as fetch } from "./messages.ts";
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/chat-client.ts — 客户端 AI 调用层
 // 负责：fetch '/api/chat' + SSE 流解析 + tool calling 自动循环
@@ -5,7 +9,7 @@
 
 import type { ToolResult } from "./ai-tools";
 import { recordUsage } from "./usage";
-import { getStoredLang } from "./i18n";
+import { getUiLanguage } from "./messages.ts";
 import { DEFAULT_MODEL_ID, isValidModelId, type AiModelId } from "./ai-models";
 
 // OpenAI Chat Completion message 格式（含 tool calls）
@@ -122,7 +126,7 @@ export async function streamChat(opts: StreamOptions): Promise<void> {
         result = await opts.executeToolCall(call);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        result = { ok: false, message: `工具执行异常：${msg}` };
+        result = { ok: false, message: uiText("ui.chatclient.b22159f2ba", { value0: msg }) };
       }
       opts.callbacks.onToolCallEnd?.(call, result);
       toolResultMessages.push({
@@ -159,7 +163,7 @@ async function streamOneRound(opts: {
       body: JSON.stringify({
         messages: opts.messages,
         courseNoteId: opts.courseNoteId,
-        language: getStoredLang(),
+        language: getUiLanguage(),
         contextSummary: opts.contextSummary,
         userName: opts.userName,
         includeTools: opts.includeTools !== false,
@@ -174,7 +178,7 @@ async function streamOneRound(opts: {
       throw err;
     }
     const msg = err instanceof Error ? err.message : String(err);
-    opts.callbacks.onError?.(new Error(`网络请求失败：${msg}`));
+    opts.callbacks.onError?.(new Error(uiText("ui.chatclient.1964cdf5ca", { value0: msg })));
     throw err;
   }
 

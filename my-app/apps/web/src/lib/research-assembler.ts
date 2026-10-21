@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/research-assembler.ts — 多小队发现 → 面板 spec（P3，确定性，无 AI）
 //
@@ -52,8 +54,8 @@ export function assembleSpec(
   blocks.push({
     id: "intro",
     type: "markdown",
-    title: "调研概览",
-    markdown: `> 🔬 多小队并行调研结果 · 数据为 AI 知识合成，建议接真实源核实\n\n**${plan.squads.length}** 个小队完成调查：\n\n${squadList}`,
+    title: uiText("ui.researchassembler.7317d51c69"),
+    markdown: uiText("ui.researchassembler.18a87dfa5f", { value0: plan.squads.length, value1: squadList }),
   });
 
   plan.squads.forEach((squad, i) => {
@@ -63,7 +65,7 @@ export function assembleSpec(
         id: `sq-${i}-fail`,
         type: "markdown",
         title: squad.title,
-        markdown: `⚠️ 该小队未返回结果。`,
+        markdown: uiText("ui.researchassembler.e9dfdf2e30"),
       });
       return;
     }
@@ -83,7 +85,7 @@ export function assembleSpec(
         blocks.push({
           id: `sq-${i}-chart`,
           type: chartType,
-          title: `${squad.title} · 对比`,
+          title: uiText("ui.researchassembler.8775af9743", { value0: squad.title }),
           sourceId: srcId,
           x: chart!.x,
           y: chart!.y,
@@ -96,7 +98,7 @@ export function assembleSpec(
       blocks.push({
         id: `sq-${i}-table`,
         type: "table",
-        title: `${squad.title} · 明细`,
+        title: uiText("ui.researchassembler.f054a47887", { value0: squad.title }),
         sourceId: srcId,
         columns,
         limit: 12,
@@ -108,7 +110,7 @@ export function assembleSpec(
       blocks.push({
         id: `sq-${i}-sum`,
         type: "markdown",
-        title: hasData ? `${squad.title} · 要点` : squad.title,
+        title: hasData ? uiText("ui.researchassembler.a7daa2cd05", { value0: squad.title }) : squad.title,
         markdown: f.summary,
         span: hasData ? 1 : 2,
       });
@@ -119,7 +121,7 @@ export function assembleSpec(
     version: 1,
     title: plan.title,
     emoji: plan.emoji,
-    description: "多小队并行调研生成 · 数据为 AI 知识合成，可在「应用」里接真实数据源",
+    description: uiText("ui.researchassembler.dc298b768f"),
     sources,
     blocks,
   };

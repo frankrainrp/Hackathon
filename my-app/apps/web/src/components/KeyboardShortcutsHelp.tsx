@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/KeyboardShortcutsHelp.tsx — 快捷键帮助 modal
@@ -21,33 +24,34 @@ interface ShortcutItem {
 
 const SHORTCUTS: ShortcutItem[] = [
   {
-    group: "全局",
+    get group() { return uiText("ui.keyboardshortcutshelp.63d6b47116"); },
     items: [
-      { keys: ["⌘", "K"],  desc: "聚焦全局搜索" },
-      { keys: ["⌘", "N"],  desc: "新建当前 Tab 的项（会话/任务/笔记）" },
-      { keys: ["Esc"],      desc: "关闭抽屉 / 弹窗 / 搜索面板" },
-      { keys: ["?"],        desc: "显示此帮助面板" },
+      { keys: ["⌘", "K"],  get desc() { return uiText("ui.keyboardshortcutshelp.7635403c26"); } },
+      { keys: ["⌘", "N"],  get desc() { return uiText("ui.keyboardshortcutshelp.0319ac7e2e"); } },
+      { keys: ["Esc"],      get desc() { return uiText("ui.keyboardshortcutshelp.eeeb3a12c0"); } },
+      { keys: ["?"],        get desc() { return uiText("ui.keyboardshortcutshelp.7b6ae8a728"); } },
     ],
   },
   {
-    group: "Tasks 面板",
+    get group() { return uiText("ui.keyboardshortcutshelp.e9f6e87fdf"); },
     items: [
-      { keys: ["↑", "↓"],   desc: "在任务列表中上下移动选中" },
-      { keys: ["Enter"],     desc: "编辑选中任务" },
-      { keys: ["Space"],     desc: "切换完成状态" },
+      { keys: ["↑", "↓"],   get desc() { return uiText("ui.keyboardshortcutshelp.0c12930a33"); } },
+      { keys: ["Enter"],     get desc() { return uiText("ui.keyboardshortcutshelp.8fe6706fcb"); } },
+      { keys: ["Space"],     get desc() { return uiText("ui.keyboardshortcutshelp.91b5dcb6e5"); } },
     ],
   },
   {
-    group: "Chat 输入",
+    get group() { return uiText("ui.keyboardshortcutshelp.2bdadb307d"); },
     items: [
-      { keys: ["Enter"],     desc: "发送" },
-      { keys: ["Shift", "Enter"], desc: "换行" },
-      { keys: ["IME"],       desc: "中文选词时回车不发送（自动识别）" },
+      { keys: ["Enter"],     get desc() { return uiText("ui.keyboardshortcutshelp.edecf0ae6e"); } },
+      { keys: ["Shift", "Enter"], get desc() { return uiText("ui.keyboardshortcutshelp.bd609a8e2d"); } },
+      { keys: ["IME"],       get desc() { return uiText("ui.keyboardshortcutshelp.bd63082d8b"); } },
     ],
   },
 ];
 
 export default function KeyboardShortcutsHelp({ open, onClose }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -72,7 +76,7 @@ export default function KeyboardShortcutsHelp({ open, onClose }: Props) {
       />
       <div
         role="dialog"
-        aria-label="键盘快捷键"
+        aria-label={uiText("ui.keyboardshortcutshelp.89ce481a4b")}
         style={{
           position: "fixed",
           top: "50%",
@@ -100,12 +104,10 @@ export default function KeyboardShortcutsHelp({ open, onClose }: Props) {
           }}
         >
           <Keyboard size={16} color="var(--color-primary)" />
-          <h2 style={{ flex: 1, fontSize: 14, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>
-            键盘快捷键
-          </h2>
+          <h2 style={{ flex: 1, fontSize: 14, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>{uiText("ui.keyboardshortcutshelp.89ce481a4b")}</h2>
           <button
             onClick={onClose}
-            aria-label="关闭"
+            aria-label={uiText("ui.keyboardshortcutshelp.3fd47edce4")}
             style={{
               width: 28, height: 28, borderRadius: 6, border: "none",
               background: "transparent", cursor: "pointer",
@@ -186,9 +188,7 @@ export default function KeyboardShortcutsHelp({ open, onClose }: Props) {
             color: "var(--color-text-faint)",
             textAlign: "center",
           }}
-        >
-          Mac 用 ⌘ · Windows / Linux 用 Ctrl
-        </footer>
+        >{uiText("ui.keyboardshortcutshelp.8d767a81bf")}</footer>
       </div>
 
       <style>{`

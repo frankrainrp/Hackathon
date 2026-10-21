@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/mini-apps/StatsApp.tsx — 学习统计 Mini App
@@ -24,6 +27,7 @@ function effStatus(d: DdlItem): "todo" | "in_progress" | "done" {
 }
 
 export default function StatsApp({ ddls }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const stats = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const weekStart = new Date(today);
@@ -35,7 +39,7 @@ export default function StatsApp({ ddls }: Props) {
       const d = new Date(weekStart);
       d.setDate(weekStart.getDate() + i);
       const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      const label = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
+      const label = [uiText("ui.statsapp.85217f7aff"), uiText("ui.statsapp.51a75f4634"), uiText("ui.statsapp.084b42f6e9"), uiText("ui.statsapp.a4c3313deb"), uiText("ui.statsapp.754a9d5828"), uiText("ui.statsapp.c9b87f516a"), uiText("ui.statsapp.de07b53838")][d.getDay()];
       const count = ddls.filter((it) => effStatus(it) === "done" && it.dueDate === iso).length;
       days.push({ label, iso, count });
     }
@@ -59,14 +63,14 @@ export default function StatsApp({ ddls }: Props) {
       .slice(0, 3);
 
     return { days, max, totalDone, totalTodo, topTags };
-  }, [ddls]);
+  }, [ddls, uiLanguage]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {/* 顶部:大数字双 chip */}
       <div style={{ display: "flex", gap: 10 }}>
-        <BigChip icon={<CheckCircle2 size={14} />} label="累计完成" value={stats.totalDone} color="var(--color-success)" />
-        <BigChip icon={<Clock size={14} />} label="未完成" value={stats.totalTodo} color="var(--color-warning)" />
+        <BigChip icon={<CheckCircle2 size={14} />} label={uiText("ui.statsapp.1bad83c67d")} value={stats.totalDone} color="var(--color-success)" />
+        <BigChip icon={<Clock size={14} />} label={uiText("ui.statsapp.6707de42c2")} value={stats.totalTodo} color="var(--color-warning)" />
       </div>
 
       {/* 7 天趋势 */}
@@ -84,8 +88,7 @@ export default function StatsApp({ ddls }: Props) {
             textTransform: "uppercase",
           }}
         >
-          <TrendingUp size={11} /> 7 天完成趋势
-        </div>
+          <TrendingUp size={11} />{uiText("ui.statsapp.495f6d4738")}</div>
         <div
           style={{
             display: "flex",
@@ -134,9 +137,7 @@ export default function StatsApp({ ddls }: Props) {
               letterSpacing: 0.5,
               textTransform: "uppercase",
             }}
-          >
-            Top 标签
-          </div>
+          >{uiText("ui.statsapp.b0e4d6a669")}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {stats.topTags.map((t) => (
               <div
@@ -189,15 +190,14 @@ export default function StatsApp({ ddls }: Props) {
             color: "var(--color-text-muted)",
             textAlign: "center",
           }}
-        >
-          还没给任务打标签 — 给任务加 #tag 后这里会展示分布
-        </div>
+        >{uiText("ui.statsapp.ae3e956586")}</div>
       )}
     </div>
   );
 }
 
 function BigChip({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div
       style={{

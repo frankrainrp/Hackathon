@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/PreferencesPanel.tsx — 用户偏好设置 modal
@@ -100,6 +103,7 @@ interface Props {
 }
 
 export default function PreferencesPanel({ open, onClose }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const isMobile = useIsMobile();
   const { t, lang, setLang } = useT();
   const [theme, setTheme] = useState<Theme>("dark");
@@ -208,7 +212,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
       const wp = await setWallpaper(file); // 存 IndexedDB + dispatch（WallpaperLayer 即时换）
       setWpKind(wp.kind);
     } catch (e) {
-      setWpErr(e instanceof Error ? e.message : "上传失败");
+      setWpErr(e instanceof Error ? e.message : uiText("ui.preferencespanel.219481a6dd"));
     } finally {
       setWpUploading(false);
     }
@@ -234,7 +238,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
   };
 
   const TAB_LABELS: Record<NavId, string> = {
-    chat: "Chat", courses: "Courses", tasks: "Tasks", calendar: "Calendar", notes: "Notes",
+    chat: uiText("ui.preferencespanel.460b3a7da0"), courses: uiText("ui.preferencespanel.aaad9d92e6"), tasks: uiText("ui.preferencespanel.b3a60e61a5"), calendar: uiText("ui.preferencespanel.d5d0a30b51"), notes: uiText("ui.preferencespanel.8a7525b149"),
   };
   const ALL_TABS: NavId[] = ["chat", "courses", "tasks", "calendar", "notes"];
 
@@ -258,12 +262,12 @@ export default function PreferencesPanel({ open, onClose }: Props) {
     });
   };
   const SOUND_CATEGORY_LABELS: Record<SoundCategory, string> = {
-    task: "任务（勾完成）",
-    chat: "对话（发送 / AI 回复）",
-    toast: "Toast 通知",
-    achievement: "成就 / streak",
-    focus: "专注计时（开始 / 结束 / 5 min 提醒）",
-    panel: "面板（新建）",
+    task: uiText("ui.preferencespanel.c62993fae8"),
+    chat: uiText("ui.preferencespanel.4a7f77c087"),
+    toast: uiText("ui.preferencespanel.a5a78b3e4e"),
+    achievement: uiText("ui.preferencespanel.c788c40590"),
+    focus: uiText("ui.preferencespanel.e747332f22"),
+    panel: uiText("ui.preferencespanel.0367ec33f6"),
   };
 
   const applyTheme = (t: Theme) => {
@@ -310,7 +314,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
       />
       <div
         role="dialog"
-        aria-label="偏好设置"
+        aria-label={uiText("ui.preferencespanel.57907a69fc")}
         style={{
           position: "fixed",
           ...(isMobile
@@ -358,7 +362,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
           </h2>
           <button
             onClick={onClose}
-            aria-label="关闭"
+            aria-label={uiText("ui.preferencespanel.3fd47edce4")}
             style={{
               width: 28, height: 28, borderRadius: 6, border: "none",
               background: "transparent", cursor: "pointer",
@@ -373,17 +377,15 @@ export default function PreferencesPanel({ open, onClose }: Props) {
         </header>
 
         <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 18, overflowY: "auto", flex: 1, minHeight: 0 }}>
-          <Section title="AI connection">
-            <button onClick={() => { onClose(); window.dispatchEvent(new Event("butler:ai-setup")); }} style={{ width: "100%", padding: "12px 14px", border: "1px solid var(--color-border)", borderRadius: 8, background: "var(--color-surface)", color: "var(--color-text)", textAlign: "left", cursor: "pointer", fontWeight: 600 }}>
-              Open AI setup · Local / DeepSeek
-            </button>
-            <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--color-text-muted)", marginTop: 8 }}>Choose, test or change your AI connection. Study data stays in place.</p>
+          <Section title={uiText("ui.preferencespanel.a991b2272b")}>
+            <button onClick={() => { onClose(); window.dispatchEvent(new Event("butler:ai-setup")); }} style={{ width: "100%", padding: "12px 14px", border: "1px solid var(--color-border)", borderRadius: 8, background: "var(--color-surface)", color: "var(--color-text)", textAlign: "left", cursor: "pointer", fontWeight: 600 }}>{uiText("ui.preferencespanel.8ccb44ad50")}</button>
+            <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--color-text-muted)", marginTop: 8 }}>{uiText("ui.preferencespanel.540bf15669")}</p>
           </Section>
           {/* [072] 语言（中英主语言切换）*/}
           <Section title={t("prefs.section.language")}>
             <SegRow>
-              <SegBtn active={lang === "zh"} onClick={() => setLang("zh")} icon={<Languages size={14} />} label={t("prefs.language.zh")} />
               <SegBtn active={lang === "en"} onClick={() => setLang("en")} icon={<Languages size={14} />} label={t("prefs.language.en")} />
+              <SegBtn active={lang === "zh"} onClick={() => setLang("zh")} icon={<Languages size={14} />} label={t("prefs.language.zh")} />
             </SegRow>
             <p style={{ fontSize: 11, color: "var(--color-text-faint)", marginTop: 6, lineHeight: 1.5 }}>
               {t("prefs.language.hint")}
@@ -412,7 +414,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
               ))}
               {/* 自定义 color picker：HTML5 input type=color */}
               <label
-                title="自定义颜色"
+                title={uiText("ui.preferencespanel.781b07fdcb")}
                 style={{
                   position: "relative",
                   width: 30, height: 30, borderRadius: 8,
@@ -438,8 +440,8 @@ export default function PreferencesPanel({ open, onClose }: Props) {
               {accent.toUpperCase() !== DEFAULT_ACCENT.toUpperCase() && (
                 <button
                   onClick={() => applyAccent(null)}
-                  title="重置为默认墨绿"
-                  aria-label="重置主题色"
+                  title={uiText("ui.preferencespanel.9200f24250")}
+                  aria-label={uiText("ui.preferencespanel.0eb505984d")}
                   style={{
                     width: 30, height: 30, borderRadius: 8,
                     border: "1px solid var(--color-border)",
@@ -455,9 +457,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
                 </button>
               )}
             </div>
-            <p style={{ fontSize: 11, color: "var(--color-text-faint)", marginTop: 8, lineHeight: 1.5 }}>
-              hover / soft 自动派生；暗色模式会自动提亮以保持对比度
-            </p>
+            <p style={{ fontSize: 11, color: "var(--color-text-faint)", marginTop: 8, lineHeight: 1.5 }}>{uiText("ui.preferencespanel.c4498df0de")}</p>
           </Section>
 
           {/* 字体大小 */}
@@ -474,17 +474,17 @@ export default function PreferencesPanel({ open, onClose }: Props) {
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {/* 管家位置 4 档 */}
               <div>
-                <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "0 0 6px", fontWeight: 500 }}>管家位置</p>
+                <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "0 0 6px", fontWeight: 500 }}>{uiText("ui.preferencespanel.db72a1ae1c")}</p>
                 <SegRow>
-                  <SegBtn active={butlerPos === "left"}   onClick={() => applyButlerPos("left")}   icon={<AlignLeft size={12} />} label="左" />
-                  <SegBtn active={butlerPos === "center"} onClick={() => applyButlerPos("center")} icon={<AlignCenter size={12} />} label="中" />
-                  <SegBtn active={butlerPos === "right"}  onClick={() => applyButlerPos("right")}  icon={<AlignRight size={12} />} label="右" />
-                  <SegBtn active={butlerPos === "hidden"} onClick={() => applyButlerPos("hidden")} icon={<EyeOff size={12} />} label="隐藏" />
+                  <SegBtn active={butlerPos === "left"}   onClick={() => applyButlerPos("left")}   icon={<AlignLeft size={12} />} label={uiText("ui.preferencespanel.e2e0c454e5")} />
+                  <SegBtn active={butlerPos === "center"} onClick={() => applyButlerPos("center")} icon={<AlignCenter size={12} />} label={uiText("ui.preferencespanel.a567bdaa11")} />
+                  <SegBtn active={butlerPos === "right"}  onClick={() => applyButlerPos("right")}  icon={<AlignRight size={12} />} label={uiText("ui.preferencespanel.14ab1f2bce")} />
+                  <SegBtn active={butlerPos === "hidden"} onClick={() => applyButlerPos("hidden")} icon={<EyeOff size={12} />} label={uiText("ui.preferencespanel.145219e726")} />
                 </SegRow>
               </div>
               {/* Tab 显示/隐藏 */}
               <div>
-                <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "0 0 6px", fontWeight: 500 }}>显示 Tab</p>
+                <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "0 0 6px", fontWeight: 500 }}>{uiText("ui.preferencespanel.3321efa71c")}</p>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {ALL_TABS.map((id) => {
                     const visible = !hiddenTabs.has(id);
@@ -508,9 +508,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
                     );
                   })}
                 </div>
-                <p style={{ fontSize: 11, color: "var(--color-text-faint)", marginTop: 6, lineHeight: 1.5 }}>
-                  点击切换显示;Tab 顺序可在顶栏直接拖拽
-                </p>
+                <p style={{ fontSize: 11, color: "var(--color-text-faint)", marginTop: 6, lineHeight: 1.5 }}>{uiText("ui.preferencespanel.b2cc2da702")}</p>
               </div>
             </div>
           </Section>
@@ -532,14 +530,14 @@ export default function PreferencesPanel({ open, onClose }: Props) {
                 }}
               >
                 {soundPrefs.enabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
-                {soundPrefs.enabled ? "已启用音效" : "音效已关闭（点击启用）"}
+                {soundPrefs.enabled ? uiText("ui.preferencespanel.159aa64e52") : uiText("ui.preferencespanel.c3bd043ddd")}
               </button>
 
               {/* 分类开关 + 音量 + 静音时段（仅启用时显示）*/}
               {soundPrefs.enabled && (
                 <>
                   <div>
-                    <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "0 0 6px", fontWeight: 500 }}>分类</p>
+                    <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "0 0 6px", fontWeight: 500 }}>{uiText("ui.preferencespanel.515559957f")}</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                       {(Object.keys(SOUND_CATEGORY_LABELS) as SoundCategory[]).map((cat) => (
                         <label
@@ -566,7 +564,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
                   {/* 音量 */}
                   <div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                      <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0, fontWeight: 500 }}>音量</p>
+                      <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0, fontWeight: 500 }}>{uiText("ui.preferencespanel.8bf8b9780d")}</p>
                       <span style={{ fontSize: 11, color: "var(--color-text-muted)", fontFamily: "ui-monospace, monospace" }}>
                         {Math.round(soundPrefs.volume * 100)}%
                       </span>
@@ -594,32 +592,22 @@ export default function PreferencesPanel({ open, onClose }: Props) {
                           quietHours: e.target.checked ? (soundPrefs.quietHours ?? { start: 22, end: 8 }) : null,
                         })}
                         style={{ accentColor: "var(--color-primary)" }}
-                      />
-                      启用静音时段
-                    </label>
+                      />{uiText("ui.preferencespanel.9c09378f53")}</label>
                     {soundPrefs.quietHours && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 12, color: "var(--color-text-muted)", paddingLeft: 22 }}>
-                        从
-                        <input
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 12, color: "var(--color-text-muted)", paddingLeft: 22 }}>{uiText("ui.preferencespanel.2719a8ea30")}<input
                           type="number" min={0} max={23} value={soundPrefs.quietHours.start}
                           onChange={(e) => applySoundPrefs({ ...soundPrefs, quietHours: { start: Math.max(0, Math.min(23, parseInt(e.target.value || "0", 10))), end: soundPrefs.quietHours!.end } })}
                           style={{ width: 50, padding: "3px 6px", border: "1px solid var(--color-border)", borderRadius: 4, background: "var(--color-bg)", color: "var(--color-text)", fontSize: 12, fontFamily: "inherit" }}
-                        />
-                        点 到
-                        <input
+                        />{uiText("ui.preferencespanel.edb00761dc")}<input
                           type="number" min={0} max={23} value={soundPrefs.quietHours.end}
                           onChange={(e) => applySoundPrefs({ ...soundPrefs, quietHours: { start: soundPrefs.quietHours!.start, end: Math.max(0, Math.min(23, parseInt(e.target.value || "0", 10))) } })}
                           style={{ width: 50, padding: "3px 6px", border: "1px solid var(--color-border)", borderRadius: 4, background: "var(--color-bg)", color: "var(--color-text)", fontSize: 12, fontFamily: "inherit" }}
-                        />
-                        点
-                      </div>
+                        />{uiText("ui.preferencespanel.08dddeac13")}</div>
                     )}
                   </div>
                 </>
               )}
-              <p style={{ fontSize: 11, color: "var(--color-text-faint)", lineHeight: 1.5, margin: 0 }}>
-                音效完全在浏览器内合成（无外部文件，无网络）；默认关闭以防扰民
-              </p>
+              <p style={{ fontSize: 11, color: "var(--color-text-faint)", lineHeight: 1.5, margin: 0 }}>{uiText("ui.preferencespanel.f52aa63264")}</p>
             </div>
           </Section>
 
@@ -639,7 +627,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
                 {customPreview ? (
                   <img
                     src={customPreview.url}
-                    alt="自定义管家"
+                    alt={uiText("ui.preferencespanel.d078c600ff")}
                     style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
                   />
                 ) : (
@@ -662,7 +650,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
                       fontFamily: "inherit",
                     }}
                   >
-                    <Upload size={12} /> {uploading ? "处理中…" : customPreview ? "替换" : "上传"}
+                    <Upload size={12} /> {uploading ? uiText("ui.preferencespanel.d3d21191f3") : customPreview ? uiText("ui.preferencespanel.131b13aa26") : uiText("ui.preferencespanel.9e07e3c053")}
                   </button>
                   {customPreview && (
                     <button
@@ -678,14 +666,13 @@ export default function PreferencesPanel({ open, onClose }: Props) {
                         fontFamily: "inherit",
                       }}
                     >
-                      <RotateCcw size={12} /> 恢复默认
-                    </button>
+                      <RotateCcw size={12} />{uiText("ui.preferencespanel.ba2e93e730")}</button>
                   )}
                 </div>
                 <p style={{ fontSize: 11, color: "var(--color-text-faint)", marginTop: 6, lineHeight: 1.5, margin: "6px 0 0" }}>
                   {customPreview
-                    ? `已上传 ${customPreview.w}×${customPreview.h}px（替换全部 7 姿势）`
-                    : "PNG/JPG 单图，自动白底抠图 + 裁剪；上限 4MB"}
+                    ? uiText("ui.preferencespanel.dac27256ec", { value0: customPreview.w, value1: customPreview.h })
+                    : uiText("ui.preferencespanel.4efd698d95")}
                 </p>
                 {uploadErr && (
                   <p style={{ fontSize: 11, color: "var(--color-danger)", marginTop: 4, margin: "4px 0 0" }}>
@@ -722,7 +709,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
                   cursor: wpUploading ? "wait" : "pointer", fontFamily: "inherit",
                 }}
               >
-                <Upload size={12} /> {wpUploading ? "处理中…" : "上传图片 / 视频"}
+                <Upload size={12} /> {wpUploading ? uiText("ui.preferencespanel.d3d21191f3") : uiText("ui.preferencespanel.4cbc940c61")}
               </button>
               {wpKind && (
                 <button
@@ -735,21 +722,20 @@ export default function PreferencesPanel({ open, onClose }: Props) {
                     fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
                   }}
                 >
-                  <RotateCcw size={12} /> 恢复默认
-                </button>
+                  <RotateCcw size={12} />{uiText("ui.preferencespanel.ba2e93e730")}</button>
               )}
             </div>
             <p style={{ fontSize: 11, color: "var(--color-text-faint)", margin: "6px 0 0", lineHeight: 1.5 }}>
               {wpKind
-                ? `当前壁纸：${wpKind === "video" ? "视频" : "图片"}（浮在玻璃胶囊之后）`
-                : "默认网格底。可换成图片（≤10MB）或循环视频（≤60MB）"}
+                ? uiText("ui.preferencespanel.6a9fdb0e40", { value0: wpKind === "video" ? uiText("ui.preferencespanel.c20f7618d3") : uiText("ui.preferencespanel.d24c10d37d") })
+                : uiText("ui.preferencespanel.ca2228667c")}
             </p>
             {wpErr && (
               <p style={{ fontSize: 11, color: "var(--color-danger)", margin: "4px 0 0" }}>⚠️ {wpErr}</p>
             )}
             {/* 暗化滑块：保证壁纸上玻璃文字可读 */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
-              <span style={{ fontSize: 11, color: "var(--color-text-muted)", flexShrink: 0 }}>暗化</span>
+              <span style={{ fontSize: 11, color: "var(--color-text-muted)", flexShrink: 0 }}>{uiText("ui.preferencespanel.987f6ece91")}</span>
               <input
                 type="range"
                 min={0} max={0.7} step={0.05}
@@ -781,9 +767,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
               <SegBtn active={personality === "standard"} onClick={() => applyPersonality("standard")} icon={<MessageSquare size={12} />} label={t("personality.standard")} />
               <SegBtn active={personality === "sassy"}    onClick={() => applyPersonality("sassy")}    icon={<Flame size={12} />} label={t("personality.sassy")} />
             </SegRow>
-            <p style={{ fontSize: 11, color: "var(--color-text-faint)", marginTop: 6, lineHeight: 1.5 }}>
-              影响 AI 对话语气;切换后立刻生效(下一条消息开始)
-            </p>
+            <p style={{ fontSize: 11, color: "var(--color-text-faint)", marginTop: 6, lineHeight: 1.5 }}>{uiText("ui.preferencespanel.8cbdcc0c5e")}</p>
           </Section>
         </div>
 
@@ -816,6 +800,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <section>
       <h3
@@ -836,6 +821,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function SegRow({ children }: { children: React.ReactNode }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div
       style={{
@@ -855,6 +841,7 @@ function SegRow({ children }: { children: React.ReactNode }) {
 function SwatchBtn({
   active, color, label, onClick,
 }: { active: boolean; color: string; label: string; onClick: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <button
       onClick={onClick}
@@ -878,6 +865,7 @@ function SwatchBtn({
 function SegBtn({
   active, onClick, icon, label,
 }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <button
       onClick={onClick}

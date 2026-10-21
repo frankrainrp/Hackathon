@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/NotesPreview.tsx — 任务备注 Markdown 预览 modal
@@ -17,6 +20,7 @@ interface Props {
 }
 
 export default function NotesPreview({ title, notes, onClose }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -58,9 +62,7 @@ export default function NotesPreview({ title, notes, onClose }: Props) {
             <p style={{
               fontSize: 10, fontWeight: 600, color: "var(--color-text-muted)",
               letterSpacing: 0.5, textTransform: "uppercase", margin: 0,
-            }}>
-              备注
-            </p>
+            }}>{uiText("ui.notespreview.daede98817")}</p>
             <h2 style={{
               fontSize: 14, fontWeight: 600, color: "var(--color-text)",
               margin: "2px 0 0",
@@ -70,7 +72,7 @@ export default function NotesPreview({ title, notes, onClose }: Props) {
             </h2>
           </div>
           <button
-            onClick={onClose} aria-label="关闭"
+            onClick={onClose} aria-label={uiText("ui.notespreview.3fd47edce4")}
             style={{
               width: 28, height: 28, borderRadius: 6, border: "none",
               background: "transparent", cursor: "pointer", color: "var(--color-text-muted)",
@@ -96,7 +98,7 @@ export default function NotesPreview({ title, notes, onClose }: Props) {
           {notes.trim() ? (
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{notes}</ReactMarkdown>
           ) : (
-            <p style={{ color: "var(--color-text-faint)", margin: 0 }}>（备注为空）</p>
+            <p style={{ color: "var(--color-text-faint)", margin: 0 }}>{uiText("ui.notespreview.391bf720e0")}</p>
           )}
         </div>
       </div>

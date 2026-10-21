@@ -1,3 +1,6 @@
+import { uiText } from "../../../../lib/messages.ts";
+import { generationLanguage } from "@/lib/api-language";
+import { withUiLanguage } from "@/lib/api-language";
 import { completeWithProvider, providerError } from "@/lib/ai-provider";
 import { isLocalAiRequest } from "@/lib/ai-config";
 // ============================================================
@@ -26,19 +29,19 @@ const SYSTEM = `你是调研小队，负责目标下的一个子问题。基于�
 3. 数据是知识合成、非实时，summary 里点明「数据为示意，建议接真实源核实」。
 4. 控制体量：rows ≤ 12 行。`;
 
-export async function POST(req: Request) {
-  if (!isLocalAiRequest(req, true)) return Response.json({ error: "Local access only." }, { status: 403 });
+async function handlePOST(req: Request) {
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: uiText("server.641c510983e7") }, { status: 403 });
   let body: { goal?: string; squadTitle?: string; question?: string };
-  try { body = await req.json(); } catch { return Response.json({ ok: false, error: "请求体非法" }, { status: 400 }); }
+  try { body = await req.json(); } catch { return Response.json({ ok: false, error: uiText("server.cc55840ee422") }, { status: 400 }); }
   const goal = (body?.goal ?? "").trim();
   const squadTitle = (body?.squadTitle ?? "").trim();
   const question = (body?.question ?? "").trim();
-  if (!question) return Response.json({ ok: false, error: "缺少 question" }, { status: 400 });
+  if (!question) return Response.json({ ok: false, error: uiText("server.f7375f87abc2") }, { status: 400 });
 
   try {
     const c = await completeWithProvider({
       messages: [
-        { role: "system", content: SYSTEM },
+        { role: "system", content: (SYSTEM) + "\n\n" + generationLanguage(req) },
         { role: "user", content: `总目标：${goal}\n本小队「${squadTitle}」负责：${question}` },
       ],
       response_format: { type: "json_object" },
@@ -47,7 +50,7 @@ export async function POST(req: Request) {
     });
     const raw = c.choices[0]?.message?.content ?? "";
     let parsed: unknown;
-    try { parsed = JSON.parse(raw); } catch { return Response.json({ ok: false, error: "squad 非合法 JSON", raw }, { status: 200 }); }
+    try { parsed = JSON.parse(raw); } catch { return Response.json({ ok: false, error: uiText("server.1c693bf349bf"), raw }, { status: 200 }); }
     const f = parsed as { summary?: unknown; rows?: unknown; columns?: unknown; chart?: unknown };
     return Response.json({
       ok: true,
@@ -63,3 +66,5 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, error: providerError(err) }, { status: 200 });
   }
 }
+
+export const POST = withUiLanguage(handlePOST);

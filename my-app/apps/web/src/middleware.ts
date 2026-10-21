@@ -1,3 +1,4 @@
+import { uiText } from "./lib/messages.ts";
 import { NextResponse, type NextRequest } from "next/server";
 
 type Bucket = { count: number; resetAt: number };
@@ -19,7 +20,7 @@ export function middleware(request: NextRequest) {
   current.count += 1;
   if (current.count > MAX_REQUESTS) {
     return NextResponse.json(
-      { error: "请求过于频繁，请稍后再试" },
+      { error: uiText("server.1701251f0508") },
       { status: 429, headers: { "retry-after": String(Math.ceil((current.resetAt - now) / 1000)) } },
     );
   }
@@ -28,4 +29,3 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = { matcher: "/api/:path*" };
-

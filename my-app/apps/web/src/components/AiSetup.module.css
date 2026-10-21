@@ -2,6 +2,8 @@
 .panel { width:min(1080px,100%); height:min(860px,100dvh - 48px); display:flex; flex-direction:column; background:var(--color-bg); border:1px solid var(--color-border); border-radius:16px; overflow:hidden; }
 .header { min-height:66px; display:flex; align-items:center; justify-content:space-between; padding:16px 26px; border-bottom:1px solid var(--color-border); }
 .brand { display:flex; gap:10px; align-items:center; font-weight:650; }
+.headerActions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.headerActions select { font:inherit; font-size:14px; color:inherit; background:var(--color-surface); padding:8px; border:1px solid var(--color-border); border-radius:7px; max-width:100px; }
 .layout { display:flex; min-height:0; flex:1; }
 .steps { width:194px; flex-shrink:0; padding:32px 20px; border-right:1px solid var(--color-border); background:var(--color-surface); }
 .steps button { display:flex; align-items:center; gap:12px; width:100%; margin-bottom:12px; background:transparent; border:0; padding:10px 8px; }
@@ -74,3 +76,4 @@
 @keyframes cover-reveal { from { clip-path:inset(0 0 100% 0); } to { clip-path:inset(0); } }
 @media(max-width:760px) { .overlay { padding:0; } .panel { width:100%; height:100dvh; border:0; border-radius:0; } .layout { flex-direction:column; } .steps { display:flex; width:100%; padding:10px 14px; border-right:0; border-bottom:1px solid var(--color-border); gap:3px; } .steps p { display:none; } .steps button { margin:0; padding:7px; gap:6px; font-size:12px; min-height:38px; border:0; } .steps button span { width:22px; height:22px; } .main { padding:24px 20px; } .header { padding:12px 20px; min-height:58px; } .choices { grid-template-columns:1fr; gap:14px; } .choices button { min-height:0; padding:20px; gap:12px; } .footer { padding:12px; align-items:center; } .footer button { font-size:12px; padding:9px; } .footer .quiet { max-width:118px; text-align:left; } .computer dl { grid-template-columns:1fr; } }
 @media(prefers-reduced-motion:reduce) { .overlay { animation:none; } .panel button { transition:none; } }
+@media(max-width:760px) { .steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); } .steps button { min-width:0; width:100%; flex-direction:column; line-height:1.4; padding:7px 2px; overflow-wrap:anywhere; } .main { overflow-wrap:anywhere; } .brand { min-width:0; } }

@@ -1,4 +1,6 @@
 "use client";
+import { uiText } from "./messages.ts";
+
 
 // ============================================================
 // lib/recurring.ts — 周期任务（重复任务模板）[079]
@@ -83,7 +85,7 @@ export function buildInstances(routine: RecurringTask, now = new Date()): DdlIte
     dueTime: routine.dueTime || "23:59",
     description: routine.description || "",
     isGroupWork: false,
-    source: "周期任务",
+    source: uiText("ui.recurring.aa8986d701"),
     completed: false,
     status: "todo",
     recurringId: routine.id,
@@ -149,7 +151,7 @@ export function makeRecurring(input: Partial<RecurringTask> & { taskName: string
 }
 
 export const CADENCE_LABEL: Record<RecurringCadence, string> = {
-  daily: "每天",
-  weekly: "每周",
-  monthly: "每月",
+  get daily() { return uiText("ui.recurring.eea1694c23"); },
+  get weekly() { return uiText("ui.recurring.92845d3b53"); },
+  get monthly() { return uiText("ui.recurring.68b21af949"); },
 };

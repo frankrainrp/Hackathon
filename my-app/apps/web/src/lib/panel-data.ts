@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/panel-data.ts — [064] 面板模组：Butler 真实数据绑定
 //
@@ -29,19 +31,19 @@ function todayIso(): string {
 export function resolveStat(metric: PanelMetric | undefined, ctx: PanelDataCtx): { value: number; label: string } {
   const t = todayIso();
   switch (metric) {
-    case "tasks-total": return { value: ctx.ddls.length, label: "任务总数" };
-    case "tasks-done": return { value: ctx.ddls.filter(isDone).length, label: "已完成任务" };
-    case "tasks-active": return { value: ctx.ddls.filter((d) => !isDone(d)).length, label: "待办任务" };
-    case "tasks-today": return { value: ctx.ddls.filter((d) => d.dueDate === t && !isDone(d)).length, label: "今日到期" };
-    case "notes-total": return { value: ctx.notes.length, label: "笔记数" };
-    case "streak-current": return { value: ctx.streakCurrent, label: "连续天数" };
-    case "streak-longest": return { value: ctx.streakLongest, label: "最长连续" };
-    default: return { value: ctx.ddls.filter((d) => !isDone(d)).length, label: "待办任务" };
+    case "tasks-total": return { value: ctx.ddls.length, label: uiText("ui.paneldata.f1cc96bb31") };
+    case "tasks-done": return { value: ctx.ddls.filter(isDone).length, label: uiText("ui.paneldata.cdac7c630b") };
+    case "tasks-active": return { value: ctx.ddls.filter((d) => !isDone(d)).length, label: uiText("ui.paneldata.416e65ac17") };
+    case "tasks-today": return { value: ctx.ddls.filter((d) => d.dueDate === t && !isDone(d)).length, label: uiText("ui.paneldata.c25152615a") };
+    case "notes-total": return { value: ctx.notes.length, label: uiText("ui.paneldata.da28e54dbf") };
+    case "streak-current": return { value: ctx.streakCurrent, label: uiText("ui.paneldata.9d269b5a70") };
+    case "streak-longest": return { value: ctx.streakLongest, label: uiText("ui.paneldata.d0696e7581") };
+    default: return { value: ctx.ddls.filter((d) => !isDone(d)).length, label: uiText("ui.paneldata.416e65ac17") };
   }
 }
 
 // ---- 系列数据（pie / bar）----
-const STATUS_LABEL: Record<string, string> = { todo: "待办", in_progress: "进行中", done: "已完成" };
+const STATUS_LABEL: Record<string, string> = { get todo() { return uiText("ui.paneldata.52fdbbaeda"); }, get in_progress() { return uiText("ui.paneldata.dc9591e56d"); }, get done() { return uiText("ui.paneldata.f28461bb49"); } };
 
 export function resolveSeries(
   metric: PanelMetric | undefined,
@@ -59,7 +61,7 @@ export function resolveSeries(
     case "tasks-by-source": {
       const counts = new Map<string, number>();
       for (const d of ctx.ddls) {
-        const key = d.source || "未分类";
+        const key = d.source || uiText("ui.paneldata.54b89f9012");
         counts.set(key, (counts.get(key) ?? 0) + 1);
       }
       return Array.from(counts.entries()).map(([label, value]) => ({ label, value }));
@@ -67,7 +69,7 @@ export function resolveSeries(
     case "completion-7d": {
       // 近 7 日（含今天）每日到期任务数
       const out: { label: string; value: number }[] = [];
-      const wd = ["日", "一", "二", "三", "四", "五", "六"];
+      const wd = [uiText("ui.paneldata.85217f7aff"), uiText("ui.paneldata.51a75f4634"), uiText("ui.paneldata.084b42f6e9"), uiText("ui.paneldata.a4c3313deb"), uiText("ui.paneldata.754a9d5828"), uiText("ui.paneldata.c9b87f516a"), uiText("ui.paneldata.de07b53838")];
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
@@ -128,7 +130,7 @@ export function resolveCountdown(
 ): { date: string; label: string; days: number } | null {
   const t = todayIso();
   let date = targetDate;
-  let label = "目标日期";
+  let label = uiText("ui.paneldata.d0e22f91ad");
   if (!date) {
     // 最近的未完成 DDL
     const upcoming = ctx.ddls

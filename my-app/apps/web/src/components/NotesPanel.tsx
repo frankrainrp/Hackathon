@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/NotesPanel.tsx — 笔记面板（浏览器内简易 Markdown 版）
@@ -60,13 +63,14 @@ export default function NotesPanel({
   notes, onCreate, onUpdate, onDelete,
   ddls = [], selectActiveId, onJumpToTask, onAutoExtractTodos,
 }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const isMobile = useIsMobile();
   const sorted = useMemo(() => {
     return [...notes].sort((a, b) => {
       if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
       return b.updatedAt - a.updatedAt;
     });
-  }, [notes]);
+  }, [notes, uiLanguage]);
 
   // [053] title (lowercase) → id 映射，用于 wikilink 解析
   const titleToId = useMemo(() => {
@@ -76,7 +80,7 @@ export default function NotesPanel({
       if (t) m.set(t, n.id);
     }
     return m;
-  }, [notes]);
+  }, [notes, uiLanguage]);
 
   // [053] 本地搜索 query → 过滤 sorted（title + content + tags 子串）
   const [query, setQuery] = useState("");
@@ -87,7 +91,7 @@ export default function NotesPanel({
       const hay = `${n.title} ${n.content} ${(n.tags ?? []).join(" ")}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [sorted, query]);
+  }, [sorted, query, uiLanguage]);
 
   const [activeId, setActiveId] = useState<string | null>(sorted[0]?.id ?? null);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
@@ -118,7 +122,7 @@ export default function NotesPanel({
   // B1 反查当前笔记关联的任务
   const linkedTasks = useMemo(
     () => (active ? ddls.filter((d) => d.noteId === active.id) : []),
-    [active, ddls],
+    [active, ddls, uiLanguage],
   );
 
   // [053] 反向 wikilink：扫描所有其他笔记，找到 `[[当前 title]]` 引用
@@ -135,7 +139,7 @@ export default function NotesPanel({
       if (has) result.push(n);
     }
     return result;
-  }, [active, notes]);
+  }, [active, notes, uiLanguage]);
 
   const handleCreate = () => {
     const fresh = onCreate();
@@ -148,7 +152,7 @@ export default function NotesPanel({
   const handleWikilinkClick = (target: string) => {
     if (target.startsWith("!missing:")) {
       const title = decodeURIComponent(target.slice(9));
-      if (!confirm(`「${title}」 不存在，是否新建？`)) return;
+      if (!confirm(uiText("ui.notespanel.1d10b353a2", { value0: title }))) return;
       const fresh = onCreate();
       // 新建后立即用该 title 更新
       onUpdate(fresh.id, { title, updatedAt: Date.now() });
@@ -193,13 +197,11 @@ export default function NotesPanel({
             padding: "14px 14px 10px",
           }}
         >
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>
-            All Notes
-          </h2>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>{uiText("ui.notespanel.00a187caec")}</h2>
           <button
             onClick={handleCreate}
-            aria-label="New Note"
-            title="新建笔记"
+            aria-label={uiText("ui.notespanel.b763c5ea3c")}
+            title={uiText("ui.notespanel.d3d2d99f60")}
             style={{
               width: 28, height: 28, borderRadius: 6, border: "none",
               background: "var(--color-primary)", color: "white",
@@ -223,7 +225,7 @@ export default function NotesPanel({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="搜索笔记…"
+              placeholder={uiText("ui.notespanel.21919c7521")}
               style={{
                 flex: 1, border: "none", background: "transparent",
                 outline: "none", fontSize: 12, color: "var(--color-text)",
@@ -233,7 +235,7 @@ export default function NotesPanel({
             {query && (
               <button
                 onClick={() => setQuery("")}
-                aria-label="清除"
+                aria-label={uiText("ui.notespanel.bce2377283")}
                 style={{
                   width: 16, height: 16, borderRadius: 4, border: "none",
                   background: "transparent", cursor: "pointer", padding: 0,
@@ -252,17 +254,15 @@ export default function NotesPanel({
             <div style={{
               textAlign: "center", padding: "40px 12px",
               color: "var(--color-text-faint)", fontSize: 12,
-            }}>
-              没有笔记<br />
-              <span style={{ color: "var(--color-text-muted)" }}>点 + 新建</span>
+            }}>{uiText("ui.notespanel.bbc6c3b960")}<br />
+              <span style={{ color: "var(--color-text-muted)" }}>{uiText("ui.notespanel.464ead0236")}</span>
             </div>
           ) : filtered.length === 0 ? (
             <div style={{
               textAlign: "center", padding: "20px 12px",
               color: "var(--color-text-faint)", fontSize: 12,
             }}>
-              <div style={{ marginBottom: 6 }}><EmptyFilter size={80} /></div>
-              没有匹配「{query}」<br />
+              <div style={{ marginBottom: 6 }}><EmptyFilter size={80} /></div>{uiText("ui.notespanel.d0cbfc0e3e", { value0: query })}<br />
               <button
                 onClick={() => setQuery("")}
                 style={{
@@ -270,9 +270,7 @@ export default function NotesPanel({
                   borderRadius: 4, background: "var(--color-bg)", color: "var(--color-text-muted)",
                   fontSize: 11, cursor: "pointer", fontFamily: "inherit",
                 }}
-              >
-                清除筛选
-              </button>
+              >{uiText("ui.notespanel.657d9cbf45")}</button>
             </div>
           ) : (
             filtered.map((n) => (
@@ -297,9 +295,7 @@ export default function NotesPanel({
             gap: 6,
           }}
         >
-          <Lock size={11} />
-          浏览器内 · Phase 3 接 Obsidian Vault
-        </footer>
+          <Lock size={11} />{uiText("ui.notespanel.3d0949a3f3")}</footer>
       </aside>
 
       {/* 右：编辑区（手机：列表态隐藏，编辑态全屏并加返回） */}
@@ -315,7 +311,7 @@ export default function NotesPanel({
         {isMobile && active && (
           <button
             onClick={() => setMobileShowList(true)}
-            aria-label="返回笔记列表"
+            aria-label={uiText("ui.notespanel.49b5a5656e")}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -331,9 +327,7 @@ export default function NotesPanel({
               fontFamily: "inherit",
               flexShrink: 0,
             }}
-          >
-            ← 笔记列表
-          </button>
+          >{uiText("ui.notespanel.9e662296ea")}</button>
         )}
         {active ? (
           <NoteEditor
@@ -343,7 +337,7 @@ export default function NotesPanel({
             onModeChange={setMode}
             onUpdate={(patch) => onUpdate(active.id, patch)}
             onDelete={() => {
-              if (confirm(`删除「${active.title || "(无标题)"}」？`)) onDelete(active.id);
+              if (confirm(uiText("ui.notespanel.927ea75a5d", { value0: active.title || uiText("ui.notespanel.415ac660f5") }))) onDelete(active.id);
             }}
             linkedTasks={linkedTasks}
             onJumpToTask={onJumpToTask}
@@ -371,6 +365,7 @@ function NoteListItem({
   active: boolean;
   onClick: () => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   const preview = (note.content || "").replace(/[#*`>\-_\[\]()]/g, "").trim().slice(0, 60);
   const time = formatRelative(note.updatedAt);
@@ -397,7 +392,7 @@ function NoteListItem({
             flex: 1,
           }}
         >
-          {note.title || "(无标题)"}
+          {note.title || uiText("ui.notespanel.415ac660f5")}
         </span>
       </div>
       <p
@@ -406,7 +401,7 @@ function NoteListItem({
           margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}
       >
-        {time} · {preview || "(空)"}
+        {time} · {preview || uiText("ui.notespanel.98057319c7")}
       </p>
     </div>
   );
@@ -433,6 +428,7 @@ function NoteEditor({
   onWikilinkClick?: (target: string) => void;
   onSelectBacklink?: (id: string) => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
 
@@ -486,7 +482,7 @@ function NoteEditor({
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="无标题..."
+          placeholder={uiText("ui.notespanel.e01fa44bf3")}
           style={{
             flex: 1, border: "none", background: "transparent",
             fontSize: 18, fontWeight: 700, color: "var(--color-text)",
@@ -495,21 +491,21 @@ function NoteEditor({
         />
         <button
           onClick={() => onUpdate({ pinned: !note.pinned, updatedAt: Date.now() })}
-          title={note.pinned ? "取消置顶" : "置顶"}
-          aria-label="pin"
+          title={note.pinned ? uiText("ui.notespanel.c92179b74a") : uiText("ui.notespanel.173f88d28e")}
+          aria-label={note.pinned ? uiText("ui.notespanel.c92179b74a") : uiText("ui.notespanel.173f88d28e")}
           style={iconBtnStyle(note.pinned)}
         >
           {note.pinned ? <Pin size={14} /> : <PinOff size={14} />}
         </button>
         <button
           onClick={() => onModeChange(mode === "edit" ? "preview" : "edit")}
-          title={mode === "edit" ? "切到预览" : "切到编辑"}
-          aria-label="mode"
+          title={mode === "edit" ? uiText("ui.notespanel.560ec365d9") : uiText("ui.notespanel.f048c42e28")}
+          aria-label={mode === "edit" ? uiText("ui.notespanel.560ec365d9") : uiText("ui.notespanel.f048c42e28")}
           style={iconBtnStyle(mode === "preview")}
         >
           {mode === "edit" ? <Eye size={14} /> : <Edit3 size={14} />}
         </button>
-        <button onClick={onDelete} title="删除" aria-label="delete" style={iconBtnStyle(false, true)}>
+        <button onClick={onDelete} title={uiText("ui.notespanel.2f9daa8289")} aria-label={uiText("ui.notespanel.2f9daa8289")} style={iconBtnStyle(false, true)}>
           <Trash2 size={14} />
         </button>
       </header>
@@ -530,7 +526,7 @@ function NoteEditor({
           }}
         >
           <Network size={12} color="var(--color-info)" />
-          <span style={{ marginRight: 4 }}>被 {backlinks.length} 条笔记引用:</span>
+          <span style={{ marginRight: 4 }}>{uiText("ui.notespanel.0acf8adf41", { value0: backlinks.length })}</span>
           {backlinks.map((b) => (
             <button
               key={b.id}
@@ -547,7 +543,7 @@ function NoteEditor({
                 fontFamily: "inherit",
               }}
             >
-              {b.title || "(无标题)"}
+              {b.title || uiText("ui.notespanel.415ac660f5")}
             </button>
           ))}
         </div>
@@ -569,7 +565,7 @@ function NoteEditor({
           }}
         >
           <Link2 size={12} color="var(--color-primary)" />
-          <span style={{ marginRight: 4 }}>关联任务:</span>
+          <span style={{ marginRight: 4 }}>{uiText("ui.notespanel.046cf25aee")}</span>
           {linkedTasks.map((t) => (
             <button
               key={t.id}
@@ -597,7 +593,7 @@ function NoteEditor({
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="开始写..."
+          placeholder={uiText("ui.notespanel.6182a6a750")}
           style={{
             flex: 1, width: "100%", padding: "16px 24px",
             border: "none", outline: "none", resize: "none",
@@ -636,7 +632,7 @@ function NoteEditor({
                           padding: missing ? 0 : "0 3px",
                           borderRadius: 3,
                         }}
-                        title={missing ? "笔记不存在，点击新建" : "跳转到该笔记"}
+                        title={missing ? uiText("ui.notespanel.53a6570047") : uiText("ui.notespanel.c566c7c1aa")}
                       >
                         {children}
                       </a>
@@ -649,7 +645,7 @@ function NoteEditor({
               {titleToId ? preprocessWikilinks(content, titleToId) : content}
             </ReactMarkdown>
           ) : (
-            <p style={{ color: "var(--color-text-faint)" }}>（笔记为空）</p>
+            <p style={{ color: "var(--color-text-faint)" }}>{uiText("ui.notespanel.e7076efef5")}</p>
           )}
         </div>
       )}
@@ -678,6 +674,7 @@ function NoteEditor({
 // 空状态
 // ============================================================
 function EmptyHero({ onCreate }: { onCreate: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div
       style={{
@@ -689,12 +686,8 @@ function EmptyHero({ onCreate }: { onCreate: () => void }) {
       {/* [056] 插画替代纯 icon */}
       <EmptyNotes size={200} />
       <div style={{ textAlign: "center" }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--color-text)", margin: "0 0 4px" }}>
-          没有笔记
-        </h2>
-        <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: 0 }}>
-          点下方按钮新建第一条
-        </p>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--color-text)", margin: "0 0 4px" }}>{uiText("ui.notespanel.bbc6c3b960")}</h2>
+        <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: 0 }}>{uiText("ui.notespanel.a034a64b6c")}</p>
       </div>
       {/* Epic 6.5 管家小气泡 */}
       <p
@@ -707,9 +700,7 @@ function EmptyHero({ onCreate }: { onCreate: () => void }) {
           borderRadius: 14,
           margin: 0,
         }}
-      >
-        💡「在 Chat 里说『帮我记一条笔记』,我也能帮你写」— Butler
-      </p>
+      >{uiText("ui.notespanel.0d32a1bd93")}</p>
       <button
         onClick={onCreate}
         style={{
@@ -720,8 +711,7 @@ function EmptyHero({ onCreate }: { onCreate: () => void }) {
           fontFamily: "inherit",
         }}
       >
-        <Plus size={14} /> New Note
-      </button>
+        <Plus size={14} />{uiText("ui.notespanel.b763c5ea3c")}</button>
     </div>
   );
 }
@@ -744,10 +734,10 @@ function iconBtnStyle(active: boolean, danger?: boolean): React.CSSProperties {
 function formatRelative(ts: number): string {
   const diff = Date.now() - ts;
   const min = Math.floor(diff / 60000);
-  if (min < 1) return "刚刚";
-  if (min < 60) return `${min} 分钟前`;
+  if (min < 1) return uiText("ui.notespanel.de6785d99e");
+  if (min < 60) return uiText("ui.notespanel.cff93791fa", { value0: min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr} 小时前`;
+  if (hr < 24) return uiText("ui.notespanel.78cd849ac8", { value0: hr });
   const d = new Date(ts);
   return `${d.getMonth() + 1}-${String(d.getDate()).padStart(2, "0")}`;
 }

@@ -1,3 +1,6 @@
+import { uiText } from "../../../../lib/messages.ts";
+import { generationLanguage } from "@/lib/api-language";
+import { withUiLanguage } from "@/lib/api-language";
 import { completeWithProvider, providerError } from "@/lib/ai-provider";
 import { isLocalAiRequest } from "@/lib/ai-config";
 // ============================================================
@@ -21,27 +24,27 @@ const SYSTEM = `你是调研负责人。把用户的复杂调研目标拆成 3-4
 示例 goal「半导体潜力股产业链分析」→
 {"title":"半导体潜力股","emoji":"💹","squads":[{"title":"上游材料","question":"半导体上游(硅片/光刻胶/电子特气)有哪些代表公司及其潜力评级?"},{"title":"中游制造","question":"晶圆代工/封测环节代表公司、产能与成长性如何?"},{"title":"下游应用","question":"AI芯片/汽车电子等下游需求最强的公司及驱动因素?"},{"title":"风险面","question":"该产业链主要风险(地缘/周期/技术替代)有哪些?"}]}`;
 
-export async function POST(req: Request) {
-  if (!isLocalAiRequest(req, true)) return Response.json({ error: "Local access only." }, { status: 403 });
+async function handlePOST(req: Request) {
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: uiText("server.641c510983e7") }, { status: 403 });
   let goal = "";
   try { goal = ((await req.json())?.goal ?? "").trim(); } catch { /* */ }
-  if (!goal) return Response.json({ ok: false, error: "缺少 goal" }, { status: 400 });
+  if (!goal) return Response.json({ ok: false, error: uiText("server.0ee7c15d723b") }, { status: 400 });
 
   try {
     const c = await completeWithProvider({
-      messages: [{ role: "system", content: SYSTEM }, { role: "user", content: goal }],
+      messages: [{ role: "system", content: (SYSTEM) + "\n\n" + generationLanguage(req) }, { role: "user", content: goal }],
       response_format: { type: "json_object" },
       max_tokens: 900,
       temperature: 0.5,
     });
     const raw = c.choices[0]?.message?.content ?? "";
     let parsed: { title?: string; emoji?: string; squads?: { title?: string; question?: string }[] };
-    try { parsed = JSON.parse(raw); } catch { return Response.json({ ok: false, error: "plan 非合法 JSON", raw }, { status: 200 }); }
+    try { parsed = JSON.parse(raw); } catch { return Response.json({ ok: false, error: uiText("server.cc5da47bc618"), raw }, { status: 200 }); }
     const squads = (parsed.squads ?? [])
       .filter((s) => s && s.title && s.question)
       .slice(0, 4)
       .map((s) => ({ title: String(s.title).slice(0, 16), question: String(s.question) }));
-    if (squads.length === 0) return Response.json({ ok: false, error: "未拆出有效小队", raw }, { status: 200 });
+    if (squads.length === 0) return Response.json({ ok: false, error: uiText("server.dad8087859dc"), raw }, { status: 200 });
     return Response.json({
       ok: true,
       plan: { title: (parsed.title || goal).slice(0, 20), emoji: parsed.emoji || "🔬", squads },
@@ -51,3 +54,5 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, error: providerError(err) }, { status: 200 });
   }
 }
+
+export const POST = withUiLanguage(handlePOST);

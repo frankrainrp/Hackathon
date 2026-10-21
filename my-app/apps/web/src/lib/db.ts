@@ -1,3 +1,4 @@
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/db.ts — Dexie (IndexedDB) 本地持久化
 //
@@ -45,7 +46,7 @@ export class ButlerDB extends Dexie {
       const now = Date.now();
       await tx.table("sessions").add({
         id: defaultId,
-        title: "历史对话",
+        title: uiText("chat.legacy"),
         createdAt: now,
         updatedAt: now,
       });
@@ -124,7 +125,7 @@ export class ButlerDB extends Dexie {
 let _db: ButlerDB | null = null;
 export function getDb(): ButlerDB {
   if (typeof window === "undefined") {
-    throw new Error("getDb() 仅可在客户端调用");
+    throw new Error(uiText("server.dcca6cc3a40f"));
   }
   if (!_db) _db = new ButlerDB();
   return _db;

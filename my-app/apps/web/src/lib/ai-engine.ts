@@ -1,3 +1,4 @@
+import { uiText } from "./messages.ts";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve, join } from "node:path";
@@ -15,11 +16,11 @@ const shared = globalThis as typeof globalThis & { butlerEngine?: Runtime };
 const engine = shared.butlerEngine ||= { key: randomBytes(32).toString("hex"), state: "stopped" };
 export const engineDirectory = () => resolve(process.env.BUTLER_ENGINE_DIR || "../../../runtime/llama");
 export function engineProbe() {
-  if (process.platform !== "win32" || process.arch !== "x64") return { available: false, version: null, error: "The bundled engine supports Windows x64. Use an existing loopback OpenAI-compatible service on this platform." };
+  if (process.platform !== "win32" || process.arch !== "x64") return { available: false, version: null, error: uiText("server.8e283532eb22") };
   const exe = join(engineDirectory(), "llama-server.exe");
-  if (!existsSync(exe)) return { available: false, version: null, error: "Bundled engine missing. Extract the complete Windows package, including runtime/llama." };
+  if (!existsSync(exe)) return { available: false, version: null, error: uiText("server.3d2632be2670") };
   const result = spawnSync(exe, ["--version"], { encoding: "utf8", windowsHide: true, timeout: 10000, stdio: ["ignore", "pipe", "pipe"] });
-  return { available: !result.error && result.status === 0, version: (result.stdout + result.stderr).trim().slice(0, 300), error: result.error || result.status !== 0 ? "The engine could not run on this CPU or a required runtime is missing. Use an existing local service or the complete Windows x64 package." : null };
+  return { available: !result.error && result.status === 0, version: (result.stdout + result.stderr).trim().slice(0, 300), error: result.error || result.status !== 0 ? uiText("server.3fd617a62203") : null };
 }
 export async function engineStatus() {
   if (engine.child && engine.child.exitCode === null) {
@@ -28,26 +29,26 @@ export async function engineStatus() {
   return { state: engine.state, error: engine.error, model: engine.model, context: engine.context, url: `http://127.0.0.1:${ENGINE_PORT}/v1` };
 }
 export function engineCredential() {
-  if (engine.state !== "ready" || !engine.child || engine.child.exitCode !== null) throw new Error("Local engine is not ready. Open AI setup, start it, then test the connection. After restarting Butler, start the engine again.");
+  if (engine.state !== "ready" || !engine.child || engine.child.exitCode !== null) throw new Error(uiText("server.673edd68e2fa"));
   const s = readAiSettings();
-  if (engine.model !== s.modelId || engine.context !== s.context) throw new Error("Model or context changed. Stop and start the engine to apply it.");
+  if (engine.model !== s.modelId || engine.context !== s.context) throw new Error(uiText("server.7951c7cf813d"));
   return engine.key;
 }
 export async function startEngine() {
-  if (engine.state === "starting" || engine.child && engine.child.exitCode === null) throw new Error("The engine is already running or loading. Stop it before changing models.");
+  if (engine.state === "starting" || engine.child && engine.child.exitCode === null) throw new Error(uiText("server.494d67b683b1"));
   const s = readAiSettings();
-  if (s.mode !== "local" || s.localKind !== "bundled") throw new Error("Choose the bundled Local engine first.");
-  const probe = engineProbe(); if (!probe.available) throw new Error(probe.error || "Unsupported engine.");
+  if (s.mode !== "local" || s.localKind !== "bundled") throw new Error(uiText("server.a8e0bc327335"));
+  const probe = engineProbe(); if (!probe.available) throw new Error(probe.error || uiText("server.af3aa49cea74"));
   const model = catalogModel(s.modelId), h = hardwareSummary(s.modelsDir);
-  if (h.freeRamGiB < model.workingGiB + Math.max(0, (s.context - 4096) / 1024)) throw new Error("Not enough available RAM for this model/context estimate. Close other apps, reduce context, or choose a smaller model.");
+  if (h.freeRamGiB < model.workingGiB + Math.max(0, (s.context - 4096) / 1024)) throw new Error(uiText("server.08a8d1907bc9"));
   engine.state = "starting"; engine.error = undefined;
   try {
     const file = await verifyModel(s.modelsDir, s.modelId);
-    await new Promise<void>((ok, fail) => { const server = createServer(); server.once("error", () => fail(new Error("Local engine port 18639 is in use. Stop the other service or use an existing local service. No other process was stopped."))); server.listen(ENGINE_PORT, "127.0.0.1", () => server.close(() => ok())); });
+    await new Promise<void>((ok, fail) => { const server = createServer(); server.once("error", () => fail(new Error(uiText("server.ad78294d64fc")))); server.listen(ENGINE_PORT, "127.0.0.1", () => server.close(() => ok())); });
     const child = spawn(process.execPath, [join(engineDirectory(), "engine-host.cjs"), join(engineDirectory(), "llama-server.exe"), file, String(s.context), String(ENGINE_PORT), engine.key], { windowsHide: true, stdio: ["ignore", "ignore", "ignore", "ipc"] });
     engine.child = child; engine.model = s.modelId; engine.context = s.context;
-    child.on("error", () => { engine.state = "error"; engine.error = "Engine launch failed. Check the complete package and Windows x64 support."; });
-    child.on("exit", () => { if (engine.child !== child) return; if (engine.state !== "stopped") { engine.state = "error"; engine.error = "Engine stopped unexpectedly. Free RAM, reduce context or choose a smaller model, then start again."; } });
+    child.on("error", () => { engine.state = "error"; engine.error = uiText("ai.recovery.16705afafc"); });
+    child.on("exit", () => { if (engine.child !== child) return; if (engine.state !== "stopped") { engine.state = "error"; engine.error = uiText("ai.recovery.5381a1c088"); } });
     // UI polling continues while a large model loads; the request does not block for minutes.
     for (let i = 0; i < 8 && engine.state === "starting"; i++) { await delay(250); await engineStatus(); }
     return engineStatus();

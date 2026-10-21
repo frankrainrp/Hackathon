@@ -1,3 +1,5 @@
+import { uiText } from "../../../lib/messages.ts";
+import { withUiLanguage } from "@/lib/api-language";
 import { z } from "zod";
 import { readState, writeState } from "@/lib/server-db";
 
@@ -11,34 +13,37 @@ const payloadSchema = z.object({
   value: z.array(z.unknown()).max(50_000),
 });
 
-export async function GET() {
+async function handleGET() {
   return Response.json(Object.fromEntries(KEYS.map((key) => [key, readState(key)])), {
     headers: { "cache-control": "no-store" },
   });
 }
 
-export async function PUT(req: Request) {
+async function handlePUT(req: Request) {
   const contentLength = Number(req.headers.get("content-length") || 0);
   if (contentLength > MAX_REQUEST_BYTES) {
-    return Response.json({ error: "请求体过大" }, { status: 413 });
+    return Response.json({ error: uiText("server.6f5abbce3e03") }, { status: 413 });
   }
 
   let raw: unknown;
   try {
     const text = await req.text();
     if (Buffer.byteLength(text, "utf8") > MAX_REQUEST_BYTES) {
-      return Response.json({ error: "请求体过大" }, { status: 413 });
+      return Response.json({ error: uiText("server.6f5abbce3e03") }, { status: 413 });
     }
     raw = JSON.parse(text);
   } catch {
-    return Response.json({ error: "请求体不是合法 JSON" }, { status: 400 });
+    return Response.json({ error: uiText("server.f92e4d96a46a") }, { status: 400 });
   }
 
   const parsed = payloadSchema.safeParse(raw);
   if (!parsed.success) {
-    return Response.json({ error: "状态数据格式不合法" }, { status: 400 });
+    return Response.json({ error: uiText("server.1d973dc85c74") }, { status: 400 });
   }
 
   writeState(parsed.data.key, parsed.data.value);
   return Response.json({ ok: true });
 }
+
+export const GET = withUiLanguage(handleGET);
+export const PUT = withUiLanguage(handlePUT);

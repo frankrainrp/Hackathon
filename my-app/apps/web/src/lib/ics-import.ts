@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/ics-import.ts — 简易 .ics 文件解析(只取 SUMMARY + DTSTART)
 //
@@ -124,7 +126,7 @@ export function icsEventsToDdls(events: ParsedEvent[], sourceName: string): DdlI
     dueTime: e.time || "23:59",
     description: e.description.slice(0, 200),
     isGroupWork: false,
-    source: `导入自 ${sourceName}`,
+    source: uiText("ui.icsimport.c61cc03000", { value0: sourceName }),
     completed: false,
     status: "todo" as const,
   }));

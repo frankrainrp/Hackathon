@@ -6,7 +6,7 @@ const output=path.resolve(process.argv[2]||path.join(root,'..','Hackathon-Window
 if(process.platform!=='win32'||process.arch!=='x64')throw new Error('This package target requires Windows x64 and its native better-sqlite3 build.');
 if(fs.existsSync(output))throw new Error('Choose a new output directory; existing packages/data are never overwritten.');
 if(!fs.existsSync(path.join(standalone,'apps/web/server.js')))throw new Error('Run pnpm --filter @smart-hub/web build first.');
-const excluded=/^(\.env(?:\..*)?|config\.local.*|\.private|data|courses|.*\.(sqlite.*|db|log|gguf|part))$/i;
+const excluded=/^(\.env(?:\..*)?|config\.local.*|\.private|__pycache__|\.venv|test_.*\.py|data|courses|.*\.(sqlite.*|db|log|gguf|part|pyc))$/i;
 function materialize(source,target,ancestors=new Set()){
  let origin=source;
  if(fs.lstatSync(source).isSymbolicLink()){

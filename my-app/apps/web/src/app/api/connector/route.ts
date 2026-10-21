@@ -1,3 +1,5 @@
+import { uiText } from "../../../lib/messages.ts";
+import { withUiLanguage } from "@/lib/api-language";
 // ============================================================
 // app/api/connector/route.ts — 通用 HTTP 连接器代理（P1 引擎地基）
 //
@@ -54,24 +56,24 @@ function resolveEnv(v: string): string {
       .filter(Boolean),
   );
   return v.replace(/env:([A-Za-z_][A-Za-z0-9_]*)/g, (_m, k: string) => {
-    if (!allowed.has(k)) throw new Error("环境变量不在连接器允许名单中");
+    if (!allowed.has(k)) throw new Error(uiText("server.c87e9c7d97b1"));
     return process.env[k] ?? "";
   });
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   if (process.env.CONNECTOR_ENABLED !== "true") {
-    return Response.json({ ok: false, error: "HTTP 连接器已由管理员禁用" }, { status: 403 });
+    return Response.json({ ok: false, error: uiText("server.07e8622c88ec") }, { status: 403 });
   }
   let payload: ConnectorRequest;
   try {
     payload = (await req.json()) as ConnectorRequest;
   } catch {
-    return Response.json({ ok: false, error: "请求体不是合法 JSON" }, { status: 400 });
+    return Response.json({ ok: false, error: uiText("server.f92e4d96a46a") }, { status: 400 });
   }
 
   if (!payload?.url || typeof payload.url !== "string") {
-    return Response.json({ ok: false, error: "缺少 url" }, { status: 400 });
+    return Response.json({ ok: false, error: uiText("server.68de54da7c82") }, { status: 400 });
   }
 
   // 解析 + 拼 query + SSRF 守卫（先注入 url 里的 env:KEY，如 Telegram 路径 token）
@@ -79,13 +81,13 @@ export async function POST(req: Request) {
   try {
     target = new URL(resolveEnv(payload.url));
   } catch {
-    return Response.json({ ok: false, error: "url 格式非法" }, { status: 400 });
+    return Response.json({ ok: false, error: uiText("server.5023f3206c66") }, { status: 400 });
   }
   if (target.protocol !== "http:" && target.protocol !== "https:") {
-    return Response.json({ ok: false, error: "仅支持 http/https" }, { status: 400 });
+    return Response.json({ ok: false, error: uiText("server.dc41cb6985bb") }, { status: 400 });
   }
   if (isBlockedHost(target.hostname)) {
-    return Response.json({ ok: false, error: `出于安全，禁止访问内网 / 本机地址：${target.hostname}` }, { status: 403 });
+    return Response.json({ ok: false, error: uiText("server.01ed76bc8c91", { value0: target.hostname }) }, { status: 403 });
   }
   if (payload.query) {
     for (const [k, v] of Object.entries(payload.query)) {
@@ -119,7 +121,7 @@ export async function POST(req: Request) {
     // 体积上限保护
     const buf = await upstream.arrayBuffer();
     if (buf.byteLength > MAX_BYTES) {
-      return Response.json({ ok: false, error: `响应过大（${(buf.byteLength / 1024 / 1024).toFixed(1)}MB > 3MB）` }, { status: 413 });
+      return Response.json({ ok: false, error: uiText("server.8059fd3e8863", { value0: (buf.byteLength / 1024 / 1024).toFixed(1) }) }, { status: 413 });
     }
     const text = new TextDecoder().decode(buf);
     const contentType = upstream.headers.get("content-type") ?? "";
@@ -131,16 +133,18 @@ export async function POST(req: Request) {
 
     if (!upstream.ok) {
       return Response.json(
-        { ok: false, error: `上游返回 ${upstream.status}`, status: upstream.status, data },
+        { ok: false, error: uiText("server.77f0e1eada3e", { value0: upstream.status }), status: upstream.status, data },
         { status: 200 }, // 把上游错误作为数据回传，前端面板展示，不当成代理本身失败
       );
     }
     return Response.json({ ok: true, status: upstream.status, data });
   } catch (e) {
     const err = e as Error;
-    const msg = err.name === "AbortError" ? `请求超时（>${TIMEOUT_MS / 1000}s）` : err.message;
+    const msg = err.name === "AbortError" ? uiText("connector.timeout", { seconds: TIMEOUT_MS / 1000 }) : err.message;
     return Response.json({ ok: false, error: msg }, { status: 200 });
   } finally {
     clearTimeout(timer);
   }
 }
+
+export const POST = withUiLanguage(handlePOST);

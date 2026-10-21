@@ -1,4 +1,8 @@
 "use client";
+import { formatDate } from "@/lib/messages";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/layout/CalendarRail.tsx
@@ -18,7 +22,7 @@ interface CalendarRailProps {
   onJumpToDay?: (iso: string) => void;
 }
 
-const WEEK_LABELS = ["一", "二", "三", "四", "五", "六", "日"];
+const WEEK_LABELS = () => [uiText("ui.calendarrail.51a75f4634"), uiText("ui.calendarrail.084b42f6e9"), uiText("ui.calendarrail.a4c3313deb"), uiText("ui.calendarrail.754a9d5828"), uiText("ui.calendarrail.c9b87f516a"), uiText("ui.calendarrail.de07b53838"), uiText("ui.calendarrail.85217f7aff")];
 
 function isoDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -37,16 +41,17 @@ function buildMiniMonth(cursor: Date): { cells: { iso: string; day: number; isCu
     d.setDate(start.getDate() + i);
     cells.push({ iso: isoDate(d), day: d.getDate(), isCurMonth: d.getMonth() === m });
   }
-  return { cells, label: `${y} · ${String(m + 1).padStart(2, "0")}` };
+  return { cells, label: formatDate(cursor, { year: "numeric", month: "short" }) };
 }
 
 export default function CalendarRail({ onCreateEvent, ddls = [], onJumpToDay }: CalendarRailProps) {
+  const uiLanguage = useCopyLanguage().lang;
   const [cursor, setCursor] = useState(() => {
     const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d;
   });
-  const { cells, label } = useMemo(() => buildMiniMonth(cursor), [cursor]);
+  const { cells, label } = useMemo(() => buildMiniMonth(cursor), [cursor, uiLanguage]);
   const todayIso = isoDate(new Date());
-  const ddlDateSet = useMemo(() => new Set(ddls.filter((d) => d.dueDate).map((d) => d.dueDate)), [ddls]);
+  const ddlDateSet = useMemo(() => new Set(ddls.filter((d) => d.dueDate).map((d) => d.dueDate)), [ddls, uiLanguage]);
 
   const prev = () => { const n = new Date(cursor); n.setMonth(n.getMonth() - 1); setCursor(n); };
   const next = () => { const n = new Date(cursor); n.setMonth(n.getMonth() + 1); setCursor(n); };
@@ -75,7 +80,7 @@ export default function CalendarRail({ onCreateEvent, ddls = [], onJumpToDay }: 
         >
           <button
             onClick={prev}
-            aria-label="上月"
+            aria-label={uiText("ui.calendarrail.692c48b73e")}
             style={miniNavBtn()}
           >
             <ChevronLeft size={11} />
@@ -83,7 +88,7 @@ export default function CalendarRail({ onCreateEvent, ddls = [], onJumpToDay }: 
           <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text)" }}>{label}</span>
           <button
             onClick={next}
-            aria-label="下月"
+            aria-label={uiText("ui.calendarrail.4d5a52448a")}
             style={miniNavBtn()}
           >
             <ChevronRight size={11} />
@@ -99,7 +104,7 @@ export default function CalendarRail({ onCreateEvent, ddls = [], onJumpToDay }: 
             marginBottom: 2,
           }}
         >
-          {WEEK_LABELS.map((w) => (
+          {WEEK_LABELS().map((w) => (
             <div
               key={w}
               style={{
@@ -124,7 +129,7 @@ export default function CalendarRail({ onCreateEvent, ddls = [], onJumpToDay }: 
               <button
                 key={c.iso}
                 onClick={() => onJumpToDay?.(c.iso)}
-                title={c.iso + (hasEvent ? "（有事件）" : "")}
+                title={c.iso + (hasEvent ? uiText("ui.calendarrail.941147739c") : "")}
                 style={{
                   position: "relative",
                   fontSize: 10,
@@ -173,12 +178,12 @@ export default function CalendarRail({ onCreateEvent, ddls = [], onJumpToDay }: 
         </div>
       </div>
 
-      <RailPrimaryBtn icon={<Plus size={14} />} label="New Event" onClick={onCreateEvent} />
+      <RailPrimaryBtn icon={<Plus size={14} />} label={uiText("ui.calendarrail.d1a6a27bd0")} onClick={onCreateEvent} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <RailGroupTitle>Calendars</RailGroupTitle>
-        <RailItem icon={<CalendarDays size={14} />} label="My Calendar" active />
-        <RailItem icon={<Layers size={14} />} label="Study" />
+        <RailGroupTitle>{uiText("ui.calendarrail.e0b2b00cf3")}</RailGroupTitle>
+        <RailItem icon={<CalendarDays size={14} />} label={uiText("ui.calendarrail.4bd028c242")} active />
+        <RailItem icon={<Layers size={14} />} label={uiText("ui.calendarrail.3ff5620b02")} />
       </div>
     </>
   );

@@ -1,10 +1,18 @@
 {
-  "profileSettings": { "version": 1, "activeProfileId": null, "profiles": [] },
-  "example_only": { "school": "Temasek Polytechnic", "entryUrl": "https://tplms.polite.edu.sg/d2l/home" },
+  "profileSettings": {
+    "version": 1,
+    "activeProfileId": null,
+    "profiles": []
+  },
+  "example_only": {
+    "school": "Temasek Polytechnic",
+    "entryUrl": "https://tplms.polite.edu.sg/d2l/home"
+  },
   "output_dir": "courses",
   "private_dir": ".private",
   "browser_channel": "msedge",
   "max_file_mb": 150,
   "butler_url": "http://127.0.0.1:3000",
-  "enable_ai_brief": true
+  "enable_ai_brief": true,
+  "language": "en"
 }

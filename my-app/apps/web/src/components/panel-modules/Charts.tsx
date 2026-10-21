@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/panel-modules/Charts.tsx — [064] 手绘 SVG 图表（零依赖）
@@ -22,7 +25,8 @@ const PALETTE = [
   "var(--color-danger)",
 ];
 
-function EmptyHint({ text = "暂无数据" }: { text?: string }) {
+function EmptyHint({ text = uiText("ui.charts.497c85690c") }: { text?: string }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div style={{ padding: "24px 8px", textAlign: "center", fontSize: 12, color: "var(--color-text-faint)" }}>
       {text}
@@ -43,6 +47,7 @@ function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: nu
 }
 
 export function PieChart({ data }: { data: Series[] }) {
+  const uiLanguage = useCopyLanguage().lang;
   const items = data.filter((d) => d.value > 0);
   const total = items.reduce((s, d) => s + d.value, 0);
   if (total === 0) return <EmptyHint />;
@@ -81,6 +86,7 @@ export function PieChart({ data }: { data: Series[] }) {
 
 // ---------- 柱状图 ----------
 export function BarChart({ data }: { data: Series[] }) {
+  const uiLanguage = useCopyLanguage().lang;
   if (data.length === 0) return <EmptyHint />;
   const max = Math.max(1, ...data.map((d) => d.value));
   const W = 320, H = 140, pad = 22, gap = 8;
@@ -112,6 +118,7 @@ export function BarChart({ data }: { data: Series[] }) {
 
 // ---------- 折线图 ----------
 export function LineChart({ data }: { data: Series[] }) {
+  const uiLanguage = useCopyLanguage().lang;
   if (data.length === 0) return <EmptyHint />;
   const W = 320, H = 140, pad = 24;
   const max = Math.max(...data.map((d) => d.value));
@@ -147,6 +154,7 @@ export function LineChart({ data }: { data: Series[] }) {
 
 // ---------- 热力图（7 行 weekday × N 列 week，GitHub 式）----------
 export function Heatmap({ days }: { days: { date: string; count: number; weekday: number }[] }) {
+  const uiLanguage = useCopyLanguage().lang;
   if (days.length === 0) return <EmptyHint />;
   const max = Math.max(1, ...days.map((d) => d.count));
   // 切成列（每 7 天一列）
@@ -171,17 +179,17 @@ export function Heatmap({ days }: { days: { date: string; count: number; weekday
               fill={d.count === 0 ? "var(--color-border-soft)" : "var(--color-primary)"}
               fillOpacity={d.count === 0 ? 1 : intensity(d.count)}
             >
-              <title>{`${d.date}: ${d.count} 项`}</title>
+              <title>{uiText("ui.charts.21c8447176", { value0: d.date, value1: d.count })}</title>
             </rect>
           )),
         )}
       </svg>
       <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6, fontSize: 10, color: "var(--color-text-faint)" }}>
-        <span>少</span>
+        <span>{uiText("ui.charts.62f99c9a0c")}</span>
         {[0, 0.3, 0.6, 1].map((o, i) => (
           <span key={i} style={{ width: 11, height: 11, borderRadius: 2, background: o === 0 ? "var(--color-border-soft)" : "var(--color-primary)", opacity: o === 0 ? 1 : 0.25 + 0.75 * o }} />
         ))}
-        <span>多</span>
+        <span>{uiText("ui.charts.1940119f05")}</span>
       </div>
     </div>
   );

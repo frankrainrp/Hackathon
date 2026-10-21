@@ -1,3 +1,6 @@
+import { uiText } from "../../../lib/messages.ts";
+import { generationLanguage } from "@/lib/api-language";
+import { withUiLanguage } from "@/lib/api-language";
 import { completeWithProvider, providerError } from "@/lib/ai-provider";
 import { isLocalAiRequest } from "@/lib/ai-config";
 // ============================================================
@@ -48,31 +51,30 @@ const SYSTEM_PROMPT = `你是「面板应用」生成器。把用户需求转成
 
 ## 规则
 1. 你确信存在的「公共、无需密钥」API（如 CoinGecko coins/markets、Frankfurter 汇率、Hacker News、GitHub 公共 REST）才用 kind:http，url/query 要准确。
-2. 不确定是否有免密钥 API（如 Twitch 收益、券商行情、私有数据）→ 用 kind:static 造 8-15 行真实感样本数据，并在 description 注明「示例数据，可后续接真实 API」。
+2. 不确定是否有免密钥 API（如 Twitch 收益、券商行情、私有数据）→ 使用 kind:static 和空数组 data:[]，在 description 说明缺少可核实的数据源。不要伪造价格、收益、排名、公司或用户资料。
 3. 字段名必须和数据里的 key 完全一致。金额用 currency，百分比用 percent。
 4. 3-5 个块，先 kpiGrid/stat 概览，再图表，再 table/list 明细。id 用短英文。
 5. 只输出 JSON 对象本身。`;
 
-const EXAMPLE = `示例：用户「东南亚 Twitch 收益榜」→
-{"version":1,"title":"东南亚 Twitch Top","emoji":"🎮","description":"示例数据，可后续接真实 Twitch API","sources":[{"id":"s","kind":"static","data":[{"rank":1,"streamer":"AdminTH","country":"TH","followers":2100000,"monthly_usd":48000},{"rank":2,"streamer":"Jess No Limit","country":"ID","followers":1800000,"monthly_usd":42000},{"rank":3,"streamer":"Wowkia","country":"ID","followers":900000,"monthly_usd":21000}]}],"blocks":[{"type":"kpiGrid","title":"概览","metrics":[{"label":"主播数","sourceId":"s","agg":"count"},{"label":"月收益合计","sourceId":"s","agg":"sum","field":"monthly_usd","format":"currency"}]},{"type":"bar","title":"月收益(USD)","sourceId":"s","x":"streamer","y":"monthly_usd","span":2},{"type":"table","title":"榜单","sourceId":"s","columns":[{"key":"rank","label":"#"},{"key":"streamer","label":"主播"},{"key":"country","label":"国家"},{"key":"followers","label":"粉丝","format":"number"},{"key":"monthly_usd","label":"月收益","format":"currency"}]}]}`;
+const EXAMPLE = `An unavailable data source uses an empty array, not fabricated rows: {"version":1,"title":"Data source needed","sources":[{"id":"data","kind":"static","data":[]}],"blocks":[{"type":"markdown","markdown":"Connect a verified data source to show results."}]}`;
 
-export async function POST(req: Request) {
-  if (!isLocalAiRequest(req, true)) return Response.json({ error: "Local access only." }, { status: 403 });
+async function handlePOST(req: Request) {
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: uiText("server.641c510983e7") }, { status: 403 });
   let body: GenerateRequest;
   try {
     body = (await req.json()) as GenerateRequest;
   } catch {
-    return Response.json({ ok: false, error: "请求体非法" }, { status: 400 });
+    return Response.json({ ok: false, error: uiText("server.cc55840ee422") }, { status: 400 });
   }
   const prompt = (body?.prompt ?? "").trim();
-  if (!prompt) return Response.json({ ok: false, error: "缺少 prompt" }, { status: 400 });
+  if (!prompt) return Response.json({ ok: false, error: uiText("server.3dde9bf15e34") }, { status: 400 });
 
 
 
   try {
     const completion = await completeWithProvider({
       messages: [
-        { role: "system", content: SYSTEM_PROMPT + "\n\n" + EXAMPLE },
+        { role: "system", content: (SYSTEM_PROMPT + "\n\n" + EXAMPLE) + "\n\n" + generationLanguage(req) },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },
@@ -85,14 +87,16 @@ export async function POST(req: Request) {
     try {
       parsed = JSON.parse(raw);
     } catch {
-      return Response.json({ ok: false, error: "AI 输出不是合法 JSON", raw }, { status: 200 });
+      return Response.json({ ok: false, error: uiText("server.5e5157a08d31"), raw }, { status: 200 });
     }
     const v = validateSpec(parsed);
     if (v.ok !== true) {
-      return Response.json({ ok: false, error: "生成的 schema 不合法：" + v.error, raw }, { status: 200 });
+      return Response.json({ ok: false, error: uiText("server.b9ad8f3f9e0e") + v.error, raw }, { status: 200 });
     }
     return Response.json({ ok: true, spec: v.spec, usage: completion.usage });
   } catch (err) {
     return Response.json({ ok: false, error: providerError(err) }, { status: 200 });
   }
 }
+
+export const POST = withUiLanguage(handlePOST);

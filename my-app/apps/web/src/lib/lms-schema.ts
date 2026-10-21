@@ -1,3 +1,4 @@
+import { uiText } from "./messages.ts";
 import { z } from "zod";
 
 const id = z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/);
@@ -38,11 +39,11 @@ export const lmsSnapshotSchema = z.object({
   })).max(100),
 }).superRefine((data, ctx) => {
   const textLength = data.courses.reduce((sum, c) => sum + c.lessons.reduce((n, l) => n + l.materials.reduce((m, file) => m + (file.text?.length || 0), 0), 0), 0);
-  if (textLength > 1_200_000) ctx.addIssue({ code: "custom", message: "Course content exceeds the text budget" });
+  if (textLength > 1_200_000) ctx.addIssue({ code: "custom", message: uiText("server.6f8dae4df9db") });
   const origin = new URL(data.baseUrl).origin;
   for (const course of data.courses) {
     for (const item of [...course.assignments, ...course.announcements, ...course.lessons.flatMap(l => l.materials)]) {
-      if (new URL(item.url).origin !== origin) ctx.addIssue({ code: "custom", message: "LMS links must match the school origin" });
+      if (new URL(item.url).origin !== origin) ctx.addIssue({ code: "custom", message: uiText("server.615b1b7f90f9") });
     }
   }
 });

@@ -1,4 +1,8 @@
 "use client";
+import { appFetch as fetch } from "./messages.ts";
+
+import { uiText } from "./messages.ts";
+
 
 // ============================================================
 // lib/research-client.ts — 多小队并行调研编排（P3）
@@ -55,12 +59,12 @@ export async function runResearch(
       signal,
     );
     if (r.ok !== true || !r.plan) {
-      onProgress({ phase: "error", squads: [], error: r.error ?? "拆解失败" });
-      return { ok: false, error: r.error ?? "拆解失败" };
+      onProgress({ phase: "error", squads: [], error: r.error ?? uiText("ui.researchclient.1196c495ee") });
+      return { ok: false, error: r.error ?? uiText("ui.researchclient.1196c495ee") };
     }
     plan = r.plan;
   } catch (e) {
-    const msg = (e as Error).name === "AbortError" ? "已取消" : (e as Error).message;
+    const msg = (e as Error).name === "AbortError" ? uiText("ui.researchclient.a37778f17c") : (e as Error).message;
     onProgress({ phase: "error", squads: [], error: msg });
     return { ok: false, error: msg };
   }
@@ -96,7 +100,7 @@ export async function runResearch(
     }),
   );
 
-  if (signal?.aborted) return { ok: false, error: "已取消" };
+  if (signal?.aborted) return { ok: false, error: uiText("ui.researchclient.a37778f17c") };
 
   // ---- 3. assemble（确定性，无 AI）----
   emit("assembling");

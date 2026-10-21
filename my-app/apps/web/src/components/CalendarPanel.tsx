@@ -1,4 +1,8 @@
 "use client";
+import { formatDate } from "@/lib/messages";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/CalendarPanel.tsx — 「日历」面板
@@ -25,11 +29,12 @@ interface Props {
   onMoveEvent?: (id: string, newDate: string, newTime: string) => void;
 }
 
-const WEEK_LABELS = ["一", "二", "三", "四", "五", "六", "日"];
+const WEEK_LABELS = () => [uiText("ui.calendarpanel.51a75f4634"), uiText("ui.calendarpanel.084b42f6e9"), uiText("ui.calendarpanel.a4c3313deb"), uiText("ui.calendarpanel.754a9d5828"), uiText("ui.calendarpanel.c9b87f516a"), uiText("ui.calendarpanel.de07b53838"), uiText("ui.calendarpanel.85217f7aff")];
 
 type ViewMode = "month" | "week" | "day";
 
 export default function CalendarPanel({ ddls, onRequestCreate, onRequestEdit, jumpToDay, onMoveEvent }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const isMobile = useIsMobile();
   const [view, setView] = useState<ViewMode>("month");
   const [selectedDate, setSelectedDate] = useState<string>(isoDate(new Date()));
@@ -57,7 +62,7 @@ export default function CalendarPanel({ ddls, onRequestCreate, onRequestEdit, ju
       m.set(d.dueDate, arr);
     }
     return m;
-  }, [ddls]);
+  }, [ddls, uiLanguage]);
 
   const enterDay = (iso: string) => {
     setSelectedDate(iso);
@@ -124,9 +129,10 @@ function MonthView({
   onCreate: () => void;
   onEditEvent: (d: DdlItem) => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const isMobile = useIsMobile();
   const [hoverDay, setHoverDay] = useState<string | null>(null);
-  const { cells, monthLabel } = useMemo(() => buildMonth(cursor), [cursor]);
+  const { cells, monthLabel } = useMemo(() => buildMonth(cursor), [cursor, uiLanguage]);
   const todayIso = isoDate(new Date());
 
   const goPrev = () => {
@@ -170,12 +176,10 @@ function MonthView({
             >
               {monthLabel}
             </h1>
-            <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "4px 0 0" }}>
-              本月 {countMonthEvents(ddls, cursor)} 件待办 · 点空白日期查看时间轴
-            </p>
+            <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "4px 0 0" }}>{uiText("calendar.monthSummary", { count: countMonthEvents(ddls, cursor) })}</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <NavBtn onClick={goPrev} aria="上一月">
+            <NavBtn onClick={goPrev} aria={uiText("ui.calendarpanel.58dcda214b")}>
               <ChevronLeft size={16} />
             </NavBtn>
             <button
@@ -191,17 +195,15 @@ function MonthView({
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
-            >
-              今天
-            </button>
-            <NavBtn onClick={goNext} aria="下一月">
+            >{uiText("ui.calendarpanel.d5f5a7a010")}</button>
+            <NavBtn onClick={goNext} aria={uiText("ui.calendarpanel.c0eb0fdf8c")}>
               <ChevronRight size={16} />
             </NavBtn>
             {/* C2 Week View 入口 */}
             {onEnterWeek && (
               <button
                 onClick={() => onEnterWeek(todayIso)}
-                title="切换到周视图"
+                title={uiText("ui.calendarpanel.c85de95b1b")}
                 style={{
                   padding: "7px 12px",
                   border: "1px solid var(--color-border)",
@@ -217,10 +219,9 @@ function MonthView({
                   gap: 4,
                 }}
               >
-                <LayoutGrid size={13} /> Week
-              </button>
+                <LayoutGrid size={13} />{uiText("ui.calendarpanel.e78041ab51")}</button>
             )}
-            <PrimaryBtn onClick={onCreate} icon={<Plus size={14} />} label="New Event" />
+            <PrimaryBtn onClick={onCreate} icon={<Plus size={14} />} label={uiText("ui.calendarpanel.d1a6a27bd0")} />
           </div>
         </header>
 
@@ -244,7 +245,7 @@ function MonthView({
                 background: "var(--color-surface)",
               }}
             >
-              {WEEK_LABELS.map((w) => (
+              {WEEK_LABELS().map((w) => (
                 <div
                   key={w}
                   style={{
@@ -255,9 +256,7 @@ function MonthView({
                     textAlign: "center",
                     letterSpacing: 0.5,
                   }}
-                >
-                  星期{w}
-                </div>
+                >{uiText("ui.calendarpanel.0584e1d11c", { value0: w })}</div>
               ))}
             </div>
             {/* 网格 */}
@@ -280,7 +279,7 @@ function MonthView({
                     onClick={() => {
                       if (cell.inMonth) onEnterDay(cell.iso);
                     }}
-                    title={cell.inMonth ? "点击查看时间轴" : ""}
+                    title={cell.inMonth ? uiText("ui.calendarpanel.6d8ff459b1") : ""}
                     style={{
                       borderRight: "1px solid var(--color-border-soft)",
                       borderBottom: "1px solid var(--color-border-soft)",
@@ -357,8 +356,7 @@ function MonthView({
                             padding: "1px 4px",
                           }}
                         >
-                          +{events.length - 3} 更多
-                        </span>
+                          +{events.length - 3}{uiText("ui.calendarpanel.38844b135c")}</span>
                       )}
                     </div>
                   </div>
@@ -389,9 +387,10 @@ function DayView({
   /** [054] D.1 拖动事件改时间 */
   onMoveEvent?: (id: string, newDate: string, newTime: string) => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const isMobile = useIsMobile();
   const dateObj = new Date(date);
-  const weekday = "日一二三四五六"[dateObj.getDay()];
+  const weekday = uiText("ui.calendarpanel.ef0885e1af").split(",")[dateObj.getDay()];
   const isToday = date === isoDate(new Date());
 
   // 时间轴 6AM-11PM（18 行）
@@ -409,7 +408,7 @@ function DayView({
       m.set(h, arr);
     }
     return m;
-  }, [dayDdls]);
+  }, [dayDdls, uiLanguage]);
 
   // 不在时间轴范围内的（早于 6 AM 或没时间）
   const outOfRange = dayDdls.filter((d) => {
@@ -425,11 +424,11 @@ function DayView({
       .filter((d) => !d.completed && d.dueDate && new Date(d.dueDate) >= today)
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
       .slice(0, 5);
-  }, [allDdls]);
+  }, [allDdls, uiLanguage]);
 
   const todos = useMemo(
     () => allDdls.filter((d) => !d.completed).slice(0, 5),
-    [allDdls],
+    [allDdls, uiLanguage],
   );
 
   return (
@@ -448,7 +447,7 @@ function DayView({
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button
               onClick={onBack}
-              aria-label="返回月视图"
+              aria-label={uiText("ui.calendarpanel.baa935026f")}
               style={{
                 width: 32,
                 height: 32,
@@ -474,8 +473,7 @@ function DayView({
                   letterSpacing: "-0.3px",
                 }}
               >
-                {dateObj.getFullYear()} 年 {dateObj.getMonth() + 1} 月 {dateObj.getDate()} 日
-                {isToday && (
+                {formatDate(dateObj, { year: "numeric", month: "long", day: "numeric" })}{isToday && (
                   <span
                     style={{
                       fontSize: 12,
@@ -487,17 +485,13 @@ function DayView({
                       fontWeight: 500,
                       verticalAlign: "middle",
                     }}
-                  >
-                    今天
-                  </span>
+                  >{uiText("ui.calendarpanel.d5f5a7a010")}</span>
                 )}
               </h1>
-              <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "4px 0 0" }}>
-                星期{weekday} · {dayDdls.length} 件待办
-              </p>
+              <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "4px 0 0" }}>{uiText("ui.calendarpanel.d33a7f318b", { value0: weekday, value1: dayDdls.length })}</p>
             </div>
           </div>
-          <PrimaryBtn onClick={onCreate} icon={<Plus size={14} />} label="New Event" />
+          <PrimaryBtn onClick={onCreate} icon={<Plus size={14} />} label={uiText("ui.calendarpanel.d1a6a27bd0")} />
         </header>
 
         {/* 两栏：时间轴 + 右 widgets */}
@@ -573,7 +567,7 @@ function DayView({
                       minHeight: 44,
                       transition: "background 0.12s",
                     }}
-                    title={onCreateAt ? `点击创建 · ${String(h).padStart(2, "0")}:00（事件可拖到此处）` : "点击新建事件"}
+                    title={onCreateAt ? uiText("ui.calendarpanel.a6757b7b43", { value0: String(h).padStart(2, "0") }) : uiText("ui.calendarpanel.daceb5589b")}
                   >
                     {slotItems.map((it) => (
                       <TimelinePill
@@ -607,9 +601,7 @@ function DayView({
                     letterSpacing: 0.5,
                     textTransform: "uppercase",
                   }}
-                >
-                  其他时段
-                </p>
+                >{uiText("ui.calendarpanel.a9c6f08b8c")}</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {outOfRange.map((it) => (
                     <TimelinePill key={it.id} event={it} onClick={() => onEdit(it)} />
@@ -629,9 +621,9 @@ function DayView({
               gap: 14,
             }}
           >
-            <WidgetCard title="Upcoming Events" icon={<Clock size={13} />}>
+            <WidgetCard title={uiText("ui.calendarpanel.e938bbbbbe")} icon={<Clock size={13} />}>
               {upcoming.length === 0 ? (
-                <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: 0 }}>暂无即将到来的事件</p>
+                <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: 0 }}>{uiText("ui.calendarpanel.38f2e7ef2d")}</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {upcoming.map((d) => (
@@ -659,9 +651,9 @@ function DayView({
               )}
             </WidgetCard>
 
-            <WidgetCard title="Tasks" icon={<ListChecks size={13} />}>
+            <WidgetCard title={uiText("ui.calendarpanel.b3a60e61a5")} icon={<ListChecks size={13} />}>
               {todos.length === 0 ? (
-                <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: 0 }}>没有待办</p>
+                <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: 0 }}>{uiText("ui.calendarpanel.134719ec02")}</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {todos.map((d) => (
@@ -707,6 +699,7 @@ function WidgetCard({
   icon: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div
       style={{
@@ -746,6 +739,7 @@ function WidgetCard({
 
 // 时间轴里的事件 pill
 function TimelinePill({ event, onClick, draggable }: { event: DdlItem; onClick: (e: React.MouseEvent) => void; draggable?: boolean }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   return (
     <button
@@ -773,7 +767,7 @@ function TimelinePill({ event, onClick, draggable }: { event: DdlItem; onClick: 
         transition: "background 0.12s",
         minWidth: 0,
       }}
-      title={draggable ? `${event.taskName}（可拖到其他时段）` : event.taskName}
+      title={draggable ? uiText("ui.calendarpanel.e8bb77f291", { value0: event.taskName }) : event.taskName}
     >
       <span
         style={{
@@ -820,6 +814,7 @@ function TimelinePill({ event, onClick, draggable }: { event: DdlItem; onClick: 
 // 月视图小组件
 // ============================================================
 function EventPill({ event, onClick }: { event: DdlItem; onClick: (e: React.MouseEvent) => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   return (
     <div
@@ -863,6 +858,7 @@ function NavBtn({
   onClick: () => void;
   aria: string;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   return (
     <button
@@ -896,6 +892,7 @@ function PrimaryBtn({
   label: string;
   onClick: () => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [h, setH] = useState(false);
   return (
     <button
@@ -925,6 +922,7 @@ function PrimaryBtn({
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div
       style={{
@@ -949,13 +947,9 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       >
         <CalendarDays size={22} color="var(--color-primary)" />
       </div>
-      <p style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)", margin: "0 0 6px" }}>
-        日历空空如也
-      </p>
-      <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "0 0 16px" }}>
-        告诉 Butler 你的安排、上传课件，或点下方按钮手动创建
-      </p>
-      <PrimaryBtn onClick={onCreate} icon={<Plus size={14} />} label="New Event" />
+      <p style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)", margin: "0 0 6px" }}>{uiText("ui.calendarpanel.ae1a5c41b2")}</p>
+      <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "0 0 16px" }}>{uiText("ui.calendarpanel.ebeb20d5d6")}</p>
+      <PrimaryBtn onClick={onCreate} icon={<Plus size={14} />} label={uiText("ui.calendarpanel.d1a6a27bd0")} />
     </div>
   );
 }
@@ -997,7 +991,7 @@ function buildMonth(cursor: Date): { cells: Cell[]; monthLabel: string } {
     cells.push({ iso: isoDate(dt), day: dt.getDate(), inMonth: false });
   }
 
-  const monthLabel = `${year} 年 ${month + 1} 月`;
+  const monthLabel = formatDate(cursor, { year: "numeric", month: "long" });
   return { cells, monthLabel };
 }
 
@@ -1043,6 +1037,7 @@ function WeekView({
   /** C4 拖动事件改时间 */
   onMoveEvent?: (id: string, newDate: string, newTime: string) => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const isMobile = useIsMobile();
   // 计算所选日期所在周的 7 天（周一开始）
   const weekDays = useMemo(() => {
@@ -1058,12 +1053,12 @@ function WeekView({
       days.push({
         iso: isoDate(dt),
         day: dt.getDate(),
-        weekday: WEEK_LABELS[i],
+        weekday: WEEK_LABELS()[i],
         month: dt.getMonth() + 1,
       });
     }
     return days;
-  }, [date]);
+  }, [date, uiLanguage]);
 
   const todayIso = isoDate(new Date());
   const HOUR_START = 6;
@@ -1093,17 +1088,13 @@ function WeekView({
                 background: "var(--color-bg)", cursor: "pointer", color: "var(--color-text-muted)",
                 display: "inline-flex", alignItems: "center", justifyContent: "center",
               }}
-              aria-label="返回月视图"
+              aria-label={uiText("ui.calendarpanel.baa935026f")}
             >
               <ArrowLeft size={14} />
             </button>
             <div>
-              <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>
-                Week View
-              </h1>
-              <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "2px 0 0" }}>
-                {weekLabel} · 共 {eventsInWeek.length} 件事
-              </p>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>{uiText("ui.calendarpanel.4ac94d0045")}</h1>
+              <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "2px 0 0" }}>{uiText("ui.calendarpanel.5267d7dcd7", { value0: weekLabel, value1: eventsInWeek.length })}</p>
             </div>
           </div>
           <button
@@ -1115,8 +1106,7 @@ function WeekView({
               fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
             }}
           >
-            <Plus size={14} /> New Event
-          </button>
+            <Plus size={14} />{uiText("ui.calendarpanel.d1a6a27bd0")}</button>
         </header>
 
         {/* 7 列 × 时间轴网格 */}
@@ -1150,11 +1140,9 @@ function WeekView({
                   cursor: "pointer",
                   textAlign: "center",
                 }}
-                title="点击进入 Day View"
+                title={uiText("ui.calendarpanel.82f99d407a")}
               >
-                <div style={{ fontSize: 10, color: "var(--color-text-muted)", marginBottom: 2 }}>
-                  星期{d.weekday}
-                </div>
+                <div style={{ fontSize: 10, color: "var(--color-text-muted)", marginBottom: 2 }}>{uiText("ui.calendarpanel.0584e1d11c", { value0: d.weekday })}</div>
                 <div
                   style={{
                     display: "inline-flex",
@@ -1237,7 +1225,7 @@ function WeekView({
                         background: d.iso === todayIso ? "color-mix(in srgb, var(--color-primary) 3%, transparent)" : "transparent",
                         cursor: onCreateAt ? "cell" : "default",
                       }}
-                      title={onCreateAt ? `点击创建 · ${d.iso} ${String(hour).padStart(2, "0")}:00` : ""}
+                      title={onCreateAt ? uiText("ui.calendarpanel.979b5b80f3", { value0: d.iso, value1: String(hour).padStart(2, "0") }) : ""}
                     >
                       {cellEvents.map((e) => (
                         <button
@@ -1273,7 +1261,7 @@ function WeekView({
                             opacity: e.completed ? 0.5 : 1,
                             textDecoration: e.completed ? "line-through" : "none",
                           }}
-                          title={`${e.taskName} · ${e.dueTime || "23:59"}${onMoveEvent ? "（可拖动改时间）" : ""}`}
+                          title={`${e.taskName} · ${e.dueTime || "23:59"}${onMoveEvent ? uiText("ui.calendarpanel.3a80c871b0") : ""}`}
                         >
                           {e.dueTime} {e.taskName}
                         </button>

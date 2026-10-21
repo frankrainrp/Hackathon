@@ -1,4 +1,6 @@
 "use client";
+import { uiText } from "./messages.ts";
+
 
 // ============================================================
 // lib/usage.ts — 真实成本计量层（5 小时滑动窗口 + 周用量）
@@ -209,7 +211,7 @@ export function formatCountdown(resetAt: number, now = Date.now()): string {
   const d = Math.floor(totalMin / 1440);
   const h = Math.floor((totalMin % 1440) / 60);
   const m = totalMin % 60;
-  if (d > 0) return `${d}天${h}h`;
+  if (d > 0) return uiText("ui.usage.a54dd41045", { value0: d, value1: h });
   if (h > 0) return `${h}h${m}m`;
   return `${m}m`;
 }

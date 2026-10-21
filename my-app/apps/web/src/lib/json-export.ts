@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/json-export.ts — 任务列表 JSON 导出/导入
 //
@@ -34,10 +36,10 @@ export async function importFromFile(file: File, existing: DdlItem[]): Promise<{
   try {
     const text = await file.text();
     const parsed: unknown = JSON.parse(text);
-    if (typeof parsed !== "object" || parsed === null) return { ok: false, error: "JSON 顶层不是对象" };
+    if (typeof parsed !== "object" || parsed === null) return { ok: false, error: uiText("ui.jsonexport.125c747006") };
     const obj = parsed as Partial<ExportShape>;
     const incoming = obj.ddls;
-    if (!Array.isArray(incoming)) return { ok: false, error: "缺少 ddls 数组" };
+    if (!Array.isArray(incoming)) return { ok: false, error: uiText("ui.jsonexport.7aeb3eb31b") };
 
     const existingMap = new Map(existing.map((d) => [d.id, d]));
     let added = 0, updated = 0;

@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/panel-modules/ModuleRenderer.tsx — [064] 单个模组渲染
@@ -18,6 +21,7 @@ import { PieChart, BarChart, Heatmap } from "./Charts";
 function ModuleCard({
   title, children, onRemove,
 }: { title?: string; children: React.ReactNode; onRemove?: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div
       style={{
@@ -38,8 +42,8 @@ function ModuleCard({
       {onRemove && (
         <button
           onClick={onRemove}
-          aria-label="移除模组"
-          title="移除模组"
+          aria-label={uiText("ui.modulerenderer.3e8aba8fee")}
+          title={uiText("ui.modulerenderer.3e8aba8fee")}
           style={{
             position: "absolute", top: 10, right: 10,
             width: 24, height: 24, borderRadius: 6, border: "none",
@@ -59,6 +63,7 @@ function ModuleCard({
 export default function ModuleRenderer({
   module: m, ctx, onRemove,
 }: { module: PanelModule; ctx: PanelDataCtx; onRemove?: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   const cfg = m.config ?? {};
 
   switch (m.type) {
@@ -79,21 +84,21 @@ export default function ModuleRenderer({
     case "countdown": {
       const cd = resolveCountdown(cfg.targetDate, ctx);
       return (
-        <ModuleCard title={m.title ?? "倒计时"} onRemove={onRemove}>
+        <ModuleCard title={m.title ?? uiText("ui.modulerenderer.a7cefeb048")} onRemove={onRemove}>
           {cd ? (
             <div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                 <span className="font-display" style={{ fontSize: 40, fontWeight: 700, lineHeight: 1, color: cd.days < 0 ? "var(--color-danger)" : cd.days <= 3 ? "var(--color-warning)" : "var(--color-primary)" }}>
                   {Math.abs(cd.days)}
                 </span>
-                <span style={{ fontSize: 14, color: "var(--color-text-muted)" }}>{cd.days < 0 ? "天前已过" : cd.days === 0 ? "就在今天" : "天后"}</span>
+                <span style={{ fontSize: 14, color: "var(--color-text-muted)" }}>{cd.days < 0 ? uiText("ui.modulerenderer.d5e8372cc6") : cd.days === 0 ? uiText("ui.modulerenderer.00f8ee966d") : uiText("ui.modulerenderer.0d384772c3")}</span>
               </div>
               <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "6px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {cd.label} · {cd.date}
               </p>
             </div>
           ) : (
-            <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: 0 }}>暂无未来截止任务</p>
+            <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: 0 }}>{uiText("ui.modulerenderer.53ebaacf67")}</p>
           )}
         </ModuleCard>
       );
@@ -101,9 +106,9 @@ export default function ModuleRenderer({
     case "tasklist": {
       const tasks = resolveTasks(cfg.filter, ctx, cfg.limit ?? 6);
       return (
-        <ModuleCard title={m.title ?? "任务清单"} onRemove={onRemove}>
+        <ModuleCard title={m.title ?? uiText("ui.modulerenderer.a4ea7d9539")} onRemove={onRemove}>
           {tasks.length === 0 ? (
-            <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: 0 }}>暂无任务</p>
+            <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: 0 }}>{uiText("ui.modulerenderer.da9688984c")}</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {tasks.map((t) => (
@@ -122,15 +127,15 @@ export default function ModuleRenderer({
     }
     case "pie": {
       const data = cfg.metric ? resolveSeries(cfg.metric, ctx, cfg.data) : (cfg.data ?? []);
-      return <ModuleCard title={m.title ?? "饼图"} onRemove={onRemove}><PieChart data={data} /></ModuleCard>;
+      return <ModuleCard title={m.title ?? uiText("ui.modulerenderer.86f348d657")} onRemove={onRemove}><PieChart data={data} /></ModuleCard>;
     }
     case "bar": {
       const data = cfg.metric ? resolveSeries(cfg.metric, ctx, cfg.data) : (cfg.data ?? []);
-      return <ModuleCard title={m.title ?? "柱状图"} onRemove={onRemove}><BarChart data={data} /></ModuleCard>;
+      return <ModuleCard title={m.title ?? uiText("ui.modulerenderer.8aece403ca")} onRemove={onRemove}><BarChart data={data} /></ModuleCard>;
     }
     case "heatmap": {
       const days = resolveHeatmap(ctx);
-      return <ModuleCard title={m.title ?? "任务热力图"} onRemove={onRemove}><Heatmap days={days} /></ModuleCard>;
+      return <ModuleCard title={m.title ?? uiText("ui.modulerenderer.c9608f1e7b")} onRemove={onRemove}><Heatmap days={days} /></ModuleCard>;
     }
     default:
       return null;

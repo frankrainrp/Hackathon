@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/ics-export.ts — 生成 RFC 5545 ICS 文件
 //
@@ -55,9 +57,9 @@ export function generateIcs(ddls: DdlItem[]): string {
       const summary = `${d.taskName}${d.weight != null ? `（${d.weight}%）` : ""}${d.isGroupWork ? " 🧑‍🤝‍🧑" : ""}`;
       const descParts = [
         d.description || "",
-        d.source ? `来源：${d.source}` : "",
+        d.source ? uiText("ui.icsexport.018e36ca2e", { value0: d.source }) : "",
         // G3.1 被动传播水印
-        "—— Powered by Butler · 智能学习管家 https://butler.app",
+        uiText("ui.icsexport.2ad98ab626"),
       ].filter(Boolean);
       const lines = [
         "BEGIN:VEVENT",
@@ -70,7 +72,7 @@ export function generateIcs(ddls: DdlItem[]): string {
         "BEGIN:VALARM",
         "TRIGGER:-PT30M",
         "ACTION:DISPLAY",
-        fold(`DESCRIPTION:${esc(`30 分钟后：${summary}`)}`),
+        fold(`DESCRIPTION:${esc(uiText("ui.icsexport.d74fd33915", { value0: summary }))}`),
         "END:VALARM",
         "END:VEVENT",
       ];
@@ -80,10 +82,10 @@ export function generateIcs(ddls: DdlItem[]): string {
   const header = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Butler//Personal Learning OS//ZH",
+    "PRODID:-//Butler//Personal Learning OS//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:Butler 任务",
+    fold(`X-WR-CALNAME:${esc(uiText("calendar.exportName"))}`),
     "X-WR-TIMEZONE:Asia/Shanghai",
   ].join("\r\n");
 

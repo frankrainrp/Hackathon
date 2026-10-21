@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/ConfirmCard.tsx — AI 写操作的"核实卡"
@@ -18,6 +21,7 @@ interface ConfirmCardProps {
 }
 
 export default function ConfirmCard({ batch, onAccept, onReject, onDropChange }: ConfirmCardProps) {
+  const uiLanguage = useCopyLanguage().lang;
   const isPending = batch.status === "pending";
   const isAccepted = batch.status === "accepted";
   const isRejected = batch.status === "rejected";
@@ -52,9 +56,9 @@ export default function ConfirmCard({ batch, onAccept, onReject, onDropChange }:
             >
               {batch.intro}
             </p>
-            {isAccepted && <StatusBadge label="已采纳" color="var(--color-success)" />}
-            {isRejected && <StatusBadge label="已取消" color="var(--color-text-faint)" />}
-            {isPending && <StatusBadge label={`待核实 (${remaining})`} color="var(--color-primary)" />}
+            {isAccepted && <StatusBadge label={uiText("ui.confirmcard.b00a76bfc6")} color="var(--color-success)" />}
+            {isRejected && <StatusBadge label={uiText("ui.confirmcard.a37778f17c")} color="var(--color-text-faint)" />}
+            {isPending && <StatusBadge label={uiText("ui.confirmcard.29de7ff6a9", { value0: remaining })} color="var(--color-primary)" />}
           </div>
 
           {/* changes 列表 */}
@@ -78,9 +82,7 @@ export default function ConfirmCard({ batch, onAccept, onReject, onDropChange }:
               ))}
             </div>
           ) : (
-            <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: 0 }}>
-              （所有改动已被移除）
-            </p>
+            <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: 0 }}>{uiText("ui.confirmcard.3e573425fb")}</p>
           )}
 
           {/* 操作区 */}
@@ -113,8 +115,7 @@ export default function ConfirmCard({ batch, onAccept, onReject, onDropChange }:
                   gap: 6,
                 }}
               >
-                <Check size={14} />
-                接受 {remaining > 0 && `(${remaining})`}
+                <Check size={14} />{uiText("ui.confirmcard.329fcec618")}{remaining > 0 && `(${remaining})`}
               </button>
               <button
                 onClick={() => onReject(batch.id)}
@@ -128,9 +129,7 @@ export default function ConfirmCard({ batch, onAccept, onReject, onDropChange }:
                   fontSize: 13,
                   cursor: "pointer",
                 }}
-              >
-                全部取消
-              </button>
+              >{uiText("ui.confirmcard.553d57d3a6")}</button>
             </div>
           )}
         </div>
@@ -169,6 +168,7 @@ export default function ConfirmCard({ batch, onAccept, onReject, onDropChange }:
 }
 
 function StatusBadge({ label, color }: { label: string; color: string }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <span
       style={{
@@ -195,6 +195,7 @@ function ChangeRow({
   canDrop: boolean;
   onDrop: () => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const meta = describeChange(change);
   return (
     <div
@@ -244,7 +245,7 @@ function ChangeRow({
       </div>
       {canDrop && (
         <button
-          aria-label="移除此条"
+          aria-label={uiText("ui.confirmcard.d792f89c29")}
           onClick={onDrop}
           style={{
             width: 22,
@@ -284,7 +285,7 @@ function describeChange(ch: PendingChange): {
 } {
   if (ch.kind === "create") {
     const d = ch.draft;
-    const date = d.dueDate || "待定";
+    const date = d.dueDate || uiText("ui.confirmcard.63ec276c63");
     return {
       icon: <Plus size={13} />,
       bg: "rgba(45,122,77,0.12)",
@@ -298,7 +299,7 @@ function describeChange(ch: PendingChange): {
       icon: <Pencil size={13} />,
       bg: "rgba(59,130,246,0.12)",
       fg: "var(--color-info)",
-      subline: patched.length > 0 ? `修改 ${patched.join(" · ")}` : undefined,
+      subline: patched.length > 0 ? uiText("ui.confirmcard.185923aeee", { value0: patched.join(" · ") }) : undefined,
     };
   }
   if (ch.kind === "create-note") {
@@ -308,7 +309,7 @@ function describeChange(ch: PendingChange): {
       icon: <BookOpen size={13} />,
       bg: "rgba(168,85,247,0.12)", // 紫色区别于 task（绿）
       fg: "#9333ea",
-      subline: `📝 笔记 · ${n.content.length} 字${n.tags?.length ? ` · #${n.tags.join(" #")}` : ""}${preview ? ` · ${preview}…` : ""}`,
+      subline: uiText("ui.confirmcard.cb8f502615", { value0: n.content.length, value1: n.tags?.length ? ` · #${n.tags.join(" #")}` : "", value2: preview ? ` · ${preview}…` : "" }),
     };
   }
   if (ch.kind === "create-custom-panel") {
@@ -318,13 +319,13 @@ function describeChange(ch: PendingChange): {
       icon: <LayoutGrid size={13} />,
       bg: "rgba(245,158,11,0.14)", // 琥珀黄区别于 task/note
       fg: "#B45309",
-      subline: `${isIframe ? "🌐 嵌入网页" : "📋 自定义面板"} · ${p.emoji} ${p.label}${isIframe ? ` · ${p.url}` : p.content ? ` · ${p.content.length} 字` : ""}`,
+      subline: `${isIframe ? uiText("ui.confirmcard.d162a8dce4") : uiText("ui.confirmcard.58cfc98914")} · ${p.emoji} ${p.label}${isIframe ? ` · ${p.url}` : p.content ? uiText("ui.confirmcard.50f57b26a3", { value0: p.content.length }) : ""}`,
     };
   }
   return {
     icon: <Trash2 size={13} />,
     bg: "rgba(220,38,38,0.1)",
     fg: "var(--color-danger)",
-    subline: `${ch.before.dueDate || "待定"}`,
+    subline: `${ch.before.dueDate || uiText("ui.confirmcard.63ec276c63")}`,
   };
 }

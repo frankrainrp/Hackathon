@@ -40,7 +40,7 @@ test('unknown status never becomes a missing-work reminder; outages preserve fac
   const expired = { ...snapshot(), status: 'login_required', courses: [], warnings: ['Login expired'] };
   const outage = buildLmsFeed(expired, next, now + 3000);
   assert.equal(outage.ddls.length, 1);
-  assert.equal(outage.messages.filter(m => m.content.includes('登录已失效')).length, 1);
+  assert.equal(outage.messages.filter(m => m.id.includes('-login-')).length, 1);
   assert.equal(buildLmsFeed(expired, outage, now + 4000).messages.length, outage.messages.length);
 });
 
@@ -49,6 +49,13 @@ test('foreign school links and invalid timezones are rejected', () => {
   bad.courses[0].assignments[0].url = 'https://attacker.example/collect';
   assert.equal(lmsSnapshotSchema.safeParse(bad).success, false);
   assert.equal(lmsSnapshotSchema.safeParse({ ...snapshot(), timezone: 'invalid-zone' }).success, false);
+});
+
+test('new sync messages use the selected language while school names and source text remain intact', () => {
+  const data=snapshot('unknown');data.school='学校原名';data.courses[0].moduleName='课程原名';data.courses[0].assignments[0].title='作业原文 $&';
+  const en=buildLmsFeed(data,empty(),now,'en'),zh=buildLmsFeed(data,empty(),now,'zh');
+  assert.equal(en.ddls[0].taskName,'作业原文 $&');assert.equal(zh.ddls[0].taskName,en.ddls[0].taskName);
+  assert.match(en.messages[0].content,/needs verification|unverified/i);assert.match(zh.messages[0].content,/待核实/);
 });
 
 test('course detail survives an outage and school refresh preserves learner progress', () => {
@@ -64,4 +71,3 @@ test('course detail survives an outage and school refresh preserves learner prog
   assert.equal(outage.courses.length, 1);
   assert.equal(outage.courses[0].assignments[0].submissionState, 'submitted');
 });
-

@@ -1,3 +1,4 @@
+import { uiText } from "./messages.ts";
 import OpenAI from "openai";
 import { readAiSettings, readDeepseekKey, loopbackURL } from "./ai-config.ts";
 import { engineCredential, ENGINE_PORT } from "./ai-engine.ts";
@@ -7,23 +8,23 @@ import type { AiModelId } from "./ai-models.ts";
 export interface ProviderEndpoint { name: "server" | "windows" | "bundled" | "local" | "deepseek"; baseURL: string; model: string; apiKey: string; mode: string }
 export function providerError(error: unknown): string {
   const e = error as { status?: number; code?: string };
-  if (e?.status === 401 || e?.status === 403) return "Authentication failed. Open AI setup and save a valid API key, or check your local service access settings.";
-  if (e?.status === 402) return "DeepSeek reports insufficient balance. Check your account on the official platform, or switch to Local. Butler cannot add funds.";
-  if (e?.status === 429) return "The provider is rate limited. Wait a moment and retry; reduce parallel research requests if this continues.";
-  if (e?.status === 404) return "The selected model was not found. Refresh the local model list or choose an available DeepSeek model in AI setup.";
-  if (e?.status === 400 || e?.status === 422) return "The model rejected this request format or context size. Try a shorter document, lower context, or a model with tool/JSON support.";
-  if (e?.status === 500 || e?.status === 503) return "The provider is unavailable or overloaded. Retry later. For Local, check engine health and free RAM in AI setup.";
+  if (e?.status === 401 || e?.status === 403) return uiText("server.1acca6e77b25");
+  if (e?.status === 402) return uiText("server.df902f72e555");
+  if (e?.status === 429) return uiText("server.6285b8f9aaed");
+  if (e?.status === 404) return uiText("server.6b827aa2da9b");
+  if (e?.status === 400 || e?.status === 422) return uiText("server.61a76d4d0d24");
+  if (e?.status === 500 || e?.status === 503) return uiText("server.5a3c4d77030c");
   // Never forward provider bodies, headers, keys or URLs.
   if (error instanceof Error && !(error instanceof OpenAI.APIError) && !(error instanceof OpenAI.APIConnectionError) && !/fetch|connect|socket|timeout|ECONN|ENOTFOUND/i.test(error.message)) return error.message.slice(0, 350);
-  return "Could not reach the selected AI provider. Check internet access for DeepSeek, or start your local engine/service. Your work is saved; Local never falls back to cloud.";
+  return uiText("server.ce6136527215");
 }
 export function resolveProviderCandidates(modelId: AiModelId = "deepseek-v4-flash"): ProviderEndpoint[] {
   const s = readAiSettings();
-  if (s.mode === "none") throw new Error("AI is optional and currently off. Open Settings → AI setup to choose Local or DeepSeek. Courses, tasks and notes still work.");
+  if (s.mode === "none") throw new Error(uiText("server.aade800f39d7"));
   if (s.mode === "deepseek") return [{ name: "deepseek", mode: s.mode, baseURL: "https://api.deepseek.com", model: s.deepseekModel, apiKey: readDeepseekKey() }];
   if (s.mode === "local") {
     if (s.localKind === "external") {
-      if (!s.externalModel) throw new Error("Choose an installed model from your local service in AI setup.");
+      if (!s.externalModel) throw new Error(uiText("server.95d309058bc3"));
       return [{ name: "local", mode: s.mode, baseURL: loopbackURL(s.externalURL), model: s.externalModel, apiKey: "local-no-key" }];
     }
     const model = catalogModel(s.modelId);

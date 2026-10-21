@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/layout/TopBar.tsx — 56px 全宽顶 Bar
@@ -58,6 +61,7 @@ export default function TopBar({
   customPanels = [], activeCustomPanelId, onSelectCustomPanel, onCreateCustomPanel,
   isMobile = false, onOpenBilling, onUpgrade,
 }: TopBarProps) {
+  const uiLanguage = useCopyLanguage().lang;
   const { t } = useT();
   const plan = useCurrentPlan();
   const isPaid = plan !== "free";
@@ -155,7 +159,7 @@ export default function TopBar({
                 setDragOverId(null);
                 if (sourceId && sourceId !== id) handleDropTab(sourceId, id);
               }}
-              title="点击切换，拖拽重排"
+              title={uiText("ui.topbar.a367f8d1ad")}
               className={isActive ? "pill-nav-item active" : "pill-nav-item"}
               style={isDragOver ? { boxShadow: "inset 0 0 0 2px var(--color-primary)" } : undefined}
             >
@@ -251,8 +255,8 @@ export default function TopBar({
             {!isMobile && (
               <>
                 <div style={{ textAlign: "left", lineHeight: 1.2 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text)" }}>Feng</div>
-                  <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>feng@example.com</div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text)" }}>{uiText("ui.topbar.24677ae615")}</div>
+                  <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{uiText("ui.topbar.c6f0c5d18e")}</div>
                 </div>
                 <ChevronDown size={14} color="var(--color-text-muted)" />
               </>
@@ -281,7 +285,7 @@ export default function TopBar({
               >
                 <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--color-border-soft)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>Feng</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>{uiText("ui.topbar.24677ae615")}</p>
                     <span
                       style={{
                         display: "inline-flex", alignItems: "center", gap: 3,
@@ -294,9 +298,7 @@ export default function TopBar({
                       {isPaid && <Crown size={9} />}{t(getPlanDef(plan).nameKey)}
                     </span>
                   </div>
-                  <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>
-                    feng@example.com
-                  </p>
+                  <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>{uiText("ui.topbar.c6f0c5d18e")}</p>
                 </div>
                 {/* 升级 CTA（免费用户）*/}
                 {!isPaid && (
@@ -351,6 +353,7 @@ function MenuBtn({
   accent?: boolean;
   onClick?: () => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   const color = danger
     ? hov ? "#b91c1c" : "var(--color-danger)"

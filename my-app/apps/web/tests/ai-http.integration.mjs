@@ -32,7 +32,7 @@ async function start(){
 }
 async function stop(){if(child&&child.exitCode===null){child.kill();await Promise.race([exited,delay(5000)]);if(child.exitCode===null){child.kill('SIGKILL');await exited;}}}
 async function api(action,body={},expected=200,headers={}){const res=await fetch(origin+'/api/ai/setup',action?{method:'POST',headers:{origin,'content-type':'application/json',...headers},body:JSON.stringify({action,...body})}:{headers});const value=await res.json();assert.equal(res.status,expected,JSON.stringify(value));return value;}
-async function route(path,body){const res=await fetch(origin+path,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)});const text=await res.text();assert.equal(res.status,200,text);assert.equal(text.includes('synthetic-env-must-not-forward'),false);return text;}
+async function route(path,body,language='en'){const res=await fetch(origin+path,{method:'POST',headers:{origin,'content-type':'application/json','x-butler-language':language},body:JSON.stringify(body)});const text=await res.text();assert.equal(res.status,200,text);assert.equal(text.includes('synthetic-env-must-not-forward'),false);return text;}
 const profile=term=>({id:'ai-fixture',school:'Synthetic AI test school',entryUrl:'https://tplms.polite.edu.sg/d2l/home',platform:'brightspace',semester:{id:term,label:term,confirmed:true,courses:[{id:'101',name:'Synthetic module',selected:true,status:'active'}]},daily:{time:'09:00',timezone:'Asia/Singapore'}});
 async function brief(term,title,sequence){
  await route('/api/lms/settings',{profile:profile(term),confirm:true});
@@ -42,6 +42,9 @@ async function brief(term,title,sequence){
 try{
  await start();let initial=await api();assert.equal(initial.settings.onboarding,'new');
  await api('save',{settings:{...initial.settings,mode:'local',localKind:'external',externalURL:`http://127.0.0.1:${mockPort}/v1`,externalModel:'synthetic-local',onboarding:'paused',step:2}});
+ assert.equal((await api()).modelNames.primary,'synthetic-local');
+ const zhError=await api('download',{id:'qwen3-8-q4',confirm:false},400,{'x-butler-language':'zh'});assert.match(zhError.error,/\p{Script=Han}/u);assert.equal(requests.length,0);
+ const enError=await api('download',{id:'qwen3-8-q4',confirm:false},400);assert.doesNotMatch(enError.error,/\p{Script=Han}/u);
  await api('save',{settings:initial.settings},403,{origin:'https://foreign.example'});
  await api('save',{settings:{...initial.settings,modelsDir:'relative'}},400);
  await api('download',{id:'qwen3-8-q4',confirm:false},400);assert.equal(requests.length,0);
@@ -49,8 +52,11 @@ try{
  await api('test');await api('sample',{confirm:false},400);await api('sample',{confirm:true});
  const paths=[['/api/chat',{messages:[{role:'user',content:'Synthetic question'}],includeTools:false,language:'en'}],['/api/extract-ddls',{markdown:'Synthetic assignment with no explicit due date. Please preserve unknown date.',filename:'synthetic.txt',currentDate:'2026-10-21'}],['/api/generate-panel',{prompt:'Synthetic panel'}],['/api/generate-source',{prompt:'Synthetic source'}],['/api/research/plan',{goal:'Synthetic goal'}],['/api/research/squad',{goal:'Synthetic goal',squadTitle:'Synthetic squad',question:'Synthetic question'}]];
  const count=requests.length;for(const [path,body]of paths)await route(path,body);assert.equal(requests.length-count,paths.length);
+ for(const req of requests.slice(-paths.length)){const system=req.body.messages.find(m=>m.role==='system').content;assert.match(system,/Reply in English|Interface language: English/);}
+ for(const [path,body]of paths){await route(path,path==='/api/chat'?{...body,language:'zh'}:body,'zh');const system=requests.at(-1).body.messages.find(m=>m.role==='system').content;assert.match(system,/默认中文回复|Interface language: Simplified Chinese/);}
  for(const req of requests){if(req.body)assert.equal(req.body.model,'synthetic-local');assert.equal(req.authorization,'Bearer local-no-key');}
  await brief('term1','HISTORICAL_SHOULD_NOT_LEAK',1);assert.equal(requests.at(-1).body.model,'synthetic-local');
+ assert.match(requests.at(-1).body.messages[0].content,/Interface language: English/);
  await brief('term2','CURRENT_SEMESTER_ONLY',2);assert.equal(requests.at(-1).body.model,'synthetic-local');assert.equal(JSON.stringify(requests.at(-1).body).includes('HISTORICAL_SHOULD_NOT_LEAK'),false);
  const ocr=await fetch(origin+'/api/ocr',{method:'POST',headers:{origin}});assert.equal(ocr.status,403);assert.match(await ocr.text(),/Cloud OCR is off/);
  await stop();await start();initial=await api();assert.equal(initial.settings.onboarding,'paused');assert.equal(initial.settings.externalModel,'synthetic-local');await api('test');

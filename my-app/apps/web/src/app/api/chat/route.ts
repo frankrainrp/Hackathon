@@ -1,3 +1,6 @@
+import { uiText } from "../../../lib/messages.ts";
+import { requestLanguage } from "@/lib/messages";
+import { withUiLanguage } from "@/lib/api-language";
 import { providerError } from "@/lib/ai-provider";
 import { isLocalAiRequest } from "@/lib/ai-config";
 // ============================================================
@@ -81,23 +84,23 @@ ${contextSummary || "（用户当前没有任何任务/事件）"}
 - 不要解释你正在调用什么工具（用户能从 UI 看到）`;
 }
 
-export async function POST(req: Request) {
-  if (!isLocalAiRequest(req, true)) return Response.json({ error: "Local access only" }, { status: 403 });
+async function handlePOST(req: Request) {
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: uiText("server.0163e7aa4646") }, { status: 403 });
   let body: ChatRequest;
   try {
     body = (await req.json()) as ChatRequest;
   } catch {
-    return new Response(JSON.stringify({ error: "请求体非合法 JSON" }), {
+    return new Response(JSON.stringify({ error: uiText("server.1c34c7fc0487") }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
   }
 
   if (!body || !Array.isArray(body.messages) || body.messages.length > 100 || body.messages.some(m => !m || !["user", "assistant", "system", "tool"].includes(m.role) || m.content !== null && typeof m.content !== "string") || body.courseNoteId && (typeof body.courseNoteId !== "string" || body.courseNoteId.length > 200)) {
-    return Response.json({ error: "Invalid chat request" }, { status: 400 });
+    return Response.json({ error: uiText("server.0a722b493c8e") }, { status: 400 });
   }
   const systemPrompt = buildSystemPrompt(
-    body.userName || "Feng", body.contextSummary || "", body.personality || "standard",
-    body.language === "en" ? "en" : "zh",
+    body.userName || "", body.contextSummary || "", body.personality || "standard",
+    body.language === "zh" || (body.language == null && requestLanguage(req) === "zh") ? "zh" : "en",
   );
   const query = body.messages.filter(m => m.role === "user").slice(-1)[0]?.content || "";
   const courseMode = !!body.courseNoteId;
@@ -105,7 +108,7 @@ export async function POST(req: Request) {
   const asksCourse = courseMode || /课程|课件|课堂|\b(lesson|module|course|materials?)\b/i.test(query) || (feed.courses || []).some(c => query.toLowerCase().includes(c.moduleName.toLowerCase()));
   const courseContext = asksCourse && process.env.LMS_CONTENT_AI_ENABLED !== "false"
     ? selectCourseContext(feed, query, body.courseNoteId)
-    : { courses: [], sources: [], metadata: "Course access unavailable", missingText: 0 };
+    : { courses: [], sources: [], metadata: uiText("ai.courseAccess"), missingText: 0 };
 
   // 始终用我们注入的 system prompt 覆盖客户端的 system 消息
   const messages = [
@@ -166,7 +169,7 @@ export async function POST(req: Request) {
       }
     }
     if (!stream || !activeEndpoint) {
-      throw new Error(endpointErrors.join(" | ") || "没有可用的本地模型端点");
+      throw new Error(endpointErrors.join(" | ") || uiText("server.21a46e3f88c4"));
     }
     const activeStream = stream;
     const activeRoute = activeEndpoint.name;
@@ -213,8 +216,10 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     const msg = providerError(err);
-    return new Response(JSON.stringify({ error: `AI request failed: ${msg}` }), {
+    return new Response(JSON.stringify({ error: uiText("server.fcf03aeaf3ff", { value0: msg }) }), {
       status: 500, headers: { "Content-Type": "application/json" },
     });
   }
 }
+
+export const POST = withUiLanguage(handlePOST);

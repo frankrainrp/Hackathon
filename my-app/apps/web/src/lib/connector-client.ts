@@ -1,4 +1,8 @@
 "use client";
+import { appFetch as fetch } from "./messages.ts";
+
+import { uiText } from "./messages.ts";
+
 
 // ============================================================
 // lib/connector-client.ts — 客户端取数（P1 引擎地基）
@@ -21,7 +25,7 @@ export async function fetchSource(source: DataSource, signal?: AbortSignal): Pro
     return { ok: true, data: source.data ?? [] };
   }
   // http → 经后端连接器代理
-  if (!source.url) return { ok: false, error: "http 数据源缺少 url" };
+  if (!source.url) return { ok: false, error: uiText("ui.connectorclient.f3aff69be7") };
   try {
     const res = await fetch("/api/connector", {
       method: "POST",
@@ -36,7 +40,7 @@ export async function fetchSource(source: DataSource, signal?: AbortSignal): Pro
       signal,
     });
     const json = (await res.json()) as { ok: boolean; data?: unknown; error?: string };
-    if (!json.ok) return { ok: false, error: json.error ?? "连接器请求失败" };
+    if (!json.ok) return { ok: false, error: json.error ?? uiText("ui.connectorclient.bbfffa9b94") };
     let extracted = getByPath(json.data, source.path);
     // pivot：键值对象 → 行数组（如汇率 {EUR:0.9} → [{currency:"EUR",rate:0.9}]）
     if (source.pivot && extracted && typeof extracted === "object" && !Array.isArray(extracted)) {
@@ -46,7 +50,7 @@ export async function fetchSource(source: DataSource, signal?: AbortSignal): Pro
     }
     return { ok: true, data: extracted };
   } catch (e) {
-    if ((e as Error).name === "AbortError") return { ok: false, error: "已取消" };
+    if ((e as Error).name === "AbortError") return { ok: false, error: uiText("ui.connectorclient.a37778f17c") };
     return { ok: false, error: (e as Error).message };
   }
 }

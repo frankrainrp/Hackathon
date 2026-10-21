@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/layout/TasksRail.tsx
@@ -27,6 +30,7 @@ interface TasksRailProps {
 }
 
 function CountBadge({ n }: { n: number }) {
+  const uiLanguage = useCopyLanguage().lang;
   if (n === 0) return null;
   return (
     <span
@@ -44,38 +48,39 @@ function CountBadge({ n }: { n: number }) {
 }
 
 export default function TasksRail({ onCreateTask, counts, view, onSelectView }: TasksRailProps) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <>
-      <RailPrimaryBtn icon={<Plus size={14} />} label="New Task" onClick={onCreateTask} />
+      <RailPrimaryBtn icon={<Plus size={14} />} label={uiText("ui.tasksrail.718e58cc20")} onClick={onCreateTask} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <RailGroupTitle>Views</RailGroupTitle>
+        <RailGroupTitle>{uiText("ui.tasksrail.69c404591e")}</RailGroupTitle>
         <RailItem
-          icon={<Inbox size={14} />} label="Active"
+          icon={<Inbox size={14} />} label={uiText("ui.tasksrail.9234069589")}
           active={view === "active"}
           badge={<CountBadge n={counts.active} />}
           onClick={() => onSelectView("active")}
         />
         <RailItem
-          icon={<AlertCircle size={14} />} label="In Progress"
+          icon={<AlertCircle size={14} />} label={uiText("ui.tasksrail.b4cc4b07c3")}
           active={view === "in_progress"}
           badge={<CountBadge n={counts.in_progress} />}
           onClick={() => onSelectView("in_progress")}
         />
         <RailItem
-          icon={<Clock size={14} />} label="Upcoming"
+          icon={<Clock size={14} />} label={uiText("ui.tasksrail.5f1a2542e4")}
           active={view === "upcoming"}
           badge={<CountBadge n={counts.upcoming} />}
           onClick={() => onSelectView("upcoming")}
         />
         <RailItem
-          icon={<ListTodo size={14} />} label="All Tasks"
+          icon={<ListTodo size={14} />} label={uiText("ui.tasksrail.0799351bbf")}
           active={view === "all"}
           badge={<CountBadge n={counts.all} />}
           onClick={() => onSelectView("all")}
         />
         <RailItem
-          icon={<CheckCircle2 size={14} />} label="Completed"
+          icon={<CheckCircle2 size={14} />} label={uiText("ui.tasksrail.22a970d2e5")}
           active={view === "completed"}
           badge={<CountBadge n={counts.completed} />}
           onClick={() => onSelectView("completed")}

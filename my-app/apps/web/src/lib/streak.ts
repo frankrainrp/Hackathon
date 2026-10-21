@@ -1,3 +1,5 @@
+
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/streak.ts — 连续学习天数 + 成就解锁(localStorage)
 //
@@ -86,14 +88,14 @@ export interface AchievementCtx {
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
-  { id: "first-task",     label: "初心者",     emoji: "🌱", desc: "创建第一个任务", check: (c) => c.ddlsTotal >= 1 },
-  { id: "first-done",     label: "执行者",     emoji: "✅", desc: "完成第一个任务", check: (c) => c.ddlsDone >= 1 },
-  { id: "ten-done",       label: "勤勉",       emoji: "💪", desc: "累计完成 10 个任务", check: (c) => c.ddlsDone >= 10 },
-  { id: "fifty-done",     label: "高产",       emoji: "🚀", desc: "累计完成 50 个任务", check: (c) => c.ddlsDone >= 50 },
-  { id: "first-note",     label: "随手记",     emoji: "📝", desc: "创建第一篇笔记",  check: (c) => c.notesTotal >= 1 },
-  { id: "streak-3",       label: "三日坚持",   emoji: "🔥", desc: "连续 3 天打开 Butler", check: (c) => c.streakDays >= 3 },
-  { id: "streak-7",       label: "习惯养成",   emoji: "🌟", desc: "连续 7 天打开 Butler", check: (c) => c.streakDays >= 7 },
-  { id: "streak-30",      label: "月度狂热",   emoji: "👑", desc: "连续 30 天",     check: (c) => c.streakDays >= 30 },
+  { id: "first-task",     get label() { return uiText("ui.streak.266e59503b"); },     emoji: "🌱", get desc() { return uiText("ui.streak.ac8257d8cc"); }, check: (c) => c.ddlsTotal >= 1 },
+  { id: "first-done",     get label() { return uiText("ui.streak.b48ff04a7a"); },     emoji: "✅", get desc() { return uiText("ui.streak.d714dbaca5"); }, check: (c) => c.ddlsDone >= 1 },
+  { id: "ten-done",       get label() { return uiText("ui.streak.064a2110ea"); },       emoji: "💪", get desc() { return uiText("ui.streak.d64081d208"); }, check: (c) => c.ddlsDone >= 10 },
+  { id: "fifty-done",     get label() { return uiText("ui.streak.11d72ecc9d"); },       emoji: "🚀", get desc() { return uiText("ui.streak.8af47d7ded"); }, check: (c) => c.ddlsDone >= 50 },
+  { id: "first-note",     get label() { return uiText("ui.streak.970b8661fc"); },     emoji: "📝", get desc() { return uiText("ui.streak.d8ab99d29b"); },  check: (c) => c.notesTotal >= 1 },
+  { id: "streak-3",       get label() { return uiText("ui.streak.2a191742f7"); },   emoji: "🔥", get desc() { return uiText("ui.streak.87b6b23284"); }, check: (c) => c.streakDays >= 3 },
+  { id: "streak-7",       get label() { return uiText("ui.streak.304ff472e2"); },   emoji: "🌟", get desc() { return uiText("ui.streak.8ae2fd4e41"); }, check: (c) => c.streakDays >= 7 },
+  { id: "streak-30",      get label() { return uiText("ui.streak.6d7ab3ccc2"); },   emoji: "👑", get desc() { return uiText("ui.streak.01bf42d0db"); },     check: (c) => c.streakDays >= 30 },
 ];
 
 export function getUnlockedSet(): Set<string> {

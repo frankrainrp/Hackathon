@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/AttachmentPreview.tsx — 附件预览 modal
@@ -21,6 +24,7 @@ interface Props {
 }
 
 export default function AttachmentPreview({ attachment, onClose }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const [blobInfo, setBlobInfo] = useState<{ url: string; mime: string; name: string } | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
 
@@ -40,7 +44,7 @@ export default function AttachmentPreview({ attachment, onClose }: Props) {
           const info = await getBlobUrl(attachment.ref);
           if (!active) return;
           if (info) { url = info.url; setBlobInfo(info); }
-          else setLoadErr("附件文件已丢失（IndexedDB 中找不到）");
+          else setLoadErr(uiText("ui.attachmentpreview.a2f443a124"));
         } catch (e) {
           if (active) setLoadErr((e as Error).message);
         }
@@ -87,7 +91,7 @@ export default function AttachmentPreview({ attachment, onClose }: Props) {
               {attachment.ref}
             </p>
           </div>
-          <button onClick={onClose} aria-label="关闭" style={{
+          <button onClick={onClose} aria-label={uiText("ui.attachmentpreview.3fd47edce4")} style={{
             width: 32, height: 32, borderRadius: 8, border: "none",
             background: "transparent", cursor: "pointer", color: "var(--color-text-muted)",
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -115,10 +119,11 @@ export default function AttachmentPreview({ attachment, onClose }: Props) {
 // ---- 子视图 ----
 
 function UrlView({ ref_ }: { ref_: string }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div style={{ padding: 40, textAlign: "center" }}>
       <ExternalLink size={36} color="var(--color-primary)" />
-      <p style={{ fontSize: 14, color: "var(--color-text)", margin: "16px 0 6px" }}>外部链接附件</p>
+      <p style={{ fontSize: 14, color: "var(--color-text)", margin: "16px 0 6px" }}>{uiText("ui.attachmentpreview.b8df21b27c")}</p>
       <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: "0 0 20px", wordBreak: "break-all" }}>{ref_}</p>
       <a href={ref_} target="_blank" rel="noopener noreferrer" style={{
         display: "inline-flex", alignItems: "center", gap: 6,
@@ -127,13 +132,13 @@ function UrlView({ ref_ }: { ref_: string }) {
         color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none",
         boxShadow: "var(--shadow-card-hover)",
       }}>
-        <ExternalLink size={14} /> 在新窗口打开
-      </a>
+        <ExternalLink size={14} />{uiText("ui.attachmentpreview.b9d58d9dfc")}</a>
     </div>
   );
 }
 
 function FilepathView({ path }: { path: string }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -145,7 +150,7 @@ function FilepathView({ path }: { path: string }) {
   return (
     <div style={{ padding: 40, textAlign: "center" }}>
       <FolderOpen size={36} color="var(--color-success)" />
-      <p style={{ fontSize: 14, color: "var(--color-text)", margin: "16px 0 6px" }}>本地文件路径</p>
+      <p style={{ fontSize: 14, color: "var(--color-text)", margin: "16px 0 6px" }}>{uiText("ui.attachmentpreview.1725a77c3b")}</p>
       <p style={{
         fontSize: 12, color: "var(--color-text)", margin: "0 0 8px",
         wordBreak: "break-all", fontFamily: "ui-monospace, monospace",
@@ -153,9 +158,7 @@ function FilepathView({ path }: { path: string }) {
         display: "inline-block", maxWidth: "90%",
         border: "1px solid var(--color-border-soft)",
       }}>{path}</p>
-      <p style={{ fontSize: 11, color: "var(--color-text-faint)", margin: "0 0 20px" }}>
-        浏览器无法直接打开本地路径；Phase 3 桌面壳上线后可一键"在文件管理器中显示"
-      </p>
+      <p style={{ fontSize: 11, color: "var(--color-text-faint)", margin: "0 0 20px" }}>{uiText("ui.attachmentpreview.0ada794c1d")}</p>
       <button onClick={copy} style={{
         display: "inline-flex", alignItems: "center", gap: 6,
         padding: "9px 18px", borderRadius: 10,
@@ -165,13 +168,14 @@ function FilepathView({ path }: { path: string }) {
         fontSize: 13, fontWeight: 500,
         cursor: "pointer", fontFamily: "inherit",
       }}>
-        <Copy size={14} /> {copied ? "已复制" : "复制路径"}
+        <Copy size={14} /> {copied ? uiText("ui.attachmentpreview.8f6f8d979c") : uiText("ui.attachmentpreview.b97c49acb9")}
       </button>
     </div>
   );
 }
 
 function BlobView({ info }: { info: { url: string; mime: string; name: string } }) {
+  const uiLanguage = useCopyLanguage().lang;
   const isImg = info.mime.startsWith("image/");
   const isPdf = info.mime === "application/pdf" || info.name.toLowerCase().endsWith(".pdf");
 
@@ -204,16 +208,17 @@ function BlobView({ info }: { info: { url: string; mime: string; name: string } 
         color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none",
         boxShadow: "var(--shadow-card-hover)",
       }}>
-        <Download size={14} /> 下载
-      </a>
+        <Download size={14} />{uiText("ui.attachmentpreview.4673a23061")}</a>
     </div>
   );
 }
 
 function LoadingView() {
-  return <div style={{ padding: 60, textAlign: "center", color: "var(--color-text-faint)", fontSize: 13 }}>加载中…</div>;
+  const uiLanguage = useCopyLanguage().lang;
+  return <div style={{ padding: 60, textAlign: "center", color: "var(--color-text-faint)", fontSize: 13 }}>{uiText("ui.attachmentpreview.4927a53bcc")}</div>;
 }
 
 function ErrorView({ msg }: { msg: string }) {
+  const uiLanguage = useCopyLanguage().lang;
   return <div style={{ padding: 60, textAlign: "center", color: "var(--color-danger)", fontSize: 13 }}>❌ {msg}</div>;
 }

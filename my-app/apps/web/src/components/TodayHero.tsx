@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/TodayHero.tsx — Chat 欢迎屏「今日聚焦」概览卡
@@ -24,26 +27,27 @@ interface Props {
   bestHourLabel?: string | null;
 }
 
-const WEEKDAY = ["日", "一", "二", "三", "四", "五", "六"];
+const WEEKDAY = () => [uiText("ui.todayhero.85217f7aff"), uiText("ui.todayhero.51a75f4634"), uiText("ui.todayhero.084b42f6e9"), uiText("ui.todayhero.a4c3313deb"), uiText("ui.todayhero.754a9d5828"), uiText("ui.todayhero.c9b87f516a"), uiText("ui.todayhero.de07b53838")];
 
 function effStatus(d: DdlItem): "todo" | "in_progress" | "done" {
   return d.status ?? (d.completed ? "done" : "todo");
 }
 
 function urgencyMeta(daysLeft: number): { color: string; label: string; bg: string } {
-  if (daysLeft < 0) return { color: "var(--color-danger)", bg: "rgba(220,38,38,0.10)", label: "已逾期" };
-  if (daysLeft < 1) return { color: "var(--color-danger)", bg: "rgba(220,38,38,0.10)", label: "今日截止" };
-  if (daysLeft < 3) return { color: "#ea580c",            bg: "rgba(234,88,12,0.10)",  label: `${Math.ceil(daysLeft)} 天内` };
-  if (daysLeft < 7) return { color: "var(--color-warning)", bg: "rgba(245,158,11,0.10)", label: `${Math.ceil(daysLeft)} 天内` };
-  return { color: "var(--color-success)", bg: "rgba(45,122,77,0.10)", label: `${Math.ceil(daysLeft)} 天后` };
+  if (daysLeft < 0) return { color: "var(--color-danger)", bg: "rgba(220,38,38,0.10)", label: uiText("ui.todayhero.13c68d1348") };
+  if (daysLeft < 1) return { color: "var(--color-danger)", bg: "rgba(220,38,38,0.10)", label: uiText("ui.todayhero.87b9b65996") };
+  if (daysLeft < 3) return { color: "#ea580c",            bg: "rgba(234,88,12,0.10)",  label: uiText("ui.todayhero.4e5a2a3dfb", { value0: Math.ceil(daysLeft) }) };
+  if (daysLeft < 7) return { color: "var(--color-warning)", bg: "rgba(245,158,11,0.10)", label: uiText("ui.todayhero.4e5a2a3dfb", { value0: Math.ceil(daysLeft) }) };
+  return { color: "var(--color-success)", bg: "rgba(45,122,77,0.10)", label: uiText("ui.todayhero.75d6840390", { value0: Math.ceil(daysLeft) }) };
 }
 
 export default function TodayHero({ ddls, onJumpToTask, streakDays = 0, bestHourLabel }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const now = new Date();
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const isoToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const weekday = WEEKDAY[now.getDay()];
+  const weekday = WEEKDAY()[now.getDay()];
 
   const todo = ddls.filter((d) => effStatus(d) !== "done");
   const done = ddls.filter((d) => effStatus(d) === "done");
@@ -100,12 +104,10 @@ export default function TodayHero({ ddls, onJumpToTask, streakDays = 0, bestHour
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>
           {isoToday}
         </span>
-        <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-          星期{weekday}
-        </span>
+        <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{uiText("ui.todayhero.0584e1d11c", { value0: weekday })}</span>
         {streakDays > 0 && (
           <span
-            title={`连续打开 ${streakDays} 天`}
+            title={uiText("ui.todayhero.475b638bf5", { value0: streakDays })}
             style={{
               marginLeft: "auto",
               display: "inline-flex",
@@ -119,12 +121,11 @@ export default function TodayHero({ ddls, onJumpToTask, streakDays = 0, bestHour
               color: "var(--color-warning)",
             }}
           >
-            <Flame size={11} /> {streakDays} 天 streak
-          </span>
+            <Flame size={11} />{uiText("ui.todayhero.f05bc18f7e", { value0: streakDays })}</span>
         )}
         {bestHourLabel && (
           <span
-            title="基于你的活跃数据本地分析"
+            title={uiText("ui.todayhero.4f8224fbf5")}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -137,17 +138,15 @@ export default function TodayHero({ ddls, onJumpToTask, streakDays = 0, bestHour
               color: "var(--color-primary)",
               marginLeft: streakDays > 0 ? 0 : "auto",
             }}
-          >
-            ⚡ 你 {bestHourLabel} 最高效
-          </span>
+          >{uiText("ui.todayhero.f663686cec", { value0: bestHourLabel })}</span>
         )}
       </div>
 
       {/* 中部:3 个统计 chip + 环形完成率 */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <StatChip label="今日截止" value={todayCount} accent={todayCount > 0 ? "var(--color-danger)" : undefined} />
-        <StatChip label="本周待办" value={weekCount} />
-        <StatChip label="累计完成" value={done.length} accent="var(--color-success)" />
+        <StatChip label={uiText("ui.todayhero.87b9b65996")} value={todayCount} accent={todayCount > 0 ? "var(--color-danger)" : undefined} />
+        <StatChip label={uiText("ui.todayhero.1ecd62b0ee")} value={weekCount} />
+        <StatChip label={uiText("ui.todayhero.1bad83c67d")} value={done.length} accent="var(--color-success)" />
         <div style={{ marginLeft: "auto" }}>
           <RingProgress ratio={weekRatio} />
         </div>
@@ -214,15 +213,14 @@ export default function TodayHero({ ddls, onJumpToTask, streakDays = 0, bestHour
             color: "var(--color-text-muted)",
             textAlign: "center",
           }}
-        >
-          🎉 暂无近期 deadline,继续保持
-        </div>
+        >{uiText("ui.todayhero.44ccb0dbe7")}</div>
       )}
     </div>
   );
 }
 
 function StatChip({ label, value, accent }: { label: string; value: number; accent?: string }) {
+  const uiLanguage = useCopyLanguage().lang;
   const color = accent ?? "var(--color-text)";
   return (
     <div
@@ -240,6 +238,7 @@ function StatChip({ label, value, accent }: { label: string; value: number; acce
 }
 
 function RingProgress({ ratio }: { ratio: number }) {
+  const uiLanguage = useCopyLanguage().lang;
   const size = 44;
   const stroke = 4;
   const r = (size - stroke) / 2;

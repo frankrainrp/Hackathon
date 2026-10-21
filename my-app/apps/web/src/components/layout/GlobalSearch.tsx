@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/layout/GlobalSearch.tsx — TopBar 全局搜索
@@ -34,6 +37,9 @@ interface Props {
 const MAX_RESULTS = 24;
 
 export default function GlobalSearch({ ddls, notes, messages, onJump, isMobile = false }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
+  const [modifier, setModifier] = useState("Ctrl");
+  useEffect(() => { setModifier(/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl"); }, []);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -68,7 +74,7 @@ export default function GlobalSearch({ ddls, notes, messages, onJump, isMobile =
           kind: "task",
           id: d.id,
           title: d.taskName,
-          preview: `${d.dueDate || "待定"}${d.dueTime ? " " + d.dueTime : ""}${d.description ? " · " + d.description : ""}`.slice(0, 80),
+          preview: `${d.dueDate || uiText("ui.globalsearch.63ec276c63")}${d.dueTime ? " " + d.dueTime : ""}${d.description ? " · " + d.description : ""}`.slice(0, 80),
           navTarget: "tasks",
           refId: d.id,
         });
@@ -81,7 +87,7 @@ export default function GlobalSearch({ ddls, notes, messages, onJump, isMobile =
         all.push({
           kind: "note",
           id: n.id,
-          title: n.title || "(无标题)",
+          title: n.title || uiText("ui.globalsearch.415ac660f5"),
           preview: (n.content || "").replace(/[#*`>\-_\[\]()]/g, "").slice(0, 80),
           navTarget: "notes",
           refId: n.id,
@@ -96,7 +102,7 @@ export default function GlobalSearch({ ddls, notes, messages, onJump, isMobile =
         all.push({
           kind: "message",
           id: m.id,
-          title: m.role === "user" ? "我说" : "Butler 说",
+          title: m.role === "user" ? uiText("ui.globalsearch.8f9afc5208") : uiText("ui.globalsearch.eb6ff2a1f4"),
           preview: m.content.slice(0, 80),
           navTarget: "chat",
           refId: m.sessionId,
@@ -105,7 +111,7 @@ export default function GlobalSearch({ ddls, notes, messages, onJump, isMobile =
     }
 
     return all.slice(0, MAX_RESULTS);
-  }, [query, ddls, notes, messages]);
+  }, [query, ddls, notes, messages, uiLanguage]);
 
   const handleResultClick = (r: SearchResult) => {
     onJump(r.navTarget, r.refId);
@@ -130,11 +136,12 @@ export default function GlobalSearch({ ddls, notes, messages, onJump, isMobile =
         <Search size={14} color="var(--color-text-faint)" />
         <input
           ref={inputRef}
+          data-global-search
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => { setFocused(true); setOpen(true); }}
           onBlur={() => setFocused(false)}
-          placeholder="Search tasks / notes / chats..."
+          placeholder={uiText("ui.globalsearch.94457b1a01")}
           style={{
             flex: 1, border: "none", background: "transparent",
             outline: "none", fontSize: 13, color: "var(--color-text)",
@@ -150,7 +157,7 @@ export default function GlobalSearch({ ddls, notes, messages, onJump, isMobile =
             background: "var(--color-bg)",
           }}
         >
-          ⌘K
+          {uiText("search.shortcut", { modifier })}
         </span>
       </div>
 
@@ -180,25 +187,23 @@ export default function GlobalSearch({ ddls, notes, messages, onJump, isMobile =
                 color: "var(--color-text-faint)", fontSize: 12,
               }}>
                 {/* [056] 插画 */}
-                <div style={{ marginBottom: 6 }}><EmptySearch size={100} /></div>
-                没有匹配的内容
-              </div>
+                <div style={{ marginBottom: 6 }}><EmptySearch size={100} /></div>{uiText("ui.globalsearch.e02b963e51")}</div>
             ) : (
               <>
                 <ResultGroup
-                  label="任务"
+                  label={uiText("ui.globalsearch.5253040db8")}
                   icon={<ListChecks size={11} />}
                   items={results.filter((r) => r.kind === "task")}
                   onClick={handleResultClick}
                 />
                 <ResultGroup
-                  label="笔记"
+                  label={uiText("ui.globalsearch.b778e30796")}
                   icon={<FileText size={11} />}
                   items={results.filter((r) => r.kind === "note")}
                   onClick={handleResultClick}
                 />
                 <ResultGroup
-                  label="对话"
+                  label={uiText("ui.globalsearch.6bf6d3f3d6")}
                   icon={<MessageSquare size={11} />}
                   items={results.filter((r) => r.kind === "message")}
                   onClick={handleResultClick}
@@ -220,6 +225,7 @@ function ResultGroup({
   items: SearchResult[];
   onClick: (r: SearchResult) => void;
 }) {
+  const uiLanguage = useCopyLanguage().lang;
   if (items.length === 0) return null;
   return (
     <div>
@@ -243,6 +249,7 @@ function ResultGroup({
 }
 
 function ResultRow({ result, onClick }: { result: SearchResult; onClick: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = useState(false);
   return (
     <button

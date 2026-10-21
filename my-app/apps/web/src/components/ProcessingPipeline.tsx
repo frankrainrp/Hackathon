@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/ProcessingPipeline.tsx — 4 步处理流水线可视化
@@ -11,7 +14,7 @@ import {
   ScanText, Brain, CalendarPlus, Database, ChevronRight,
 } from "lucide-react";
 import type { ProcessingPipeline as Pipeline, PipelineStep } from "@/lib/types";
-import { getStepDetail } from "@/lib/mock-pipeline";
+import { getStepDetail } from "@/lib/document-pipeline";
 
 const STEP_ICONS: Record<PipelineStep["id"], React.ReactNode> = {
   ocr:      <ScanText size={14} />,
@@ -27,6 +30,7 @@ interface Props {
 }
 
 export default function ProcessingPipeline({ pipeline, onJumpToTasks, onJumpToCalendar }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const { file, steps, status, extractedCount } = pipeline;
   const isComplete = status === "completed";
 
@@ -42,9 +46,7 @@ export default function ProcessingPipeline({ pipeline, onJumpToTasks, onJumpToCa
       {/* 标题行 */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <FileText size={14} color="var(--color-primary)" />
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>
-          正在解析{" "}
-          <span style={{ color: "var(--color-primary)" }}>{file.name}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>{uiText("ui.processingpipeline.266d6d27a2")}<span style={{ color: "var(--color-primary)" }}>{file.name}</span>
         </span>
         {isComplete && extractedCount !== undefined && (
           <span
@@ -56,9 +58,7 @@ export default function ProcessingPipeline({ pipeline, onJumpToTasks, onJumpToCa
               padding: "2px 8px",
               borderRadius: 10,
             }}
-          >
-            提取到 {extractedCount} 条
-          </span>
+          >{uiText("ui.processingpipeline.fcb445fa77", { value0: extractedCount })}</span>
         )}
       </div>
 
@@ -78,8 +78,8 @@ export default function ProcessingPipeline({ pipeline, onJumpToTasks, onJumpToCa
             flexWrap: "wrap",
           }}
         >
-          {onJumpToTasks && <JumpBtn label="查看任务" onClick={onJumpToTasks} />}
-          {onJumpToCalendar && <JumpBtn label="查看日历" onClick={onJumpToCalendar} />}
+          {onJumpToTasks && <JumpBtn label={uiText("ui.processingpipeline.36550b9c57")} onClick={onJumpToTasks} />}
+          {onJumpToCalendar && <JumpBtn label={uiText("ui.processingpipeline.7bc6d9ffba")} onClick={onJumpToCalendar} />}
         </div>
       )}
     </div>
@@ -87,6 +87,7 @@ export default function ProcessingPipeline({ pipeline, onJumpToTasks, onJumpToCa
 }
 
 function StepRow({ step, isLast }: { step: PipelineStep; isLast: boolean }) {
+  const uiLanguage = useCopyLanguage().lang;
   const detail = getStepDetail(step.id);
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 12, position: "relative" }}>
@@ -140,9 +141,7 @@ function StepRow({ step, isLast }: { step: PipelineStep; isLast: boolean }) {
                 fontWeight: 600,
                 animation: "pipeline-pulse 1.4s ease-in-out infinite",
               }}
-            >
-              进行中
-            </span>
+            >{uiText("ui.processingpipeline.dc9591e56d")}</span>
           )}
         </div>
         <p
@@ -168,6 +167,7 @@ function StepRow({ step, isLast }: { step: PipelineStep; isLast: boolean }) {
 }
 
 function StepIcon({ step }: { step: PipelineStep }) {
+  const uiLanguage = useCopyLanguage().lang;
   const size = 24;
   if (step.status === "pending") {
     return (
@@ -246,6 +246,7 @@ function StepIcon({ step }: { step: PipelineStep }) {
 }
 
 function JumpBtn({ label, onClick }: { label: string; onClick: () => void }) {
+  const uiLanguage = useCopyLanguage().lang;
   const [hov, setHov] = React.useState(false);
   return (
     <button

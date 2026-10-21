@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/layout/NotesRail.tsx
@@ -16,24 +19,25 @@ interface NotesRailProps {
 }
 
 export default function NotesRail({ notes, onCreate }: NotesRailProps) {
+  const uiLanguage = useCopyLanguage().lang;
   const pinned = notes.filter((n) => n.pinned);
   const total = notes.length;
   return (
     <>
-      <RailPrimaryBtn icon={<Plus size={14} />} label="New Note" onClick={onCreate} />
+      <RailPrimaryBtn icon={<Plus size={14} />} label={uiText("ui.notesrail.b763c5ea3c")} onClick={onCreate} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <RailGroupTitle>Library</RailGroupTitle>
+        <RailGroupTitle>{uiText("ui.notesrail.dc20b3d5d2")}</RailGroupTitle>
         <RailItem
           icon={<FileText size={14} />}
-          label="All Notes"
+          label={uiText("ui.notesrail.00a187caec")}
           active
           badge={total > 0 ? <CountBadge n={total} /> : null}
         />
         {pinned.length > 0 && (
           <RailItem
             icon={<Pin size={14} />}
-            label="Pinned"
+            label={uiText("ui.notesrail.f20c879465")}
             badge={<CountBadge n={pinned.length} />}
           />
         )}
@@ -50,16 +54,15 @@ export default function NotesRail({ notes, onCreate }: NotesRailProps) {
           color: "var(--color-primary)",
           lineHeight: 1.4,
         }}
-      >
-        浏览器内 · Phase 3
-        <br />
-        <span style={{ color: "var(--color-text-muted)" }}>接 Tauri 后写本地 Vault</span>
+      >{uiText("ui.notesrail.690d8aa3ab")}<br />
+        <span style={{ color: "var(--color-text-muted)" }}>{uiText("ui.notesrail.3ba70f4310")}</span>
       </div>
     </>
   );
 }
 
 function CountBadge({ n }: { n: number }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <span
       style={{

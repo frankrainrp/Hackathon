@@ -1,4 +1,7 @@
 "use client";
+import { uiText } from "@/lib/messages";
+import { useT as useCopyLanguage } from "@/lib/i18n";
+
 
 // ============================================================
 // components/CheckoutModal.tsx — 模拟结账（演示模式，零真实支付）
@@ -45,6 +48,7 @@ function formatExpiry(raw: string): string {
 }
 
 export default function CheckoutModal({ open, plan, cycle, onClose, onConfirmed }: Props) {
+  const uiLanguage = useCopyLanguage().lang;
   const isMobile = useIsMobile();
   const { t } = useT();
   const [phase, setPhase] = useState<Phase>("form");
@@ -66,8 +70,8 @@ export default function CheckoutModal({ open, plan, cycle, onClose, onConfirmed 
     setCardNumber("4242 4242 4242 4242");
     setExpiry("12/29");
     setCvc("123");
-    setName("Feng Kaiduo");
-    setEmail("feng@example.com");
+    setName(uiText("ui.checkoutmodal.a9a3e35c14"));
+    setEmail("demo@example.invalid");
   };
 
   const handlePay = () => {
@@ -214,7 +218,7 @@ export default function CheckoutModal({ open, plan, cycle, onClose, onConfirmed 
                     inputMode="numeric"
                     value={expiry}
                     onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-                    placeholder="MM/YY"
+                    placeholder={uiText("ui.checkoutmodal.1b5f68f875")}
                     style={inputStyle}
                   />
                 </Field>
@@ -241,7 +245,7 @@ export default function CheckoutModal({ open, plan, cycle, onClose, onConfirmed 
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder={uiText("ui.checkoutmodal.f2488fd4ef")}
                   style={inputStyle}
                 />
               </Field>
@@ -321,6 +325,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
       <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)" }}>{label}</span>
@@ -330,6 +335,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  const uiLanguage = useCopyLanguage().lang;
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0" }}>
       <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>{label}</span>

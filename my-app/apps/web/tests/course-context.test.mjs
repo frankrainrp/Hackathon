@@ -15,8 +15,10 @@ test('retrieves late passages without leaking another course into the selected s
 });
 test('reports missing text and supports fictional demo without school records', () => {
   assert.equal(selectCourseContext({ courses: [course('alpha', '')] }, '', 'alpha').missingText, 1);
-  const demo = selectCourseContext({ courses: [] }, 'Willow', 'demo-C101');
-  assert.match(demo.sources[0].excerpt, /37.*50.*74%/);
+  const demo = selectCourseContext({ courses: [] }, 'variable', 'demo-C101');
+  assert.match(demo.sources[0].excerpt, /fictional practice lesson/);
+  assert.match(demo.sources[0].excerpt, /not a school record/);
+  assert.doesNotMatch(demo.sources[0].excerpt, /Willow|74%/);
   assert.equal(demo.courses.length, 1);
 });
 test('course interface has matching Chinese and English keys', () => {

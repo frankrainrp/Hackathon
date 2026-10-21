@@ -150,11 +150,13 @@ def atomic_json(path: Path, data):
     temp.replace(path)
 
 
-def export_course(root: Path, school: str, course: dict):
+def export_course(root: Path, school: str, course: dict, language: str = "en"):
+    from ui_copy import export_copy
+    copy = export_copy(language)
     folder = root / component(school) / component(course["moduleName"])
     folder.mkdir(parents=True, exist_ok=True)
     used = {}
-    lines = [f"# {course['moduleName']}", "", f"学校：{school}", "", "## 课程资料", ""]
+    lines = [f"# {course['moduleName']}", "", f"{copy['school']}: {school}", "", f"## {copy['materials']}", ""]
     for lesson in course["lessons"]:
         name = f"{lesson.get('kind', 'Lesson')} {lesson['number']:02d}" if lesson["number"] is not None else "Resources"
         if lesson.get("endNumber") and lesson["endNumber"] != lesson["number"]:
@@ -165,20 +167,20 @@ def export_course(root: Path, school: str, course: dict):
         lesson["directory"] = name
         lesson_dir = folder / name
         lesson_dir.mkdir(exist_ok=True)
-        body = [f"# {lesson['title']}", "", f"Module：{course['moduleName']}", ""]
+        body = [f"# {lesson['title']}", "", f"{copy['module']}: {course['moduleName']}", ""]
         for material in lesson["materials"]:
-            body.extend([f"## {material['title']}", f"来源：{material['url']}", f"原目录：{material['sourcePath']}", ""])
+            body.extend([f"## {material['title']}", f"{copy['source']}: {material['url']}", f"{copy['sourcePath']}: {material['sourcePath']}", ""])
             if material.get("filePath"):
                 # Local relative Markdown links also work in Obsidian.
-                body.extend([f"[打开课件](<{Path(material['filePath']).name}>)", ""])
+                body.extend([f"[{copy['open']}](<{Path(material['filePath']).name}>)", ""])
             elif material.get("downloadable"):
-                body.extend(["下载状态：待下载或下载失败，见同步警告。", ""])
+                body.extend([copy["downloadPending"], ""])
         (lesson_dir / "index.md").write_text("\n".join(body), encoding="utf-8")
         lines.append(f"- [{name}](<{name}/index.md>) — {lesson['title']}")
-    lines.extend(["", "## 作业提交状态", ""])
-    labels = {"missing": "未提交", "submitted": "已提交", "unknown": "待核实"}
+    lines.extend(["", f"## {copy['assignments']}", ""])
+    labels = copy["states"]
     for task in course["assignments"]:
-        lines.append(f"- [{task['title']}]({task['url']})：{labels[task['submissionState']]}；截止：{task['dueAt'] or '未公布'}")
+        lines.append(f"- [{task['title']}]({task['url']}): {labels[task['submissionState']]} · {copy['due']}: {task['dueAt'] or copy['unpublished']}")
     (folder / "index.md").write_text("\n".join(lines), encoding="utf-8")
     atomic_json(folder / "manifest.json", course)
     return folder

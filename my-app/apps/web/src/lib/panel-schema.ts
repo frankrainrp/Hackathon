@@ -1,3 +1,4 @@
+import { uiText } from "./messages.ts";
 // ============================================================
 // lib/panel-schema.ts — 「面板应用」声明式 schema（P1 引擎地基）
 //
@@ -104,17 +105,17 @@ export function parseSpec(json: string): ParseResult {
   try {
     raw = JSON.parse(json);
   } catch (e) {
-    return { ok: false, error: "JSON 解析失败：" + (e as Error).message };
+    return { ok: false, error: uiText("server.6fb0dc10c88f") + (e as Error).message };
   }
   return validateSpec(raw);
 }
 
 export function validateSpec(raw: unknown): ParseResult {
-  if (!raw || typeof raw !== "object") return { ok: false, error: "spec 必须是对象" };
+  if (!raw || typeof raw !== "object") return { ok: false, error: uiText("server.f8717ac23a1a") };
   const o = raw as Record<string, unknown>;
-  if (typeof o.title !== "string" || !o.title.trim()) return { ok: false, error: "缺少 title" };
-  if (!Array.isArray(o.sources)) return { ok: false, error: "sources 必须是数组" };
-  if (!Array.isArray(o.blocks)) return { ok: false, error: "blocks 必须是数组" };
+  if (typeof o.title !== "string" || !o.title.trim()) return { ok: false, error: uiText("server.d999f3d784e5") };
+  if (!Array.isArray(o.sources)) return { ok: false, error: uiText("server.a469f4a1120f") };
+  if (!Array.isArray(o.blocks)) return { ok: false, error: uiText("server.056a36f0f759") };
   // id 是实现细节：缺失则自动补（AI/手写都不必写 id）
   (o.sources as DataSource[]).forEach((s, i) => {
     if (!s || typeof s !== "object") return;
@@ -122,14 +123,14 @@ export function validateSpec(raw: unknown): ParseResult {
     if (s.kind !== "static" && s.kind !== "http") s.kind = s.url ? "http" : "static";
   });
   for (const s of o.sources as DataSource[]) {
-    if (s.kind === "http" && typeof s.url !== "string") return { ok: false, error: `http 数据源 ${s.id} 缺少 url` };
+    if (s.kind === "http" && typeof s.url !== "string") return { ok: false, error: uiText("server.2fb98d0f63ce", { value0: s.id }) };
   }
   (o.blocks as Block[]).forEach((b, i) => {
     if (!b || typeof b !== "object") return;
     if (typeof b.id !== "string" || !b.id) b.id = `block-${i}`;
   });
   for (const b of o.blocks as Block[]) {
-    if (!b.type) return { ok: false, error: `block ${b.id} 缺少 type` };
+    if (!b.type) return { ok: false, error: uiText("server.9508bcdf60fa", { value0: b.id }) };
   }
   return { ok: true, spec: { version: 1, ...(o as object) } as GeneratedPanelSpec };
 }
@@ -192,65 +193,7 @@ export function formatValue(v: unknown, fmt: ValueFormat = "text"): string {
   return grouped;
 }
 
-// ============================================================
-// 示例 spec — Crypto Top 10（CoinGecko 公共 API，无需 key）
-// 切到「应用」类型且无 spec 时种入，立证「真实 API → 实时面板」
-// ============================================================
-export const SAMPLE_SPEC: GeneratedPanelSpec = {
-  version: 1,
-  title: "Crypto Top 10 · 实时行情",
-  emoji: "📈",
-  description: "CoinGecko 公共 API（无需密钥）经后端连接器代理拉取，演示「数据源 + 组件块」引擎。",
-  sources: [
-    {
-      id: "coins",
-      kind: "http",
-      url: "https://api.coingecko.com/api/v3/coins/markets",
-      method: "GET",
-      query: {
-        vs_currency: "usd",
-        order: "market_cap_desc",
-        per_page: 10,
-        page: 1,
-        price_change_percentage: "24h",
-      },
-      refreshMs: 60000,
-    },
-  ],
-  blocks: [
-    {
-      id: "kpis",
-      type: "kpiGrid",
-      title: "市值概览",
-      metrics: [
-        { label: "币种数", sourceId: "coins", agg: "count" },
-        { label: "总市值", sourceId: "coins", agg: "sum", field: "market_cap", format: "currency" },
-        { label: "最高价", sourceId: "coins", agg: "max", field: "current_price", format: "currency" },
-      ],
-    },
-    {
-      id: "bar-price",
-      type: "bar",
-      title: "现价（USD）",
-      sourceId: "coins",
-      x: "symbol",
-      y: "current_price",
-      limit: 10,
-      span: 2,
-    },
-    {
-      id: "table",
-      type: "table",
-      title: "榜单明细",
-      sourceId: "coins",
-      columns: [
-        { key: "market_cap_rank", label: "#" },
-        { key: "name", label: "名称" },
-        { key: "symbol", label: "符号" },
-        { key: "current_price", label: "现价", format: "currency" },
-        { key: "price_change_percentage_24h", label: "24h%", format: "percent" },
-        { key: "market_cap", label: "市值", format: "currency" },
-      ],
-    },
-  ],
-};
+// New panels start empty. Only user-approved sources supply data.
+export function emptyPanelSpec(): GeneratedPanelSpec {
+  return { version: 1, title: "", sources: [], blocks: [] };
+}

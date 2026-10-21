@@ -199,7 +199,7 @@ export const TOOLS: ToolDefinition[] = [
         properties: {
           title: {
             type: "string",
-            description: "笔记标题，5-20 个汉字。若用户没明确说，从 content 概括",
+            description: "A concise note title in the requested interface language. Summarize content if no title is specified.",
           },
           content: {
             type: "string",
@@ -222,7 +222,7 @@ export const TOOLS: ToolDefinition[] = [
     function: {
       name: "create_custom_panel",
       description:
-        "在顶栏 4 内置 Tab 后新建一个自定义面板（用户的自留地）。适用场景：" +
+        "在顶栏内置 Tab 后新建一个自定义面板（用户的自留地）。适用场景：" +
         "「帮我建一个面板叫 X」「新开一个 Tab 放 Y」「做一个嵌入 X 网页的面板」「给我做一个 XX 看板/仪表盘」。" +
         "kind=markdown 用于内容笔记；kind=iframe 用于嵌入网站；" +
         "**kind=modules 用于数据仪表盘**——把若干模组组合成看板（图表/统计/清单），" +
@@ -233,7 +233,7 @@ export const TOOLS: ToolDefinition[] = [
         properties: {
           label: {
             type: "string",
-            description: "Tab 显示名，2-12 个汉字。例如「读书清单」「学习看板」「期末复习」",
+            description: "A concise tab label in the requested interface language.",
           },
           emoji: {
             type: "string",
@@ -267,7 +267,7 @@ export const TOOLS: ToolDefinition[] = [
                   description:
                     "stat=大数字统计卡；countdown=DDL 倒计时；tasklist=任务清单；pie=饼图；bar=柱状图；heatmap=任务热力图",
                 },
-                title: { type: "string", description: "模组标题，简短中文" },
+                title: { type: "string", description: "A concise module title in the requested interface language." },
                 config: {
                   type: "object",
                   description: "模组配置（按类型选填）",
@@ -289,7 +289,7 @@ export const TOOLS: ToolDefinition[] = [
                       description: "tasklist 的筛选范围",
                     },
                     targetDate: { type: "string", description: "countdown 目标日期 YYYY-MM-DD；不传=最近未完成 DDL" },
-                    unit: { type: "string", description: "stat 卡单位，如「个」「天」" },
+                    unit: { type: "string", description: "Unit in the requested interface language, matching the actual metric." },
                     limit: { type: "number", description: "tasklist 最多显示条数（默认 6）" },
                   },
                 },
