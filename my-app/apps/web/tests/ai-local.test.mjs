@@ -96,6 +96,12 @@ test('controlled transfer cancels, resumes with Range, survives journal reload a
 test('native engine probe is real; missing model fails without spawning or contacting cloud',async()=>{
   const probe=engineProbe(); if(process.platform==='win32'&&process.arch==='x64') { assert.equal(probe.available,true,probe.error); assert.match(probe.version,/11669/); }
   saveAiSettings({...defaults(),mode:'local',modelId:MODEL_CATALOG[0].id,modelsDir:join(folder,'models')});
+  if(process.platform!=='win32'||process.arch!=='x64') {
+    assert.equal(probe.available,false);
+    await assert.rejects(startEngine(),/Windows x64/);
+    assert.equal((await engineStatus()).state,'stopped');
+    return;
+  }
   await assert.rejects(startEngine(),/incomplete/); assert.equal((await engineStatus()).state,'error');
   await stopEngine(); assert.equal((await engineStatus()).state,'stopped');
 });

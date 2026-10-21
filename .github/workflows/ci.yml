@@ -41,12 +41,17 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Node regression tests
         run: node --test apps/web/tests/*.test.mjs
+      - name: Interface copy and live-parameter audit
+        run: node ../tools/audit-interface-copy.cjs
       - name: TypeScript check
         run: pnpm --filter @smart-hub/web exec tsc --noEmit
       - name: Production build
         run: pnpm --filter @smart-hub/web build
       - name: Production HTTP integration (synthetic records)
         run: node apps/web/tests/lms-settings.integration.mjs
+
+      - name: AI HTTP integration (local mocks, both languages)
+        run: node apps/web/tests/ai-http.integration.mjs
 
   python:
     name: Python tests (Windows)
