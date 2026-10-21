@@ -8,6 +8,7 @@ import styles from "./CoursesPanel.module.css";
 import { useT } from "@/lib/i18n";
 import { courseCopy } from "@/lib/course-copy";
 import { demoCourses } from "@/lib/course-demo";
+import SchoolSettings from "./SchoolSettings";
 
 interface Props {
   feed: LmsFeed | null;
@@ -35,14 +36,17 @@ export default function CoursesPanel({ feed, notes, onToggleLesson, onOpenNote, 
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(true);
-  const historical = !feed?.courses?.length && showPreview;
-  const rows: Row[] = useMemo(() => (historical ? demoCourses : feed?.courses || []).map(course => ({ course, total: course.assignments.length,
+  const [recordView, setRecordView] = useState("current");
+  const [latestFeed, setLatestFeed] = useState<LmsFeed | null>(null);
+  const visibleFeed = latestFeed && latestFeed.revision > (feed?.revision || 0) ? latestFeed : feed;
+  const historical = !visibleFeed?.courses?.length && showPreview;
+  const rows: Row[] = useMemo(() => (historical ? demoCourses : visibleFeed?.courses || []).map(course => ({ course, total: course.assignments.length,
     submitted: course.assignments.filter(a => a.submissionState === "submitted").length,
     unknown: course.assignments.filter(a => a.submissionState === "unknown").length,
     missing: course.assignments.filter(a => a.submissionState === "missing").length,
-  })), [feed, historical]);
-  const filtered = rows.filter(r => `${r.course.moduleName} ${r.course.school}`.toLowerCase().includes(query.trim().toLowerCase()));
-  const totals = rows.reduce((s, r) => ({ total: s.total + r.total, submitted: s.submitted + r.submitted, unknown: s.unknown + r.unknown }), { total: 0, submitted: 0, unknown: 0 });
+  })), [visibleFeed, historical]);
+  const filtered = rows.filter(r => (historical || recordView === "all" || (recordView === "history" ? (r.course.archived || !r.course.semesterId) : (r.course.semesterId && !r.course.archived))) && `${r.course.moduleName} ${r.course.school}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const totals = filtered.reduce((s, r) => ({ total: s.total + r.total, submitted: s.submitted + r.submitted, unknown: s.unknown + r.unknown }), { total: 0, submitted: 0, unknown: 0 });
   const syncedAt = feed?.status?.syncedAt;
 
   return <section className={styles.panel} aria-label={c.title}>
@@ -51,10 +55,14 @@ export default function CoursesPanel({ feed, notes, onToggleLesson, onOpenNote, 
       <div className={styles.sync}>{historical ? c.demoDate : syncedAt ? `${c.lastSync} ${new Date(syncedAt).toLocaleString(lang === "en" ? "en-GB" : "zh-CN", { timeZone: "Asia/Shanghai", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : c.waiting}<button className={styles.language} onClick={() => setLang(lang === "zh" ? "en" : "zh")}>{lang === "zh" ? "English" : "中文"}</button></div>
     </header>
 
+    <SchoolSettings feed={visibleFeed} lang={lang} onSaved={() => { void fetch("/api/lms/feed", { cache: "no-store" }).then(r => r.json()).then(setLatestFeed); }} />
+    {!historical && <label className={styles.recordView}>{lang === "zh" ? "课程记录范围" : "Course records"}<select value={recordView} onChange={e => setRecordView(e.target.value)}><option value="current">{lang === "zh" ? "当前学期" : "Current semester"}</option><option value="history">{lang === "zh" ? "历史学期 / 旧记录" : "Historical semesters / legacy records"}</option><option value="all">{lang === "zh" ? "全部保留记录" : "All retained records"}</option></select></label>}
+    {!!visibleFeed?.syncHistory?.length && <details className={styles.settings}><summary>{lang === "zh" ? "同步历史（最近 10 次）" : "Sync history (latest 10)"}</summary><ul>{visibleFeed.syncHistory.slice(-10).reverse().map(s => <li key={`${s.profileId}-${s.semesterId}-${s.syncedAt}`}>{s.syncedAt} · {s.semesterId || "legacy"} · {s.status}</li>)}</ul></details>}
+
     {historical && <div className={styles.notice}><BookOpen size={18} /><div><strong>{c.demoTitle}</strong><p>{c.demoBody}</p></div><button onClick={() => setShowPreview(false)}>{c.exit}</button></div>}
     {!historical && feed?.status && feed.status.status !== "ok" && <div className={styles.notice}><div><strong>{feed.status.status === "login_required" ? c.expired : c.partial}</strong><p>{c.retry}</p></div></div>}
 
-    <div className={styles.toolbar}><div className={styles.summary}><strong>{rows.length} {c.courses}</strong><span>{totals.submitted} / {totals.total} {c.assignmentsDone}</span>{!!totals.unknown && <span>{totals.unknown} {c.unknownItems}</span>}</div><label className={styles.search}><Search size={16} /><input aria-label={c.search} placeholder={c.searchPlaceholder} value={query} onChange={e => setQuery(e.target.value)} /></label></div>
+    <div className={styles.toolbar}><div className={styles.summary}><strong>{filtered.length} {c.courses}</strong><span>{totals.submitted} / {totals.total} {c.assignmentsDone}</span>{!!totals.unknown && <span>{totals.unknown} {c.unknownItems}</span>}</div><label className={styles.search}><Search size={16} /><input aria-label={c.search} placeholder={c.searchPlaceholder} value={query} onChange={e => setQuery(e.target.value)} /></label></div>
 
     <div className={styles.legend}><span><i className={styles.doneDot} />{c.submitted}</span><span><i className={styles.unknownDot} />{c.unknown}</span><span><i className={styles.todoDot} />{c.missing}</span></div>
     <div className={styles.list}>
@@ -66,16 +74,16 @@ export default function CoursesPanel({ feed, notes, onToggleLesson, onOpenNote, 
         const completedIds = new Set(notes.find(n => n.id === course.noteId)?.lmsCompletedLessons || []);
         const learned = lessons.filter(l => completedIds.has(l.id)).length;
         return <article key={course.noteId} className={styles.row}>
-          <button className={styles.rowButton} aria-expanded={open} aria-controls={`course-${course.id}`} onClick={() => setExpanded(open ? null : course.noteId)}>
+          <button className={styles.rowButton} aria-expanded={open} aria-controls={`course-${course.noteId}`} onClick={() => setExpanded(open ? null : course.noteId)}>
             <div className={styles.code}>{code}</div>
-            <div className={styles.content}><div className={styles.title}><h2>{name}</h2><span>{course.school}</span></div>
+            <div className={styles.content}><div className={styles.title}><h2>{name}</h2><span>{course.school}</span></div><p className={styles.emptyDetail}>{historical ? c.demoTitle : `${course.semesterLabel || (lang === "zh" ? "旧记录 / 学期未指定" : "Legacy / unassigned semester")} · ${course.archived ? (lang === "zh" ? "历史保留" : "Retained history") : (lang === "zh" ? "当前学期" : "Current semester")} · ${course.courseStatus || "active"}`}</p>
               <div className={styles.progressLabel}><span>{c.submission}</span><span>{total ? `${submitted} / ${total} ${c.submitted}${unknown ? ` · ${unknown} ${c.unknown}` : ""}${missing ? ` · ${missing} ${c.missing}` : ""}` : c.noAssignments}</span></div>
               <Track value={submitted} total={total} unknown={unknown} label={`${course.moduleName} ${c.submission}`} />
               {!!lessons.length && <><div className={styles.progressLabel}><span>{c.learning}</span><span>{learned} / {lessons.length} {c.learned}</span></div><Track value={learned} total={lessons.length} label={`${course.moduleName} ${c.learning}`} /></>}
             </div>
             <div className={styles.percent}>{total ? `${Math.round(submitted / total * 100)}%` : "—"}<ChevronDown size={18} style={{ transform: open ? "rotate(180deg)" : undefined }} /></div>
           </button>
-          {open && <div id={`course-${course.id}`} className={styles.details}>
+          {open && <div id={`course-${course.noteId}`} className={styles.details}>
             <div className={styles.detailHeader}><h3>{c.materials}</h3><div className={styles.actions}><button onClick={() => onAskCourse(course)}>{c.ask}</button>{!historical && <button onClick={() => onOpenNote(course.noteId)}><FileText size={15} />{c.notes}</button>}</div></div>
             <p className={styles.emptyDetail}>{course.lessons.flatMap(l => l.materials).filter(m => m.text?.trim()).length} {c.readable} · {course.lessons.flatMap(l => l.materials).filter(m => !m.text?.trim()).length} {c.unreadable}</p>
             {historical && <p className={styles.emptyDetail}>{c.demoLesson}</p>}

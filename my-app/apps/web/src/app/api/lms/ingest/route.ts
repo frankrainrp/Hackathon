@@ -1,5 +1,7 @@
 import { OpenAI } from "openai";
-import { buildLmsFeed } from "@/lib/lms-sync";
+import { applyProfileMetadata, buildLmsFeed } from "@/lib/lms-sync";
+import { readProfiles } from "@/lib/lms-profile-store";
+import { supportsSchoolConnection } from "@/lib/lms-profile";
 import { lmsSnapshotSchema } from "@/lib/lms-schema";
 import { updateLmsFeed } from "@/lib/server-db";
 import { hasLmsToken, isLocalLmsRequest } from "@/lib/lms-auth";
@@ -22,16 +24,13 @@ export async function POST(req: Request) {
   const parsed = lmsSnapshotSchema.safeParse(raw);
   if (!parsed.success) return Response.json({ error: "Invalid LMS snapshot.", issues: parsed.error.issues.map(i => ({ path: i.path, message: i.message })) }, { status: 400 });
   const snapshot = parsed.data;
-  // Accept any Singapore polytechnic / ITE POLITEMall site (https://*.polite.edu.sg),
-  // plus any extra comma-separated origins in LMS_ALLOWED_ORIGIN (for non-POLITEMall schools).
-  const base = new URL(snapshot.baseUrl);
-  const extra = (process.env.LMS_ALLOWED_ORIGIN || "").split(",").map(s => s.trim()).filter(Boolean);
-  const isPolitemall = base.protocol === "https:" && base.hostname.endsWith(".polite.edu.sg");
-  const isExtra = extra.some(o => { try { return new URL(o).origin === base.origin; } catch { return false; } });
-  if (!isPolitemall && !isExtra) return Response.json({ error: "School origin is not configured." }, { status: 403 });
+  const settings = readProfiles();
+  const profile = settings.profiles.find(p => p.id === snapshot.profileId);
+  const semester = profile?.semesters.find(s => s.id === snapshot.semesterId);
+  if (!profile || !semester || !supportsSchoolConnection(new URL(profile.origin).hostname, profile.platform) || profile.origin !== new URL(snapshot.baseUrl).origin) return Response.json({ error: "School and semester must match a confirmed profile with a supported connection policy." }, { status: 403 });
   let newIds: string[] = [];
   const feed = updateLmsFeed(old => {
-    const next = buildLmsFeed(snapshot, old);
+    const next = applyProfileMetadata(buildLmsFeed(snapshot, old), settings);
     const seen = new Set(old.messages.map(m => m.id));
     newIds = next.messages.filter(m => !seen.has(m.id)).map(m => m.id);
     return next;

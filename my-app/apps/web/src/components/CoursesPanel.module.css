@@ -1,4 +1,19 @@
 .panel { height:100%; overflow:auto; padding:32px 38px; color:var(--color-text); }
+.settings { border:1px solid var(--color-border-soft); border-radius:12px; padding:16px; margin:18px 0; background:var(--color-surface); font-size:13px; }
+.settings summary { cursor:pointer; font-weight:600; }
+.settings p { color:var(--color-text-muted); line-height:1.65; margin:12px 0; overflow-wrap:anywhere; }
+.settingsGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:16px 0; }
+.settings label, .recordView { display:flex; flex-direction:column; gap:7px; line-height:1.5; }
+.settings input:not([type=checkbox]), .settings select, .recordView select { width:100%; min-width:0; padding:10px; border:1px solid var(--color-border); border-radius:7px; background:var(--color-surface); color:var(--color-text); font:inherit; }
+.settings button { padding:9px 12px; border:1px solid var(--color-border); border-radius:7px; background:transparent; color:var(--color-text); }
+.settings button:disabled { opacity:.5; cursor:default; }
+.settings fieldset { border:1px solid var(--color-border-soft); padding:12px; margin:18px 0; }
+.courseSetting { display:flex; align-items:center; gap:14px; margin:10px 0; }
+.courseSetting label { flex:1; display:block; }
+.courseSetting input { margin-right:8px; }
+.courseSetting select { width:130px; }
+.recordView { max-width:320px; font-size:12px; margin:20px 0; }
+@media(max-width:768px) { .settingsGrid { grid-template-columns:1fr; } .courseSetting { align-items:stretch; flex-direction:column; } .courseSetting select { width:100%; } }
 .header { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:24px; }
 .header h1 { font-size:28px; font-weight:650; letter-spacing:-.025em; margin:0 0 8px; }
 .header p, .notice p, .empty p { font-size:14px; line-height:1.65; color:var(--color-text-muted); margin:0; }

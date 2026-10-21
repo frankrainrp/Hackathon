@@ -8,6 +8,7 @@ import asyncio
 import os
 from urllib.parse import urlparse
 from core import assignment, content_lessons
+from school_profile import require_public_url, require_supported_school, access_token
 
 
 class LoginRequired(RuntimeError):
@@ -25,11 +26,13 @@ class Brightspace:
         self.versions = {}
 
     async def get(self, path, binary=False):
+        require_supported_school(self.config)
         if not path.startswith("/d2l/api/"):
             raise ValueError("Only Brightspace API paths may receive authentication")
-        token = os.environ.get("LMS_ACCESS_TOKEN")
+        token = access_token(self.config)
         headers = {"Authorization": "Bearer " + token} if token else {}
         for attempt in range(3):
+            require_public_url(self.base + path)
             response = await self.context.request.get(self.base + path, headers=headers, timeout=60000, max_redirects=0)
             if response.status in (401, 302, 303):
                 await response.dispose()

@@ -57,6 +57,7 @@ release/
 # Private runtime files in any clone or worker location
 .private/
 config.local.json
+config.local.json.*
 courses/
 .env.*
 !.env.local.example

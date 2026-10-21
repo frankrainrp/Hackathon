@@ -1,26 +1,27 @@
-param([string]$ConfigPath = (Join-Path $PSScriptRoot 'config.local.json'))
+param([string]$ConfigPath = (Join-Path $PSScriptRoot 'config.local.json'), [switch]$DryRun, [switch]$Install)
 $ErrorActionPreference = 'Stop'
+if ($DryRun -and $Install) { throw 'Choose either -DryRun or -Install.' }
 $configFile = (Resolve-Path -LiteralPath $ConfigPath).Path
-$settings = Get-Content -LiteralPath $configFile -Raw | ConvertFrom-Json
-$pythonPath = Join-Path $PSScriptRoot '.venv\Scripts\pythonw.exe'
-$frozenPath = Join-Path $PSScriptRoot 'ButlerSync.exe'
-if (Test-Path -LiteralPath $frozenPath) { $pythonPath = $frozenPath }
-$runnerPath = Join-Path $PSScriptRoot 'lms_sync.py'
-if (-not (Test-Path -LiteralPath $pythonPath)) { throw 'Create the .venv and install requirements first.' }
-$taskName = 'Butler-LMS-Sync-RP'
-$webTaskName = 'Butler-LMS-Web'
-$existing = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-if ($existing) { throw "Task $taskName already exists. Inspect it before changing its schedule." }
-if (Get-ScheduledTask -TaskName $webTaskName -ErrorAction SilentlyContinue) { throw "Task $webTaskName already exists. Inspect it before changing it." }
-$workerArguments = '"{0}" --config "{1}" sync' -f $runnerPath, $configFile
-if (Test-Path -LiteralPath $frozenPath) { $workerArguments = '--config "{0}" sync' -f $configFile }
-$action = New-ScheduledTaskAction -Execute $pythonPath -Argument $workerArguments -WorkingDirectory $PSScriptRoot
-$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes $settings.interval_minutes)
-$taskSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 55) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-$principal = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
-Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $taskSettings -Principal $principal -Description 'Download RP courses and send assignment facts to the local Butler inbox every hour.' | Select-Object TaskName, State
-$shellPath = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-$webScript = Join-Path $PSScriptRoot 'start-butler.ps1'
-$webAction = New-ScheduledTaskAction -Execute $shellPath -Argument ('-NoProfile -File "{0}"' -f $webScript) -WorkingDirectory $PSScriptRoot
-$webTrigger = New-ScheduledTaskTrigger -AtLogOn -User $principal.UserId
-Register-ScheduledTask -TaskName $webTaskName -Action $webAction -Trigger $webTrigger -Settings $taskSettings -Principal $principal -Description 'Start the local Butler bridge at Windows sign-in.' | Select-Object TaskName, State
+$frozen = Join-Path $PSScriptRoot 'ButlerSync.exe'
+$python = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
+$runner = Join-Path $PSScriptRoot 'lms_sync.py'
+$user = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+if (Test-Path -LiteralPath $frozen) {
+    $json = & $frozen --config $configFile schedule-plan --task-user $user
+} elseif (Test-Path -LiteralPath $python) {
+    $pythonw = Join-Path $PSScriptRoot '.venv\Scripts\pythonw.exe'
+    $json = & $python $runner --config $configFile schedule-plan --task-user $user --task-executable $pythonw
+} else { throw 'Create the worker .venv and install requirements, or use the portable package.' }
+if ($LASTEXITCODE -ne 0) { throw 'Cannot generate a schedule for an unconfirmed school profile.' }
+$plan = $json | ConvertFrom-Json
+if (-not $Install) {
+    # Preview is the default. This branch never registers a task.
+    $plan | ConvertTo-Json -Depth 4
+    return
+}
+if (-not $plan.connectionSupported) { throw 'This profile has no reviewed connection policy. Task registration is blocked.' }
+if (Get-ScheduledTask -TaskName $plan.taskName -ErrorAction SilentlyContinue) {
+    throw "Task $($plan.taskName) already exists. Inspect it before changing or replacing it."
+}
+Register-ScheduledTask -TaskName $plan.taskName -Xml $plan.xml | Select-Object TaskName,State
+Write-Output 'Daily worker registered for this signed-in Windows user. Keep Butler running. Legacy hourly tasks were not changed.'

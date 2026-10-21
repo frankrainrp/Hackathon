@@ -1,4 +1,4 @@
-"""Local hourly course download -> normalized snapshot -> Butler inbox."""
+"""Confirmed school/semester -> daily incremental download -> Butler inbox."""
 import argparse
 import asyncio
 from contextlib import contextmanager
@@ -16,61 +16,21 @@ from urllib.request import Request, urlopen
 from core import Ledger, atomic_json, component, export_course
 from secrets_store import load_secret, save_secret
 from course_content import extract_material
+from school_profile import (resolve_profile, require_public_url, session_path, session_storage,
+                            session_envelope, browser_route_policy, require_supported_school, daily_plan, schedule_xml)
 
 HERE = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
 LOG = logging.getLogger("lms-sync")
 
 
-# Every Singapore polytechnic (and ITE) uses POLITEMall, the same Brightspace platform.
-# Pick one with "school": "TP" (or SP / NP / NYP / RP / ITE) in config.local.json.
-# Known addresses are pre-filled; for the rest, `login` starts at the shared POLITEMall
-# portal and saves whichever school address you land on after signing in.
-POLITEMALL_PORTAL = "https://politemall.polite.edu.sg"
-POLY_PRESETS = {
-    "TP": ("Temasek Polytechnic", "https://tplms.polite.edu.sg"),
-    "RP": ("Republic Polytechnic", "https://rplms.polite.edu.sg"),
-    "SP": ("Singapore Polytechnic", None),
-    "NP": ("Ngee Ann Polytechnic", None),
-    "NYP": ("Nanyang Polytechnic", None),
-    "ITE": ("Institute of Technical Education", None),
-}
-
-
-def resolve_school(config):
-    """Accept a short code ("TP") or full name; fill in the school name and known base_url."""
-    raw = str(config.get("school", "")).strip()
-    code = raw.upper()
-    if code not in POLY_PRESETS:
-        code = next((k for k, (name, _) in POLY_PRESETS.items() if name.lower() == raw.lower()), None)
-    if code:
-        name, known_url = POLY_PRESETS[code]
-        config["school"] = name
-        config["school_code"] = code
-        if not config.get("base_url") and known_url:
-            config["base_url"] = known_url
-    elif not raw:
-        raise ValueError('Set "school" in config.local.json, e.g. "TP", "SP", "NP", "NYP", "RP" or "ITE".')
-    return config
-
-
-def check_base_url(url):
-    parsed = urlparse(url)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.query:
-        raise ValueError("School base_url must be an HTTPS origin.")
-    return f"https://{parsed.netloc}"
-
-
 def load_config(path: Path):
-    config = resolve_school(json.loads(path.read_text(encoding="utf-8-sig")))
+    config = resolve_profile(json.loads(path.read_text(encoding="utf-8-sig")))
     config["config_path"] = str(path)
-    config["base_url"] = check_base_url(config["base_url"]) if config.get("base_url") else ""
     target = urlparse(config.get("butler_url", "http://127.0.0.1:3000"))
     if target.hostname not in ("localhost", "127.0.0.1", "::1") or target.scheme not in ("http", "https"):
         raise ValueError("Butler bridge must run on this computer.")
     for field in ("output_dir", "private_dir"):
         config[field] = str((path.parent / config[field]).resolve())
-    if not 15 <= int(config.get("interval_minutes", 60)) <= 1440:
-        raise ValueError("Sync interval must be between 15 and 1440 minutes.")
     if not 1 <= int(config.get("max_file_mb", 150)) <= 500:
         raise ValueError("max_file_mb must be between 1 and 500.")
     return config
@@ -145,6 +105,8 @@ def configure_bridge(config):
         additions.append("LMS_ALLOWED_ORIGIN=" + (config["base_url"] or POLITEMALL_PORTAL))
     if "LMS_CONTENT_AI_ENABLED=" not in env:
         additions.append("LMS_CONTENT_AI_ENABLED=true")
+    if "LMS_CONFIG_PATH=" not in env:
+        additions.append('LMS_CONFIG_PATH="' + Path(config["config_path"]).as_posix() + '"')
     env_path.parent.mkdir(parents=True, exist_ok=True)
     if additions:
         env_path.write_text(env.rstrip() + "\n" + "\n".join(additions) + "\n", encoding="utf-8")
@@ -172,16 +134,6 @@ def push(config, snapshot):
     return result
 
 
-def remember_base_url(config, base_url):
-    """Write the detected school address back into config.local.json so sync uses it next time."""
-    path = Path(config["config_path"])
-    data = json.loads(path.read_text(encoding="utf-8-sig"))
-    data["base_url"] = base_url
-    atomic_json(path, data)
-    config["base_url"] = base_url
-    LOG.info("Detected your school's POLITEMall address: %s (saved to %s)", base_url, path.name)
-
-
 async def signed_in(page):
     """True once Brightspace accepts this session (works whatever the homepage looks like)."""
     if await page.get_by_role("heading", name="My Courses", exact=True).count():
@@ -200,25 +152,29 @@ async def signed_in(page):
 
 
 async def login(config):
+    require_supported_school(config)
     from playwright.async_api import async_playwright
-    expected = urlparse(config["base_url"]).hostname if config["base_url"] else None
+    if config["platform"] != "brightspace":
+        raise ValueError("This profile is saved, but its LMS needs a separate adapter. Only Brightspace is supported.")
+    require_public_url(config["entry_url"])
+    expected = urlparse(config["base_url"]).netloc
     async with async_playwright() as p:
         browser = await p.chromium.launch(channel=config.get("browser_channel", "msedge"), headless=False)
-        context = await browser.new_context()
+        context = await browser.new_context(service_workers="block")
+        await context.route("**/*", browser_route_policy(config["base_url"]))
+        await context.route_web_socket("**/*", lambda socket: socket.close())
         page = await context.new_page()
-        await page.goto((config["base_url"] or POLITEMALL_PORTAL) + "/d2l/home")
+        await page.goto(config["entry_url"])
         LOG.info("Complete the %s login in the new Edge window. The session will be saved encrypted automatically.", config["school"])
         deadline = time.monotonic() + 600
         try:
             while time.monotonic() < deadline:
                 parsed = urlparse(page.url)
                 host = parsed.hostname or ""
-                on_school = host == expected if expected else (host.endswith(".polite.edu.sg") and host != urlparse(POLITEMALL_PORTAL).hostname)
+                on_school = parsed.netloc == expected
                 if parsed.scheme == "https" and on_school and parsed.path.startswith("/d2l/home") and await signed_in(page):
-                    if not expected:
-                        remember_base_url(config, f"https://{parsed.netloc}")
                     state = await context.storage_state()
-                    save_secret(Path(config["private_dir"]) / "session.enc", state)
+                    save_secret(session_path(config), session_envelope(config, state))
                     LOG.info("School session saved encrypted; no password was stored.")
                     return 0
                 await asyncio.sleep(2)
@@ -227,39 +183,50 @@ async def login(config):
             await browser.close()
 
 
-async def sync(config, metadata_only=False):
-    if not config["base_url"]:
-        raise SystemExit("Your school's POLITEMall address isn't known yet. Run `lms_sync.py login` first; it detects and saves it.")
+async def sync(config, metadata_only=False, catalog_only=False):
+    require_supported_school(config)
+    if config["platform"] != "brightspace":
+        raise ValueError("Only confirmed Brightspace profiles can sync. Other LMS adapters are not implemented.")
+    if not catalog_only and not config["courses"]:
+        raise ValueError("Select active courses for the confirmed semester first. Run catalog after login to list courses without downloading files.")
+    require_public_url(config["base_url"])
     from brightspace import Brightspace, LoginRequired, AccessUnavailable
     from playwright.async_api import async_playwright
     private = Path(config["private_dir"])
     snapshot = {"school": config["school"], "baseUrl": config["base_url"], "timezone": config["timezone"],
+                "profileId": config["profile_id"], "semesterId": config["semester_id"], "semesterLabel": config["semester_label"],
                 "syncedAt": datetime.now(timezone.utc).isoformat(), "status": "ok", "warnings": [],
                 "courses": [], "enableAiBrief": config.get("enable_ai_brief", True)}
     ledger = Ledger(private / "sync.sqlite")
     try:
-        session_path = private / "session.enc"
-        if not session_path.exists() and not os.environ.get("LMS_ACCESS_TOKEN"):
+        saved_path = session_path(config)
+        if not saved_path.exists() and not os.environ.get("LMS_ACCESS_TOKEN"):
             raise LoginRequired("Please run login before the first sync.")
-        state = load_secret(session_path) if session_path.exists() else {"cookies": [], "origins": []}
+        state = session_storage(config, load_secret(saved_path)) if saved_path.exists() else {"cookies": [], "origins": []}
         async with async_playwright() as p:
             browser = await p.chromium.launch(channel=config.get("browser_channel", "msedge"), headless=True)
-            context = await browser.new_context(storage_state=state)
-            adapter = Brightspace(context, config)
+            context = await browser.new_context(storage_state=state, service_workers="block")
+            await context.route("**/*", browser_route_policy(config["base_url"]))
+            adapter = Brightspace(context, {**config, "courses": []} if catalog_only else config)
             try:
                 await adapter.initialize()
                 courses = await adapter.courses()
+                if catalog_only:
+                    atomic_json(private / "catalogs" / (config["profile_id"] + ".json"), courses)
+                    LOG.info("Course catalog saved locally. Assign courses to the current semester in Courses > School settings.")
+                    return 0
                 seen_folders = {}
                 for source in courses:
                     try:
                         course, warnings = await adapter.course(source)
+                        course["courseStatus"] = config["course_status"].get(course["id"], "active")
                         snapshot["warnings"].extend(warnings)
                         # Distinct enrollment IDs must never share an export directory.
                         name = component(course["moduleName"])
                         if name in seen_folders:
                             course["moduleName"] += f" [{course['id']}]"
                         seen_folders[name] = course["id"]
-                        export_course(Path(config["output_dir"]), config["school"], course)
+                        export_course(Path(config["output_dir"]) / config["profile_id"] / config["semester_id"], config["school"], course)
                         snapshot["courses"].append(course)
                     except AccessUnavailable as error:
                         snapshot["warnings"].append(f"{source['name']}: {error}")
@@ -273,13 +240,13 @@ async def sync(config, metadata_only=False):
                     except Exception:
                         LOG.info("Initial metadata delivery pending; downloads continue and final delivery retries.")
                     for course in snapshot["courses"]:
-                        folder = export_course(Path(config["output_dir"]), config["school"], course)
+                        folder = export_course(Path(config["output_dir"]) / config["profile_id"] / config["semester_id"], config["school"], course)
                         for lesson in course["lessons"]:
                             for material in lesson["materials"]:
                                 if not material["downloadable"]:
                                     continue
                                 path = folder / lesson["directory"] / material["filename"]
-                                key = f"{config['base_url']}:{course['id']}:{material['id']}"
+                                key = f"{config['profile_id']}:{config['semester_id']}:{config['base_url']}:{course['id']}:{material['id']}"
                                 try:
                                     ledger.relocate(key, material["modifiedAt"], path, Path(config["output_dir"]))
                                     if ledger.needs_download(key, material["modifiedAt"], path):
@@ -293,7 +260,7 @@ async def sync(config, metadata_only=False):
                                     material.update(extract_material(path))
                                 except AccessUnavailable as error:
                                     snapshot["warnings"].append(f"{course['moduleName']}: {material['title']} - {error}")
-                        export_course(Path(config["output_dir"]), config["school"], course)
+                        export_course(Path(config["output_dir"]) / config["profile_id"] / config["semester_id"], config["school"], course)
                     # Bound school-text payloads; retrieval reports truncation rather than inventing content.
                     remaining = 1_200_000
                     for course in snapshot["courses"]:
@@ -304,7 +271,7 @@ async def sync(config, metadata_only=False):
                                     material["text"] = text[:remaining]
                                     material["textStatus"] = "truncated"
                                 remaining -= len(material.get("text", ""))
-                save_secret(session_path, await context.storage_state())
+                save_secret(saved_path, session_envelope(config, await context.storage_state()))
             finally:
                 await browser.close()
     except LoginRequired as error:
@@ -322,6 +289,10 @@ async def sync(config, metadata_only=False):
     if snapshot["warnings"] and snapshot["status"] == "ok":
         snapshot["status"] = "partial"
     atomic_json(private / "last-snapshot.json", snapshot)
+    history_path = private / "sync-history.json"
+    history = json.loads(history_path.read_text(encoding="utf-8")) if history_path.exists() else []
+    history.append({"profileId": config["profile_id"], "semesterId": config["semester_id"], "syncedAt": snapshot["syncedAt"], "status": snapshot["status"], "courses": len(snapshot["courses"])})
+    atomic_json(history_path, history)
     LOG.info("Sync %s: %d courses, %d warnings", snapshot["status"], len(snapshot["courses"]), len(snapshot["warnings"]))
     try:
         push(config, snapshot)
@@ -336,10 +307,30 @@ async def sync(config, metadata_only=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=HERE / "config.local.json")
-    parser.add_argument("command", choices=["setup", "login", "sync", "inspect", "watch", "status", "retry"])
+    parser.add_argument("command", choices=["setup", "login", "catalog", "sync", "inspect", "watch", "status", "retry", "session-check", "schedule-plan"])
+    parser.add_argument("--task-user", default="CURRENT_USER")
+    parser.add_argument("--task-executable")
+    parser.add_argument("--expected-profile")
     args = parser.parse_args()
     config = load_config(args.config.resolve())
+    if args.expected_profile and args.expected_profile != config["profile_id"]:
+        raise ValueError("The scheduled school profile changed. Review and approve a separate schedule for that school.")
+    if args.command == "schedule-plan":
+        frozen = getattr(sys, "frozen", False)
+        arguments = f'--config "{args.config.resolve()}" --expected-profile {config["profile_id"]} sync'
+        if not frozen:
+            arguments = f'"{Path(__file__).resolve()}" ' + arguments
+        print(json.dumps(schedule_xml(config, args.task_executable or sys.executable, arguments, HERE, args.task_user)))
+        return 0
     private = Path(config["private_dir"])
+    if args.command == "session-check":
+        saved = session_path(config)
+        if not saved.exists():
+            return 3
+        session_storage(config, load_secret(saved))
+        status_file = private / "last-snapshot.json"
+        status = json.loads(status_file.read_text(encoding="utf-8")) if status_file.exists() else {}
+        return 3 if status.get("profileId") == config["profile_id"] and status.get("status") == "login_required" else 0
     private.mkdir(parents=True, exist_ok=True)
     from logging.handlers import RotatingFileHandler
     handlers = [RotatingFileHandler(private / "sync.log", maxBytes=1024 * 1024, backupCount=3, encoding="utf-8")]
@@ -361,16 +352,18 @@ def main():
     if args.command == "login":
         with single_run(private):
             return asyncio.run(login(config))
-    if args.command in ("sync", "inspect"):
+    if args.command in ("sync", "inspect", "catalog"):
         with single_run(private):
-            return asyncio.run(sync(config, metadata_only=args.command == "inspect"))
+            return asyncio.run(sync(config, metadata_only=args.command == "inspect", catalog_only=args.command == "catalog"))
     while True:
+        config = load_config(args.config.resolve())
         try:
             with single_run(private):
                 asyncio.run(sync(config))
         except RuntimeError:
             LOG.info("Sync skipped because another process is running.")
-        time.sleep(config.get("interval_minutes", 60) * 60)
+        next_run = datetime.fromisoformat(daily_plan(config["daily"])["startBoundary"])
+        time.sleep(max(1, (next_run - datetime.now(timezone.utc)).total_seconds()))
 
 
 if __name__ == "__main__":

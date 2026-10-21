@@ -45,6 +45,8 @@ jobs:
         run: pnpm --filter @smart-hub/web exec tsc --noEmit
       - name: Production build
         run: pnpm --filter @smart-hub/web build
+      - name: Production HTTP integration (synthetic records)
+        run: node apps/web/tests/lms-settings.integration.mjs
 
   python:
     name: Python tests (Windows)

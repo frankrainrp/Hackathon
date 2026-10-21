@@ -5,6 +5,7 @@ const title = z.string().min(1).max(500);
 const url = z.string().url().max(2000).refine(v => new URL(v).protocol === "https:");
 export const lmsSnapshotSchema = z.object({
   school: title,
+  profileId: id.optional(), semesterId: id.optional(), semesterLabel: title.optional(),
   baseUrl: url,
   timezone: z.string().max(80).refine(v => { try { new Intl.DateTimeFormat("en", { timeZone: v }); return true; } catch { return false; } }),
   syncedAt: z.string().datetime({ offset: true }),
@@ -12,7 +13,7 @@ export const lmsSnapshotSchema = z.object({
   status: z.enum(["ok", "partial", "login_required", "error"]),
   warnings: z.array(z.string().max(1000)).max(200),
   courses: z.array(z.object({
-    id, moduleName: title,
+    id, moduleName: title, courseStatus: z.enum(["active", "completed", "paused"]).optional(),
     lessons: z.array(z.object({
       id, number: z.number().int().nonnegative().nullable(), title,
       kind: z.enum(["Lesson", "Week"]).optional(),

@@ -1,5 +1,6 @@
 import type { LmsSnapshot } from "./lms-schema";
 import type { ChatMessage, ChatSession, DdlItem, Note } from "./types";
+import type { ProfileSettings } from "./lms-profile";
 
 export interface LmsFeed {
   revision: number;
@@ -9,9 +10,26 @@ export interface LmsFeed {
   messages: ChatMessage[];
   courses?: LmsCourse[];
   status?: { status: string; syncedAt: string; warnings: string[] };
+  syncHistory?: { profileId?: string; semesterId?: string; syncedAt: string; status: string; warnings: string[] }[];
 }
 
-export type LmsCourse = LmsSnapshot["courses"][number] & { school: string; noteId: string };
+export type LmsCourse = LmsSnapshot["courses"][number] & { school: string; noteId: string; profileId?: string; semesterId?: string; semesterLabel?: string; archived?: boolean };
+
+export function archiveLmsHistory(feed: LmsFeed, profileId?: string, semesterId?: string): LmsFeed {
+  return { ...feed, revision: feed.revision + 1,
+    courses: feed.courses?.map(c => ({ ...c, archived: c.profileId !== profileId || c.semesterId !== semesterId })),
+    ddls: feed.ddls.map(d => ({ ...d, lmsArchived: d.lmsProfileId !== profileId || d.lmsSemesterId !== semesterId })) };
+}
+export function applyProfileMetadata(feed: LmsFeed, settings: ProfileSettings): LmsFeed {
+  const active = settings.profiles.find(p => p.id === settings.activeProfileId);
+  const next = archiveLmsHistory(feed, active?.id, active?.activeSemesterId);
+  next.courses = next.courses?.map(c => {
+    const semester = settings.profiles.find(p => p.id === c.profileId)?.semesters.find(s => s.id === c.semesterId);
+    const choice = semester?.courses.find(item => item.id === c.id);
+    return { ...c, semesterLabel: semester?.label || c.semesterLabel, courseStatus: choice?.status || c.courseStatus };
+  });
+  return next;
+}
 
 const sourceKey = (s: LmsSnapshot) => new URL(s.baseUrl).hostname.replace(/[^a-zA-Z0-9_-]/g, "_");
 const signature = (x: unknown) => JSON.stringify(x);
@@ -26,7 +44,8 @@ function localDue(value: string | null, timeZone: string) {
 /** Deterministic facts are authoritative; AI only supplies a bounded optional brief. */
 export function buildLmsFeed(snapshot: LmsSnapshot, previous: LmsFeed, now = Date.now()): LmsFeed {
   const key = sourceKey(snapshot);
-  const prefix = `lms-${key}-`;
+  const scope = snapshot.profileId && snapshot.semesterId ? `p${snapshot.profileId.length}_${snapshot.profileId}-s${snapshot.semesterId.length}_${snapshot.semesterId}-` : "";
+  const prefix = `lms-${key}-${scope}`;
   const sessionId = `${prefix}session`;
   const tasks = new Map(previous.ddls.map(d => [d.id, d]));
   const notes = new Map(previous.notes.map(n => [n.id, n]));
@@ -53,7 +72,10 @@ export function buildLmsFeed(snapshot: LmsSnapshot, previous: LmsFeed, now = Dat
         priority: assignment.dueAt && new Date(assignment.dueAt).getTime() - now <= 86400000 && !done ? "high" : "med",
         tags: ["LMS", snapshot.school], lmsSubmissionState: state, lmsDueAt: assignment.dueAt,
         attachments: [{ id: `${id}-link`, kind: "url", label: "打开学校作业", ref: assignment.url }],
+        lmsProfileId: snapshot.profileId, lmsSemesterId: snapshot.semesterId,
       };
+      if (old) { task.notes = old.notes; task.noteId = old.noteId; }
+      if (old && old.lmsSubmissionState === state) { task.status = old.status; task.completed = old.completed; }
       tasks.set(id, task);
       if (!old) changes.push(`${course.moduleName}：新增作业「${assignment.title}」（${state === "submitted" ? "网站已确认提交" : state === "missing" ? "未提交" : "提交状态待核实"}）`);
       else if (old.lmsDueAt !== assignment.dueAt) changes.push(`${assignment.title}：截止时间有更新`);
@@ -68,7 +90,9 @@ export function buildLmsFeed(snapshot: LmsSnapshot, previous: LmsFeed, now = Dat
       }
     }
     const noteId = `${prefix}${course.id}-index`;
-    courses.set(noteId, { ...course, school: snapshot.school, noteId });
+    const oldCourse = courses.get(noteId);
+    courses.set(noteId, { ...course, assignments: course.assignments.map(a => a.submissionState === "unknown" ? { ...a, submissionState: oldCourse?.assignments.find(old => old.id === a.id)?.submissionState || "unknown" } : a), school: snapshot.school, noteId,
+      profileId: snapshot.profileId, semesterId: snapshot.semesterId, semesterLabel: snapshot.semesterLabel });
     const content = [`# ${course.moduleName}`, "", `学校：${snapshot.school}`, "", ...course.lessons.flatMap(l => [
       `## ${l.number === null ? "Resources" : `${l.kind ?? "Lesson"} ${String(l.number).padStart(2, "0")}${l.endNumber && l.endNumber !== l.number ? `-${String(l.endNumber).padStart(2, "0")}` : ""}`} · ${l.title}`,
       ...l.materials.map(m => `- [${m.title}](${m.url})${m.filePath ? ` · 已归档：${m.filePath}` : ""}`), "",
@@ -97,8 +121,11 @@ export function buildLmsFeed(snapshot: LmsSnapshot, previous: LmsFeed, now = Dat
   const sessions = previous.sessions.filter(s => s.id !== sessionId);
   sessions.push({ id: sessionId, title: `${snapshot.school} · 学习提醒`, createdAt: previous.sessions.find(s => s.id === sessionId)?.createdAt || now,
     updatedAt: messages.size !== previous.messages.length ? now : previous.sessions.find(s => s.id === sessionId)?.updatedAt || now });
-  return { revision: previous.revision + 1, ddls: Array.from(tasks.values()), notes: Array.from(notes.values()), courses: Array.from(courses.values()), sessions,
+  const syncHistory = (previous.syncHistory || []).filter(s => !(s.profileId === snapshot.profileId && s.semesterId === snapshot.semesterId && s.syncedAt === snapshot.syncedAt));
+  syncHistory.push({ profileId: snapshot.profileId, semesterId: snapshot.semesterId, syncedAt: snapshot.syncedAt, status: snapshot.status, warnings: snapshot.warnings });
+  const feed = { revision: previous.revision + 1, ddls: Array.from(tasks.values()), notes: Array.from(notes.values()), courses: Array.from(courses.values()), sessions, syncHistory,
     messages: Array.from(messages.values()).slice(-300), status: { status: snapshot.status, syncedAt: snapshot.syncedAt, warnings: snapshot.warnings } };
+  return snapshot.profileId ? archiveLmsHistory(feed, snapshot.profileId, snapshot.semesterId) : feed;
 }
 
 /** Preserve edits on ordinary tasks; submission status changes are school facts. */

@@ -1,12 +1,10 @@
 {
-  "school": "TP",
-  "timezone": "Asia/Singapore",
-  "interval_minutes": 60,
+  "profileSettings": { "version": 1, "activeProfileId": null, "profiles": [] },
+  "example_only": { "school": "Temasek Polytechnic", "entryUrl": "https://tplms.polite.edu.sg/d2l/home" },
   "output_dir": "courses",
   "private_dir": ".private",
   "browser_channel": "msedge",
   "max_file_mb": 150,
-  "courses": [],
   "butler_url": "http://127.0.0.1:3000",
   "enable_ai_brief": true
 }

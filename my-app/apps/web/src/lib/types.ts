@@ -68,6 +68,9 @@ export interface DdlItem {
   /** LMS facts remain separate from a user's local task completion. */
   lmsSubmissionState?: "missing" | "submitted" | "unknown";
   lmsDueAt?: string | null;
+  lmsProfileId?: string;
+  lmsSemesterId?: string;
+  lmsArchived?: boolean;
 }
 
 // ============================================================
