@@ -373,6 +373,12 @@ export default function PreferencesPanel({ open, onClose }: Props) {
         </header>
 
         <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 18, overflowY: "auto", flex: 1, minHeight: 0 }}>
+          <Section title="AI connection">
+            <button onClick={() => { onClose(); window.dispatchEvent(new Event("butler:ai-setup")); }} style={{ width: "100%", padding: "12px 14px", border: "1px solid var(--color-border)", borderRadius: 8, background: "var(--color-surface)", color: "var(--color-text)", textAlign: "left", cursor: "pointer", fontWeight: 600 }}>
+              Open AI setup · Local / DeepSeek
+            </button>
+            <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--color-text-muted)", marginTop: 8 }}>Choose, test or change your AI connection. Study data stays in place.</p>
+          </Section>
           {/* [072] 语言（中英主语言切换）*/}
           <Section title={t("prefs.section.language")}>
             <SegRow>

@@ -1,3 +1,5 @@
+import { completeWithProvider, providerError } from "@/lib/ai-provider";
+import { isLocalAiRequest } from "@/lib/ai-config";
 // ============================================================
 // app/api/research/squad/route.ts — 多小队调研：单小队调查（P3）
 //
@@ -25,18 +27,16 @@ const SYSTEM = `你是调研小队，负责目标下的一个子问题。基于�
 4. 控制体量：rows ≤ 12 行。`;
 
 export async function POST(req: Request) {
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: "Local access only." }, { status: 403 });
   let body: { goal?: string; squadTitle?: string; question?: string };
   try { body = await req.json(); } catch { return Response.json({ ok: false, error: "请求体非法" }, { status: 400 }); }
   const goal = (body?.goal ?? "").trim();
   const squadTitle = (body?.squadTitle ?? "").trim();
   const question = (body?.question ?? "").trim();
   if (!question) return Response.json({ ok: false, error: "缺少 question" }, { status: 400 });
-  if (!process.env.DEEPSEEK_API_KEY) return Response.json({ ok: false, error: "未配置 DEEPSEEK_API_KEY" }, { status: 500 });
 
-  const openai = new OpenAI({ apiKey: process.env.DEEPSEEK_API_KEY, baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1" });
   try {
-    const c = await openai.chat.completions.create({
-      model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
+    const c = await completeWithProvider({
       messages: [
         { role: "system", content: SYSTEM },
         { role: "user", content: `总目标：${goal}\n本小队「${squadTitle}」负责：${question}` },
@@ -60,6 +60,6 @@ export async function POST(req: Request) {
       usage: c.usage,
     });
   } catch (err) {
-    return Response.json({ ok: false, error: (err as Error).message }, { status: 200 });
+    return Response.json({ ok: false, error: providerError(err) }, { status: 200 });
   }
 }

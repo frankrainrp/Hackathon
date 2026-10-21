@@ -1,3 +1,5 @@
+import { completeWithProvider, providerError } from "@/lib/ai-provider";
+import { isLocalAiRequest } from "@/lib/ai-config";
 // ============================================================
 // app/api/extract-ddls/route.ts — 从文档 markdown 提取 DDL 列表
 // V4 Flash + 强制 tool calling 返回结构化 DDL 数组
@@ -53,15 +55,12 @@ const EXTRACT_TOOL = {
 };
 
 export async function POST(req: Request) {
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: "Local access only." }, { status: 403 });
   const body: ExtractRequest = await req.json();
   if (!body.markdown || body.markdown.length < 20) {
     return Response.json({ ok: false, error: "markdown 内容过短或缺失" }, { status: 400 });
   }
 
-  const openai = new OpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY!,
-    baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1",
-  });
 
   const systemPrompt =
     `你是 DDL 提取专家。严格从课程文档中识别所有 deadline / 作业 / 考试 / 测验，并调用 extract_ddls 工具一次性返回。\n` +
@@ -81,8 +80,7 @@ export async function POST(req: Request) {
     `③ 一次性返回所有项，不要分多次调用。`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
+    const completion = await completeWithProvider({
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `文档名：${body.filename}\n\n文档内容：\n${body.markdown}` },
@@ -105,6 +103,6 @@ export async function POST(req: Request) {
       usage: completion.usage,
     });
   } catch (err) {
-    return Response.json({ ok: false, error: (err as Error).message }, { status: 500 });
+    return Response.json({ ok: false, error: providerError(err) }, { status: 500 });
   }
 }

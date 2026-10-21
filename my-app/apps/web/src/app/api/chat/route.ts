@@ -1,3 +1,5 @@
+import { providerError } from "@/lib/ai-provider";
+import { isLocalAiRequest } from "@/lib/ai-config";
 // ============================================================
 // app/api/chat/route.ts — DeepSeek-V4-Flash 流式对话 + tool calling
 // ============================================================
@@ -80,17 +82,7 @@ ${contextSummary || "（用户当前没有任何任务/事件）"}
 }
 
 export async function POST(req: Request) {
-  if (!isLocalLmsRequest(req)) return Response.json({ error: "Local access only" }, { status: 403 });
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-  if (!apiKey || apiKey.startsWith("sk-xxx")) {
-    return new Response(
-      JSON.stringify({
-        error: "DEEPSEEK_API_KEY 未配置。请在 apps/web/.env.local 中填入真实 key 后重启 dev server。",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: "Local access only" }, { status: 403 });
   let body: ChatRequest;
   try {
     body = (await req.json()) as ChatRequest;
@@ -159,18 +151,18 @@ export async function POST(req: Request) {
     for (const endpoint of endpointCandidates(requestedModel)) {
       try {
         const openai = new OpenAI({
-          apiKey,
+          apiKey: endpoint.apiKey,
           baseURL: endpoint.baseURL,
           timeout: 60_000,
           maxRetries: 0,
         });
         stream = await openai.chat.completions.create(
-          { ...createParams, model: endpoint.model || createParams.model } as Parameters<typeof openai.chat.completions.create>[0],
+          { ...createParams, model: endpoint.model, ...(endpoint.mode === "deepseek" ? { thinking: { type: "disabled" } } : {}) } as Parameters<typeof openai.chat.completions.create>[0],
         ) as AsyncIterable<unknown>;
         activeEndpoint = endpoint;
         break;
       } catch (err) {
-        endpointErrors.push(`${endpoint.name}: ${err instanceof Error ? err.message : String(err)}`);
+        endpointErrors.push(`${endpoint.name}: ${providerError(err)}`);
       }
     }
     if (!stream || !activeEndpoint) {
@@ -195,7 +187,7 @@ export async function POST(req: Request) {
             hasEmittedChunk = true;
           }
         } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
+          const msg = providerError(err);
           if (hasEmittedChunk) {
             // 内容已成功流出，尾部抛错视为良性，仅日志记录
             // eslint-disable-next-line no-console
@@ -220,8 +212,8 @@ export async function POST(req: Request) {
       },
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({ error: `本地模型调用失败：${msg}` }), {
+    const msg = providerError(err);
+    return new Response(JSON.stringify({ error: `AI request failed: ${msg}` }), {
       status: 500, headers: { "Content-Type": "application/json" },
     });
   }

@@ -56,6 +56,8 @@ release/
 
 # Private runtime files in any clone or worker location
 .private/
+.private-ai/
+runtime/llama/*.gguf
 config.local.json
 config.local.json.*
 courses/

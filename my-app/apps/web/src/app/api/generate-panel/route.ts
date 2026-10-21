@@ -1,3 +1,5 @@
+import { completeWithProvider, providerError } from "@/lib/ai-provider";
+import { isLocalAiRequest } from "@/lib/ai-config";
 // ============================================================
 // app/api/generate-panel/route.ts — AI 一句话 → 面板 schema（P2）
 //
@@ -55,6 +57,7 @@ const EXAMPLE = `示例：用户「东南亚 Twitch 收益榜」→
 {"version":1,"title":"东南亚 Twitch Top","emoji":"🎮","description":"示例数据，可后续接真实 Twitch API","sources":[{"id":"s","kind":"static","data":[{"rank":1,"streamer":"AdminTH","country":"TH","followers":2100000,"monthly_usd":48000},{"rank":2,"streamer":"Jess No Limit","country":"ID","followers":1800000,"monthly_usd":42000},{"rank":3,"streamer":"Wowkia","country":"ID","followers":900000,"monthly_usd":21000}]}],"blocks":[{"type":"kpiGrid","title":"概览","metrics":[{"label":"主播数","sourceId":"s","agg":"count"},{"label":"月收益合计","sourceId":"s","agg":"sum","field":"monthly_usd","format":"currency"}]},{"type":"bar","title":"月收益(USD)","sourceId":"s","x":"streamer","y":"monthly_usd","span":2},{"type":"table","title":"榜单","sourceId":"s","columns":[{"key":"rank","label":"#"},{"key":"streamer","label":"主播"},{"key":"country","label":"国家"},{"key":"followers","label":"粉丝","format":"number"},{"key":"monthly_usd","label":"月收益","format":"currency"}]}]}`;
 
 export async function POST(req: Request) {
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: "Local access only." }, { status: 403 });
   let body: GenerateRequest;
   try {
     body = (await req.json()) as GenerateRequest;
@@ -64,18 +67,10 @@ export async function POST(req: Request) {
   const prompt = (body?.prompt ?? "").trim();
   if (!prompt) return Response.json({ ok: false, error: "缺少 prompt" }, { status: 400 });
 
-  if (!process.env.DEEPSEEK_API_KEY) {
-    return Response.json({ ok: false, error: "未配置 DEEPSEEK_API_KEY" }, { status: 500 });
-  }
 
-  const openai = new OpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY,
-    baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1",
-  });
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
+    const completion = await completeWithProvider({
       messages: [
         { role: "system", content: SYSTEM_PROMPT + "\n\n" + EXAMPLE },
         { role: "user", content: prompt },
@@ -98,6 +93,6 @@ export async function POST(req: Request) {
     }
     return Response.json({ ok: true, spec: v.spec, usage: completion.usage });
   } catch (err) {
-    return Response.json({ ok: false, error: (err as Error).message }, { status: 200 });
+    return Response.json({ ok: false, error: providerError(err) }, { status: 200 });
   }
 }

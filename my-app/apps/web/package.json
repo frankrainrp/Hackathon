@@ -3,10 +3,14 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "prebuild": "node ../../ops/local-ai/prepare-build.cjs",
+    "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "next start --hostname 127.0.0.1",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test:ai": "node --test tests/ai-local.test.mjs",
+    "test:ai-http": "node tests/ai-http.integration.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^5.0.0",

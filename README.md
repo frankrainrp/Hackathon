@@ -48,3 +48,6 @@ flowchart LR
 ```
 
 School assignment deadlines come from Brightspace. Missing dates stay unknown; AI does not invent school deadlines. Scans still need OCR, Quiz/forum/LTI submissions are not covered, and DeepTutor is not integrated. Source and artwork remain attributed to Bulter and existing third-party notices.
+# Local AI onboarding build
+
+This independent Hackathon course-sync build adds optional Local/DeepSeek setup and a pinned Windows CPU inference sidecar. See [the implementation and data-flow guide](my-app/docs/local-ai.md) and [the distribution quick start](distribution/GETTING-STARTED.md). Private records and model weights are not included. The original source workspace remains separate.

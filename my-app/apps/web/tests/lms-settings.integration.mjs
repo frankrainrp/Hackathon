@@ -69,7 +69,12 @@ try {
   await request('/api/lms/settings', { profile, confirm: false });
   await request('/api/lms/settings', { profile, confirm: true });
   await request('/api/lms/ingest', snapshot, 401);
-  await request('/api/lms/ingest', { ...snapshot, baseUrl: 'https://rplms.polite.edu.sg' }, 403, { authorization: `Bearer ${token}` });
+  // A mismatched link is rejected by snapshot schema before profile authorization.
+  await request('/api/lms/ingest', { ...snapshot, baseUrl: 'https://rplms.polite.edu.sg' }, 400, { authorization: `Bearer ${token}` });
+  const foreignSnapshot = structuredClone(snapshot);
+  foreignSnapshot.baseUrl = 'https://rplms.polite.edu.sg';
+  foreignSnapshot.courses[0].assignments[0].url = 'https://rplms.polite.edu.sg/d2l/assignment/1';
+  await request('/api/lms/ingest', foreignSnapshot, 403, { authorization: `Bearer ${token}` });
   await ingest(snapshot);
   await ingest(snapshot);
   let feed = await request('/api/lms/feed');

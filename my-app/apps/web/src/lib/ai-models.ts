@@ -1,8 +1,8 @@
 // ============================================================
 // lib/ai-models.ts — 可切换的 AI 模型注册表
 //
-// 家庭部署只展示两个真实可用的本地推理路由：
-// Ubuntu 家庭服务器（常在线）与 Windows RTX 5090（高性能）。
+// Saved UI IDs remain compatible. Actual provider/model identity is selected
+// server-side by ai-provider.ts; these are primary/alternate route selectors.
 // ============================================================
 
 export type AiModelId =
@@ -39,20 +39,20 @@ export interface AiModelMeta {
 export const AI_MODELS: AiModelMeta[] = [
   {
     id: "deepseek-v4-flash",
-    apiModel: "huihui_ai/qwen3-abliterated:30b",
-    label: "Ubuntu 服务器 · 千问 30B",
-    tagline: "默认 · 常在线",
-    desc: "由家庭服务器 RTX 3060 上的 Ollama 运行；Windows 关机时仍可使用。",
+    apiModel: "qwen3:0.6b",
+    label: "Primary model",
+    tagline: "Configured in AI setup",
+    desc: "Uses your selected Local or DeepSeek provider. Configure the actual model in Settings → AI setup.",
     tier: "low",
     supportsTools: true,
     route: "server",
   },
   {
     id: "deepseek-v4-thinking",
-    apiModel: "huihui_ai/qwen3-abliterated:30b",
-    label: "Windows RTX 5090 · 千问 30B",
-    tagline: "高速 · 电脑开机时",
-    desc: "由 Windows RTX 5090 上的 Ollama 运行；电脑离线时自动回退到 Ubuntu 服务器。",
+    apiModel: "qwen3:0.6b",
+    label: "Alternate route",
+    tagline: "Legacy primary/alternate routing",
+    desc: "In legacy mode, tries the alternate local service first. Otherwise uses the provider and model selected in AI setup.",
     tier: "mid",
     supportsTools: true,
     route: "windows",

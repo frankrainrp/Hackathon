@@ -33,6 +33,18 @@ export function applyProfileMetadata(feed: LmsFeed, settings: ProfileSettings): 
 
 const sourceKey = (s: LmsSnapshot) => new URL(s.baseUrl).hostname.replace(/[^a-zA-Z0-9_-]/g, "_");
 const signature = (x: unknown) => JSON.stringify(x);
+export function lmsScopePrefix(snapshot: LmsSnapshot) {
+  const scope = snapshot.profileId && snapshot.semesterId ? `p${snapshot.profileId.length}_${snapshot.profileId}-s${snapshot.semesterId.length}_${snapshot.semesterId}-` : "";
+  return `lms-${sourceKey(snapshot)}-${scope}`;
+}
+/** A brief must not mix another profile/semester's reminders or submission facts. */
+export function selectLmsBriefFacts(feed: LmsFeed, snapshot: LmsSnapshot) {
+  const sessionId = `${lmsScopePrefix(snapshot)}session`;
+  const messages = feed.messages.filter(m => m.sessionId === sessionId);
+  const lastBriefAt = Math.max(0, ...messages.filter(m => m.id.endsWith("-brief")).map(m => new Date(m.timestamp).getTime()));
+  return { pendingFacts: messages.filter(m => !m.id.endsWith("-brief") && new Date(m.timestamp).getTime() > lastBriefAt),
+    tasks: feed.ddls.filter(d => d.lmsProfileId === snapshot.profileId && d.lmsSemesterId === snapshot.semesterId) };
+}
 
 function localDue(value: string | null, timeZone: string) {
   if (!value) return { dueDate: "", dueTime: "" };
@@ -43,9 +55,7 @@ function localDue(value: string | null, timeZone: string) {
 
 /** Deterministic facts are authoritative; AI only supplies a bounded optional brief. */
 export function buildLmsFeed(snapshot: LmsSnapshot, previous: LmsFeed, now = Date.now()): LmsFeed {
-  const key = sourceKey(snapshot);
-  const scope = snapshot.profileId && snapshot.semesterId ? `p${snapshot.profileId.length}_${snapshot.profileId}-s${snapshot.semesterId.length}_${snapshot.semesterId}-` : "";
-  const prefix = `lms-${key}-${scope}`;
+  const prefix = lmsScopePrefix(snapshot);
   const sessionId = `${prefix}session`;
   const tasks = new Map(previous.ddls.map(d => [d.id, d]));
   const notes = new Map(previous.notes.map(n => [n.id, n]));

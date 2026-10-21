@@ -1,3 +1,5 @@
+import { completeWithProvider, providerError } from "@/lib/ai-provider";
+import { isLocalAiRequest } from "@/lib/ai-config";
 // ============================================================
 // app/api/generate-source/route.ts — 动态配数据源（按需，非写死模板）
 //
@@ -43,15 +45,13 @@ const SYSTEM = `你是数据源配置器。把用户对「想要的数据」的�
 5. id 用短英文；只输出 JSON 对象本身。`;
 
 export async function POST(req: Request) {
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: "Local access only." }, { status: 403 });
   let prompt = "";
   try { prompt = ((await req.json())?.prompt ?? "").trim(); } catch { /* */ }
   if (!prompt) return Response.json({ ok: false, error: "缺少 prompt" }, { status: 400 });
-  if (!process.env.DEEPSEEK_API_KEY) return Response.json({ ok: false, error: "未配置 DEEPSEEK_API_KEY" }, { status: 500 });
 
-  const openai = new OpenAI({ apiKey: process.env.DEEPSEEK_API_KEY, baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1" });
   try {
-    const c = await openai.chat.completions.create({
-      model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
+    const c = await completeWithProvider({
       messages: [{ role: "system", content: SYSTEM }, { role: "user", content: prompt }],
       response_format: { type: "json_object" },
       max_tokens: 1600,
@@ -71,6 +71,6 @@ export async function POST(req: Request) {
     if (v.ok !== true) return Response.json({ ok: false, error: "生成的源不合法：" + v.error, raw }, { status: 200 });
     return Response.json({ ok: true, source: v.spec.sources[0], blocks: v.spec.blocks, usage: c.usage });
   } catch (err) {
-    return Response.json({ ok: false, error: (err as Error).message }, { status: 200 });
+    return Response.json({ ok: false, error: providerError(err) }, { status: 200 });
   }
 }

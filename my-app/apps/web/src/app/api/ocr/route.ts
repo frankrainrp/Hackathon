@@ -1,3 +1,4 @@
+import { readAiSettings, isLocalAiRequest } from "@/lib/ai-config";
 // ============================================================
 // app/api/ocr/route.ts — 多模态 OCR 路由
 //
@@ -22,6 +23,8 @@ export const dynamic = "force-dynamic";
 const MAX_BYTES = 50 * 1024 * 1024; // 50 MB
 
 export async function POST(req: Request) {
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: "Local access only." }, { status: 403 });
+  if (!readAiSettings().cloudOcr) return jsonErr("Cloud OCR is off. Scanned files require the separate Mistral cloud service and may upload the selected document. Open Settings → AI setup to opt in. Local text AI does not make OCR offline; text PDFs and manual notes still work.", 403, true);
   // 1. 选 provider（环境变量 OCR_PROVIDER，默认 mistral）
   const providerEnv = process.env.OCR_PROVIDER || DEFAULT_OCR_PROVIDER;
   const providerId: OcrProviderId = isValidOcrProviderId(providerEnv) ? providerEnv : DEFAULT_OCR_PROVIDER;

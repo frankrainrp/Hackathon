@@ -1,0 +1,29 @@
+// Verifies the exact ZIP after extraction in a disposable local folder. No browser automation.
+const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),net=require('node:net'),crypto=require('node:crypto'),{spawn,execFileSync}=require('node:child_process');
+const zip=path.resolve(process.argv[2]||''),scratch=path.resolve(process.argv[3]||'');
+if(!fs.existsSync(zip)||!fs.existsSync(zip+'.sha256')||!zip.endsWith('.zip')||!process.argv[3]||fs.existsSync(scratch))throw new Error('Provide a completed ZIP with SHA-256 and a new disposable extraction directory.');
+const checked=fs.readFileSync(zip+'.sha256','utf8').split(' ')[0];if(crypto.createHash('sha256').update(fs.readFileSync(zip)).digest('hex')!==checked)throw new Error('ZIP checksum mismatch');
+fs.mkdirSync(scratch,{recursive:true});execFileSync('tar.exe',['-xf',zip,'-C',scratch],{windowsHide:true});
+const packageRoot=path.join(scratch,fs.readdirSync(scratch)[0]);
+const manifest=JSON.parse(fs.readFileSync(path.join(packageRoot,'PACKAGE-MANIFEST.json')));if(manifest.weightsIncluded||manifest.microsoftRuntimeIncluded)throw new Error('Unexpected artifact content');
+const runtime=path.join(packageRoot,'runtime/node.exe');
+execFileSync(path.join(packageRoot,'runtime/llama/llama-server.exe'),['--version'],{windowsHide:true,stdio:'pipe'});
+if(fs.existsSync(path.join(packageRoot,'data')))throw new Error('Fresh ZIP must contain no runtime/private state');
+let requestCount=0;
+const mock=http.createServer(async(req,res)=>{let raw='';for await(const c of req)raw+=c;requestCount++;res.setHeader('content-type','application/json');if(req.url.endsWith('/models')){res.end(JSON.stringify({object:'list',data:[{id:'synthetic-packaged-model',object:'model',created:0,owned_by:'fixture'}]}));return;}const body=JSON.parse(raw);if(body.model!=='synthetic-packaged-model')throw new Error('Wrong packaged provider model');res.end(JSON.stringify({id:'fixture',object:'chat.completion',created:0,model:body.model,choices:[{index:0,message:{role:'assistant',content:'Synthetic packaged response.'},finish_reason:'stop'}]}));});
+let child,exited,port,origin,logs='';
+const delay=ms=>new Promise(ok=>setTimeout(ok,ms));
+async function start(){child=spawn(runtime,[path.join(packageRoot,'Launch.cjs')],{cwd:packageRoot,windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,PORT:String(port)}});exited=new Promise(ok=>child.once('exit',ok));child.stdout.on('data',d=>logs+=d);child.stderr.on('data',d=>logs+=d);for(let i=0;i<100;i++){if(child.exitCode!==null)throw new Error('Package exited: '+logs);try{const res=await fetch(origin+'/api/ai/setup');if(res.ok)return;}catch{}await delay(150);}throw new Error('Packaged server did not become ready: '+logs);}
+// Direct launcher termination on Windows does not signal children; stop only the exact owned process tree.
+async function stop(){if(child&&child.exitCode===null){execFileSync('taskkill.exe',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'});await exited;}}
+async function api(action,data={}){const response=await fetch(origin+'/api/ai/setup',action?{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({action,...data})}:{});const result=await response.json();if(!response.ok)throw new Error(JSON.stringify(result));return result;}
+(async()=>{try{
+ await new Promise(ok=>mock.listen(0,'127.0.0.1',ok));const listener=net.createServer();await new Promise(ok=>listener.listen(0,'127.0.0.1',ok));port=listener.address().port;await new Promise(ok=>listener.close(ok));origin=`http://127.0.0.1:${port}`;
+ await start();let initial=await api();if(initial.settings.onboarding!=='new')throw new Error('Fresh onboarding state missing');
+ const html=await(await fetch(origin+'/ai-setup')).text();if(!html.includes('/_next/static/'))throw new Error('Packaged assets missing');const asset=html.match(/(?:src|href)="([^" ]*\/_next\/static\/[^" ]+)"/)[1].replaceAll('&amp;','&');if(!(await fetch(origin+asset)).ok)throw new Error('Packaged static asset failed');
+ const hardware=await api('hardware');if(!hardware.probe.available||hardware.hardware.arch!=='x64')throw new Error('Packaged native engine probe failed');
+ await api('save',{settings:{...initial.settings,mode:'local',localKind:'external',externalURL:`http://127.0.0.1:${mock.address().port}/v1`,externalModel:'synthetic-packaged-model',onboarding:'paused',step:2}});await api('test');const sample=await api('sample',{confirm:true});if(sample.sample!=='Synthetic packaged response.')throw new Error('Packaged generation failed');
+ const state=await fetch(origin+'/api/state',{method:'PUT',headers:{origin,'content-type':'application/json'},body:JSON.stringify({key:'notes',value:[{id:'synthetic-package-note',title:'Synthetic package record',content:'No private data',tags:[],createdAt:1,updatedAt:1}]})});if(!state.ok)throw new Error('Packaged SQLite write failed');
+ await stop();await start();initial=await api();if(initial.settings.onboarding!=='paused'||initial.settings.externalModel!=='synthetic-packaged-model')throw new Error('Packaged settings restart failed');const persisted=await(await fetch(origin+'/api/state')).json();if(!JSON.stringify(persisted).includes('synthetic-package-note'))throw new Error('Packaged SQLite restart failed');
+ console.log(JSON.stringify({passed:true,zip,zipSha256:checked,node:manifest.node,next:manifest.next,engine:manifest.engine.release,isolatedExtraction:scratch,checks:['exact ZIP integrity','no private data or weights in ZIP','fully materialized dependencies','bundled Node launch on loopback','real bundled engine probe','static route/assets','hardware bridge','selected local mock test/sample','settings and SQLite restart'],mockRequests:requestCount,browserTested:false},null,2));
+}finally{await stop();mock.closeAllConnections();await new Promise(ok=>mock.close(ok));}})().catch(e=>{console.error(e.message);process.exitCode=1;});

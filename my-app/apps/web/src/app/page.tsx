@@ -24,7 +24,7 @@ import AttachmentPreview from "@/components/AttachmentPreview";
 import NotesPreview from "@/components/NotesPreview";
 import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
 import PreferencesPanel, { applyStoredPreferences, getStoredPersonality } from "@/components/PreferencesPanel";
-import OnboardingTour from "@/components/OnboardingTour";
+import AiSetupGate from "@/components/AiSetup";
 import Portal from "@/components/ui/Portal";
 import WallpaperLayer from "@/components/WallpaperLayer";
 import AchievementsRoom from "@/components/AchievementsRoom";
@@ -480,7 +480,7 @@ export default function HomePage() {
       if (parsed.ok !== true) {
         // 无 OCR key 的友好提示
         const hint = parsed.needsConfig
-          ? "\n\n💡 提示：图片/扫描件需要配置 MISTRAL_API_KEY。请到 console.mistral.ai 申请后填到 apps/web/.env.local 重启。"
+          ? "\n\nScanned files use the separate Mistral cloud OCR service. Review its upload choice in Settings → AI setup. It also needs a server-side MISTRAL_API_KEY; Local text AI does not provide offline OCR."
           : "";
         setStep(0, "failed", parsed.error + hint);
         finishPipeline("failed");
@@ -2053,7 +2053,7 @@ export default function HomePage() {
         />
 
         {/* G1.3 首次使用 Tour(自动检测 localStorage) */}
-        <OnboardingTour />
+        <AiSetupGate />
       </Portal>
     </div>
   );
