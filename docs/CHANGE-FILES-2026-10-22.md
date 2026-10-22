@@ -55,3 +55,13 @@ New model onboarding scans the device automatically, ranks curated models by dat
 | `tools/smoke-package.cjs` | 解压最终 ZIP 验证连接器、推荐清单、回环服务、模拟推理及 SQLite 重启。 |
 
 Validation: 41 Node regressions, 22 Python tests, production Next build, selected-provider HTTP tests, URL-only school HTTP tests, real native-engine lifecycle with a synthetic 115 KiB untrained GGUF, and synthetic interrupted-transfer restart. Exact ZIP checks are recorded in the local acceptance report after packaging. No large weights, live paid inference, school sign-in or scheduler activation were performed. Browser inspection remains blocked by the saved browser origin permission, so desktop/mobile visual acceptance is not claimed.
+
+## Responsive follow-up
+
+| File | Fix and verification |
+| --- | --- |
+| `my-app/apps/web/src/components/CoursesPanel.module.css` | Move the mobile school-input font rule after the base `font: inherit` declaration so it actually resolves to 16px on phones. |
+| `my-app/apps/web/src/components/AiSetup.module.css` | Match the desktop choice-card selector specificity in the mobile override so the intended compact height, padding and gap apply. |
+| `docs/CHANGE-FILES-2026-10-22.md` | Record these two cascade regressions and distinguish stylesheet checks from browser acceptance. |
+
+PostCSS analysis reproduces both failures in the previous commit and verifies the corrected rules at 320, 390, 768 and 1440px. School inputs now resolve to 16px through 768px; AI choice cards use content height through 760px and retain their desktop minimum height above that breakpoint. The production build passes. These are source-level cascade checks; rendered desktop/mobile beginner-path acceptance remains pending because Browser Use rejects the origin despite its saved allow settings. No browser permission was expanded or bypassed.
