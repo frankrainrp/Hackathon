@@ -9,8 +9,8 @@ English is the default interface language. Select **中文** in the first AI set
 ## Local on this computer
 
 1. Choose **Local on this computer**, then the included Windows x64 CPU engine.
-2. Click **Check this computer**. Recommendations consider current free RAM, selected context and disk space. GPU detection does not mean this CPU package uses the GPU.
-3. Keep the default model folder, or paste a local folder path and click **Use this folder**. Choose a reviewed model. The model card gives its capabilities, limits and Apache-2.0 license.
+2. The device check runs automatically. Capability evidence determines model preference; current free RAM, CPU backend, task context and model-folder disk space determine eligibility. Low-resource devices are directed to API setup, without a provider call. Models of 8B and below are excluded. GPU detection does not mean this CPU package uses the GPU.
+3. The default model folder is derived from this account (on Windows, `%LOCALAPPDATA%/Butler/models`), or the explicit `BUTLER_MODELS_DIR` override. Paste a local path and click **Use this folder**, or restore **Use default folder**. Custom stores and existing weights are preserved. Choose an eligible model; lower-resource eligible alternatives remain selectable. Context follows model metadata and free RAM, with manual options above each model’s task floor. Source-based recommendations are labelled and are not a benchmark on this device.
 4. Review the displayed size, explicitly check the download/license choice, then click **Download selected model**. Model weights are not in this ZIP and are never downloaded automatically. Partial files stay in this folder when canceled or interrupted. Select the same model/folder and choose **Resume** after restarting. SHA-256 verification runs before use.
 5. Click **Start engine**, continue, **Test connection**, then explicitly send the sample. The sample proves that this connection can generate text; it does not measure reasoning or tool accuracy.
 6. Start with a short lesson question in Chat. Review any proposed task changes before confirming them. After restarting Butler, reopen setup and start the engine again.
@@ -47,3 +47,11 @@ The original repair workspace was not reset, cleaned or overwritten. Do not over
 ## Package limits and notices
 
 Bundled target: Windows x64 **CPU**. Node, the actual pinned llama.cpp engine, LLVM OpenMP and notices are present. No CUDA/Vulkan/Metal runtime or model weights are bundled; other platforms can build the source and use a loopback compatible service, but no other-platform package was produced. See `THIRD-PARTY-NOTICES.md`, `licenses/` and `PACKAGE-MANIFEST.json`. Nothing is uploaded or published by these launch/package scripts.
+
+## URL-only Singapore polytechnic connection
+
+Open Courses and expand **Connect your Singapore polytechnic**. Paste the direct school learning URL and choose **Recognise and save school**. School identity is derived from the URL; platform is derived at use time. There are no school-name, platform, semester-label, course-ID/name, daily-time or timezone inputs in this flow.
+
+Choose **Sign in and find courses** to open the existing Edge installation for your own SSO/MFA. The included frozen connector needs no Python installation. It reads enrollment IDs/names and official semester/start-date metadata, then selects the latest accessible started term and retains older terms and selections. A saved session can be refreshed with **Find latest semester and courses**. Cancel stops only this discovery worker. Ambiguous or unavailable semester evidence stays pending rather than guessing. A selected local model may interpret nonstandard labels only when its output matches source text and actual enrollment IDs; discovery never calls a cloud model. No materials or schedules are activated by discovery.
+
+Recognition covers the five Singapore polytechnics. Reviewed login connections currently cover the exact TP/RP/SP Brightspace hosts; other recognised URLs remain saved with a clear adapter limitation. A shared POLITEMall URL alone cannot identify an institution. Edge and the existing Microsoft runtime prerequisite are required; browsers are not downloaded automatically.

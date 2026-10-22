@@ -1,5 +1,8 @@
 # School profiles, retained semesters and daily checks
 
+> Updated URL-only onboarding: the current interface recognises a Singapore polytechnic from its learning URL, then discovers the latest accessible semester and courses after explicit login. The historical manual-profile/CLI reference below remains for retained installations and integrations. The portable app includes ButlerSync.exe; it does not install Python or browsers. Login adapters currently cover exact TP/RP/SP Brightspace hosts.
+
+
 These instructions describe this source branch. Existing release ZIPs are not automatically upgraded. No school login or background schedule is enabled by saving settings or opening the launcher.
 
 ## Configure and confirm

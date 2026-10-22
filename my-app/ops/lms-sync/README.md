@@ -1,5 +1,8 @@
 # Brightspace → Butler worker
 
+> Updated URL-only onboarding: the current interface recognises a Singapore polytechnic from its learning URL, then discovers the latest accessible semester and courses after explicit login. The historical manual-profile/CLI reference below remains for retained installations and integrations. The portable app includes ButlerSync.exe; it does not install Python or browsers. Login adapters currently cover exact TP/RP/SP Brightspace hosts.
+
+
 The current source uses confirmed school profiles, retained semester history and daily preferences. Read [PROFILE_WORKFLOW.md](PROFILE_WORKFLOW.md) for configuration, manual login, catalog/selection, session isolation, URL restrictions, retention and backup.
 
 Opening the launcher does not sign in, sync or register tasks. Custom schools may be saved as metadata; only explicitly supported school/SSO connection policies can access a school. Daily checks default to 09:00 Asia/Singapore and remain disabled until separately approved and installed. Existing release ZIPs may predate these changes.

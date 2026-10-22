@@ -64,3 +64,4 @@ courses/
 .env.*
 !.env.local.example
 *.sqlite*
+runtime/school-worker/

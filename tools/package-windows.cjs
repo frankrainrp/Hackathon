@@ -55,6 +55,9 @@ fs.copyFileSync(process.execPath,path.join(runtime,'node.exe'));
 for(const name of fs.readdirSync(path.join(root,'runtime/llama'))){if(/\.dll$|^llama-server\.exe$|^engine-host\.cjs$|^LICENSE/i.test(name))fs.copyFileSync(path.join(root,'runtime/llama',name),path.join(runtime,'llama',name));}
 materialize(path.join(root,'runtime/licenses'),path.join(output,'licenses'));
 materialize(path.join(root,'my-app/ops/lms-sync'),path.join(output,'ops/lms-sync'));
+const schoolWorker=path.join(root,'runtime/school-worker/ButlerSync');
+if(!fs.existsSync(path.join(schoolWorker,'ButlerSync.exe')))throw new Error('Build the school connector with tools/package-school-worker.cjs first.');
+materialize(schoolWorker,path.join(output,'ops/lms-sync'));
 for(const name of ['Launch.cjs','Start-Hackathon.cmd','GETTING-STARTED.md','THIRD-PARTY-NOTICES.md'])fs.copyFileSync(path.join(root,'distribution',name),path.join(output,name));
 // Preserve license texts even if Next's file tracer omitted non-runtime notice files.
 const licenses=[],store=path.join(workspace,'node_modules/.pnpm');
