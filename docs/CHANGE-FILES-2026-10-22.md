@@ -1,5 +1,15 @@
 # Changes by file · 22 October 2026
 
+## Assignment task contract follow-up
+
+| File | Change and verification |
+| --- | --- |
+| `my-app/apps/web/src/lib/lms-sync.ts` | Preserve change notifications for newly observed submitted/unknown course facts without creating actionable Tasks from them. Existing missing-work Tasks still receive later submission updates. |
+| `my-app/apps/web/tests/lms-settings.integration.mjs` | Replace the obsolete submitted-work task expectation with the actual contract: submitted work creates no task, repeated missing-work imports create one task, later submission updates that retained task, and semester history and personal notes survive restart. |
+| `docs/CHANGE-FILES-2026-10-22.md` | Record the CI fixture mismatch and the production fact-notification follow-up by file. |
+
+Validation: the production build, 69 Node regressions and both isolated HTTP integration suites pass locally. HTTP checks use synthetic school records and local AI mocks; they do not access a school account or paid provider.
+
 ## Study workspace, weekly checks and portable EXE
 
 | File | Change and purpose |

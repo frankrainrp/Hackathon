@@ -93,7 +93,11 @@ try {
   foreignSnapshot.courses[0].assignments[0].url = 'https://rplms.polite.edu.sg/d2l/assignment/1';
   await request('/api/lms/ingest', foreignSnapshot, 403, { authorization: `Bearer ${token}` });
   await ingest(snapshot);
-  await ingest(snapshot);
+  assert.equal((await request('/api/lms/feed')).ddls.length, 0, 'Already submitted work must not create a new task');
+  const missingSnapshot = structuredClone(snapshot);
+  missingSnapshot.courses[0].assignments[0].submissionState = 'missing';
+  await ingest(missingSnapshot);
+  await ingest(missingSnapshot);
   let feed = await request('/api/lms/feed');
   assert.equal(feed.ddls.length, 1); assert.equal(feed.syncHistory.length, 1);
   assert.equal(feed.ddls[0].dueDate, '');
@@ -104,6 +108,7 @@ try {
   };
   await state('notes', [note]);
   await state('ddls', [{ ...feed.ddls[0], notes: 'Synthetic personal work', status: 'in_progress' }]);
+  await ingest(snapshot); // A real later submission closes the retained missing-work task.
   await ingest({ ...snapshot, status: 'login_required', courses: [], syncedAt: '2026-10-21T00:00:00Z' });
   feed = await request('/api/lms/feed');
   assert.equal(feed.courses[0].assignments[0].submissionState, 'submitted');
@@ -113,7 +118,7 @@ try {
   assert.equal((await request('/api/lms/feed')).courses[0].courseStatus, 'completed');
   const second = { ...profile, semester: { ...profile.semester, id: 'fixture-term2', label: 'Synthetic semester 2' } };
   await request('/api/lms/settings', { profile: second, confirm: true });
-  await ingest({ ...snapshot, semesterId: second.semester.id, semesterLabel: second.semester.label, syncedAt: '2026-10-22T00:00:00Z' });
+  await ingest({ ...missingSnapshot, semesterId: second.semester.id, semesterLabel: second.semester.label, syncedAt: '2026-10-22T00:00:00Z' });
   await stop();
   await start();
   const backup = await request('/api/lms/settings?export=1');

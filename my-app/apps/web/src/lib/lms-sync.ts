@@ -90,7 +90,11 @@ export function buildLmsFeed(snapshot: LmsSnapshot, previous: LmsFeed, now = Dat
       const state = assignment.submissionState === "unknown" && old?.lmsSubmissionState ? old.lmsSubmissionState : assignment.submissionState;
       // New Tasks are actionable missing work, not inferred from an unknown/submitted record.
       // Existing tasks are retained so their edits/history and later submission updates survive.
-      if (!old && state !== "missing") continue;
+      if (!old && state !== "missing") {
+        const oldFact = courses.get(`${prefix}${course.id}-index`)?.assignments.find(a => a.id === assignment.id);
+        if (!oldFact || oldFact.submissionState !== state) changes.push(uiText("ui.lmssync.eee4f71f3b", { value0: course.moduleName, value1: assignment.title, value2: state === "submitted" ? uiText("lms.submitted") : uiText("lms.unknown") }));
+        continue;
+      }
       const done = state === "submitted";
       const task: DdlItem = { id, taskName: assignment.title, source: course.moduleName, weight: null,
         dueDate, dueTime, completed: done, status: done ? "done" : "todo", isGroupWork: false,
