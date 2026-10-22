@@ -1,5 +1,16 @@
 # Changes by file · 22 October 2026
 
+## Live RP catalog follow-up
+
+| File | Fix and verification |
+| --- | --- |
+| `my-app/apps/web/src/lib/lms-discovery.ts` | Recognise RP's structured `YYS1`/`YYS2` enrollment-code prefix (for example `26S2-C304`), retain the source term label, and rank its year/semester without optional offering metadata. Official semester metadata remains preferred. |
+| `my-app/apps/web/src/lib/lms-discovery-ai.ts` | Skip local-model label extraction when the catalog already contains structured semester evidence. |
+| `my-app/apps/web/tests/lms-discovery.test.mjs` | Reproduce missing term discovery from RP-shaped enrollment records; verify ordering, exact current membership, malformed codes, S3 rejection, official-metadata priority and no model request for a structured code. |
+| `docs/CHANGE-FILES-2026-10-22.md` | Record the live-catalog parsing defect and per-file correction. |
+
+The real authenticated RP catalog returned 30 enrollments with `25S1`, `25S2`, `26S1` and `26S2` codes and no optional semester/date fields. A fresh backend process successfully reused the encrypted login. The new term regression failed before the fix; all 57 Node regressions and the production build pass afterward. Real course downloads and model responses are recorded only in the local acceptance report, outside source and fresh packages.
+
 ## Session reuse and explicit course-file download follow-up
 
 | File | Fix and verification |

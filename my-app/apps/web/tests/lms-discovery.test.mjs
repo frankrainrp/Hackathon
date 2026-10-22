@@ -28,6 +28,25 @@ test('latest semester uses school dates and membership, never highest IDs, API o
   assert.equal(latestSemester([{id:'1',name:'No semester in school metadata'}],now),null);
   assert.equal(latestSemester(catalog.map(c=>({...c,canAccess:false})),now),null);
 });
+
+test('RP enrollment codes identify and order terms without optional course metadata or AI', () => {
+  const rows = [
+    {id:'999',name:'Past module',code:'25S2-C100',canAccess:true,isActive:true},
+    {id:'998',name:'Earlier module',code:'26S1-C200',canAccess:true,isActive:true},
+    {id:'1',name:'Current module',code:'26S2-C304',canAccess:true,isActive:true},
+    {id:'2',name:'Current peer',code:'26S2-C300',canAccess:true,isActive:true},
+    {id:'3',name:'Inactive future',code:'27S1-C400',canAccess:false,isActive:false},
+    {id:'4',name:'No term evidence',code:'C304'},
+  ];
+  const latest = latestSemester(rows, now);
+  assert.equal(latest?.label, '26S2');
+  assert.deepEqual(latest.courses.map(c=>c.id), ['1','2']);
+  assert.equal(discoverProfile('https://rplms.polite.edu.sg/d2l/home', emptyProfiles(), rows, now).semester.id, latest.id);
+  assert.equal(latestSemester([{id:'1',name:'Mention 26S2-C304 in prose',code:'prefix-26S2-C304'}],now), null);
+  assert.equal(latestSemester([{id:'1',name:'Invalid semester',code:'26S3-C304'}],now), null);
+  const structured = [{id:'10',name:'Official term',code:'25S2-C100',semester:{id:'official',name:'AY2026/27 Semester 2'}}];
+  assert.equal(latestSemester(structured,now).label, 'AY2026/27 Semester 2');
+});
 test('URL-only bootstrap stays pending until evidence arrives, then retains previous terms and statuses', () => {
   const pending = discoverProfile('https://tplms.polite.edu.sg/d2l/home',emptyProfiles(),[],now);
   assert.equal(pending.semester.confirmed,false);assert.deepEqual(pending.semester.courses,[]);
@@ -63,6 +82,8 @@ test('AI term assistance is local-only and rejects invented course IDs or labels
     const complete=async()=>{calls++;return {choices:[{message:{content:JSON.stringify({terms:[{label:'AY26S2',courseIds:['1']}]})}}]};};
     saveAiSettings({...defaults(),mode:'deepseek'});assert.deepEqual(await enrichTermLabels(rows,complete),rows);assert.equal(calls,0);
     saveAiSettings({...defaults(),mode:'local'});assert.equal((await enrichTermLabels(rows,complete))[0].semester.name,'AY26S2');assert.equal(calls,1);
+    const coded=[{id:'1',name:'Current module',code:'26S2-C304'}];
+    assert.deepEqual(await enrichTermLabels(coded,complete),coded);assert.equal(calls,1,'Structured terms do not need a model request');
     const invented=async()=>({choices:[{message:{content:JSON.stringify({terms:[{label:'Invented semester',courseIds:['1']}]})}}]});
     assert.deepEqual(await enrichTermLabels(rows,invented),rows);
     const unknown=async()=>({choices:[{message:{content:JSON.stringify({terms:[{label:'AY26S2',courseIds:['not-enrolled']}]})}}]});

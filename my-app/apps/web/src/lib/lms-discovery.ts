@@ -22,13 +22,18 @@ export interface DiscoveredCourse {
 }
 const stableId = (prefix: string, value: string) => prefix + createHash("sha256").update(value).digest("hex").slice(0, 20);
 function termFromCourse(c: DiscoveredCourse) {
-  const name = c.semester?.name || (`${c.name} ${c.code || ""}`.match(/(?:AY\s*)?20\d{2}\s*[/\-]\s*(?:20)?\d{2}\s*(?:Semester|Sem|Term)\s*[1-4]/i)?.[0]);
+  // RP enrollment codes carry the actual term even when student roles cannot read offering metadata.
+  const encoded = c.code?.match(/^(\d{2})S([12])(?:-|$)/i);
+  const name = c.semester?.name || (encoded ? `${encoded[1]}S${encoded[2]}` : undefined)
+    || (`${c.name} ${c.code || ""}`.match(/(?:AY\s*)?20\d{2}\s*[/\-]\s*(?:20)?\d{2}\s*(?:Semester|Sem|Term)\s*[1-4]/i)?.[0]);
   if (!name?.trim()) return null;
   const date = c.startAt ? Date.parse(c.startAt) : NaN;
-  const parts = name.match(/(20\d{2}).*?(?:Semester|Sem|Term)\s*([1-4])/i);
+  const parts = name.match(/(20\d{2}).*?(?:Semester|Sem|Term)\s*([1-4])/i) || name.match(/^(\d{2})S([12])$/i);
+  const year = parts ? Number(parts[1]) + (parts[1].length === 2 ? 2000 : 0) : 0;
   return { id: stableId("term-", c.semester?.id || name.trim().toLowerCase()), label: name.trim().slice(0, 160),
-    start: Number.isFinite(date) ? date : null, rank: parts ? Number(parts[1]) * 10 + Number(parts[2]) : 0 };
+    start: Number.isFinite(date) ? date : null, rank: parts ? year * 10 + Number(parts[2]) : 0 };
 }
+export const hasSemesterEvidence = (course: DiscoveredCourse) => !!termFromCourse(course);
 export function latestSemester(catalog: DiscoveredCourse[], now = Date.now()) {
   const candidates = catalog.filter(c => /^[a-zA-Z0-9_-]{1,100}$/.test(c.id) && c.name?.trim() && c.isActive !== false && c.canAccess !== false)
     .map(c => ({ course: c, term: termFromCourse(c) }))
