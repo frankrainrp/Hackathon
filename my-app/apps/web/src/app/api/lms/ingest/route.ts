@@ -29,7 +29,7 @@ async function handlePOST(req: Request) {
   const settings = readProfiles();
   const profile = settings.profiles.find(p => p.id === snapshot.profileId);
   const semester = profile?.semesters.find(s => s.id === snapshot.semesterId);
-  if (!profile || !semester || !supportsSchoolConnection(new URL(profile.origin).hostname, profile.platform) || profile.origin !== new URL(snapshot.baseUrl).origin) return Response.json({ error: uiText("server.6f4a655724fc") }, { status: 403 });
+  if (!profile || !semester?.confirmed || !supportsSchoolConnection(new URL(profile.origin).hostname, profile.platform) || profile.origin !== new URL(snapshot.baseUrl).origin) return Response.json({ error: uiText("server.6f4a655724fc") }, { status: 403 });
   let newIds: string[] = [];
   const feed = updateLmsFeed(old => {
     const next = applyProfileMetadata(buildLmsFeed(snapshot, old, Date.now(), requestLanguage(req)), settings);

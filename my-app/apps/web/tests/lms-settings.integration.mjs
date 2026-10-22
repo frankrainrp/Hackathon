@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -59,6 +59,19 @@ const ingest = value => request('/api/lms/ingest', value, 200, { authorization: 
 try {
   await start();
   assert.equal((await request('/api/lms/settings')).settings.profiles.length, 0);
+  const urlOnly = { entryUrl:'https://tplms.polite.edu.sg/d2l/home', confirm:false };
+  const identified = (await request('/api/lms/settings',urlOnly)).preview;
+  assert.equal(identified.school,'Temasek Polytechnic');assert.equal(identified.semester.confirmed,false);
+  await request('/api/lms/settings',{...urlOnly,confirm:true});
+  assert.equal('platform' in JSON.parse(readFileSync(join(folder,'config.local.json'),'utf8')).profileSettings.profiles[0],false);
+  mkdirSync(join(folder,'.private','catalogs'),{recursive:true});
+  writeFileSync(join(folder,'.private','catalogs',identified.id+'.json'),JSON.stringify([
+    {id:'old',name:'Past module',semester:{id:'previous',name:'Previous school term'},startAt:'2025-01-01T00:00:00Z'},
+    {id:'new',name:'Current module',semester:{id:'latest',name:'Latest school term'},startAt:'2026-01-01T00:00:00Z'}
+  ]));
+  const discovered=(await request('/api/lms/settings',{...urlOnly,confirm:true})).settings.profiles.find(p=>p.id===identified.id);
+  assert.equal(discovered.semesters.find(s=>s.id===discovered.activeSemesterId).label,'Latest school term');
+  assert.deepEqual(discovered.semesters.find(s=>s.id===discovered.activeSemesterId).courses.map(c=>c.id),['new']);
   await request('/api/lms/settings', { profile, confirm: true }, 403, { origin: 'https://foreign.example' });
   for (const entryUrl of ['http://example.com', 'https://127.0.0.1/', 'https://secret@example.com/', 'https://example.com/?token=synthetic']) {
     await request('/api/lms/settings', { profile: { ...profile, entryUrl }, confirm: false }, 400);

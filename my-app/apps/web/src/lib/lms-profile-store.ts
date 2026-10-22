@@ -4,20 +4,26 @@ import { dirname, resolve } from "node:path";
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
 import { confirmProfile, emptyProfiles, type ProfileSettings } from "./lms-profile.ts";
+import { identifySchool } from "./lms-discovery.ts";
 
 export const configPath = () => process.env.LMS_CONFIG_PATH || resolve(process.cwd(), "../../ops/lms-sync/config.local.json");
 export function readProfiles(path = configPath()): ProfileSettings {
   if (!existsSync(path)) return emptyProfiles();
   const config = JSON.parse(readFileSync(path, "utf8").replace(/^\uFEFF/, ""));
-  return config.profileSettings || emptyProfiles();
+  const settings = config.profileSettings || emptyProfiles();
+  return { ...settings, profiles: settings.profiles.map(p => ({ ...p, platform: p.platform || identifySchool(p.entryUrl).platform })) } as ProfileSettings;
 }
 export function saveProfile(raw: unknown, path = configPath()) {
   const config = existsSync(path) ? JSON.parse(readFileSync(path, "utf8").replace(/^\uFEFF/, "")) : {};
-  const settings = confirmProfile(config.profileSettings || emptyProfiles(), raw);
+  const settings = confirmProfile(readProfiles(path), raw);
   mkdirSync(dirname(path), { recursive: true });
-  const content = { ...config, profileSettings: settings, output_dir: config.output_dir || "courses", private_dir: config.private_dir || ".private", butler_url: config.butler_url || "http://127.0.0.1:3000", max_file_mb: config.max_file_mb || 150 };
+  const content = { ...config, profileSettings: settings, output_dir: config.output_dir || "courses", private_dir: config.private_dir || ".private", butler_url: process.env.BUTLER_APP_URL || config.butler_url || "http://127.0.0.1:3000", max_file_mb: config.max_file_mb || 150 };
   if (existsSync(path)) copyFileSync(path, path + ".bak");
-  writeFileSync(path + ".tmp", JSON.stringify(content, null, 2) + "\n", { mode: 0o600 });
+  const stored = { ...content, profileSettings: { ...settings, profiles: settings.profiles.map(p => {
+    if (!p.autoDiscover) return p;
+    const { platform: _derived, ...fields } = p; return fields;
+  }) } };
+  writeFileSync(path + ".tmp", JSON.stringify(stored, null, 2) + "\n", { mode: 0o600 });
   renameSync(path + ".tmp", path);
   return settings;
 }

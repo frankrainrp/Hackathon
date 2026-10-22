@@ -10,7 +10,7 @@ from urllib.parse import urlsplit, urlunsplit
 from datetime import datetime, timedelta, timezone
 from xml.sax.saxutils import escape
 
-SCHOOL_HOSTS = frozenset({"tplms.polite.edu.sg", "rplms.polite.edu.sg"})
+SCHOOL_HOSTS = frozenset({"tplms.polite.edu.sg", "rplms.polite.edu.sg", "splms.polite.edu.sg"})
 SSO_SUFFIXES = ("microsoftonline.com", "msauth.net", "msftauth.net", "msauthimages.net")
 
 
@@ -48,7 +48,7 @@ def require_public_url(value, resolver=socket.getaddrinfo):
     return value
 
 
-def resolve_profile(config):
+def resolve_profile(config, allow_pending=False):
     settings = config.get("profileSettings", {})
     profile = next((p for p in settings.get("profiles", []) if p["id"] == settings.get("activeProfileId")), None)
     if not profile or not profile.get("confirmedAt"):
@@ -59,7 +59,7 @@ def resolve_profile(config):
     if not re.fullmatch(r"[a-zA-Z0-9_-]{1,100}", profile["id"]):
         raise ValueError("Invalid school profile ID.")
     semester = next((s for s in profile["semesters"] if s["id"] == profile["activeSemesterId"]), None)
-    if not semester or semester.get("confirmed") is not True:
+    if not semester or (semester.get("confirmed") is not True and not allow_pending):
         raise ValueError("Confirm the current semester before syncing.")
     for course in semester["courses"]:
         if not re.fullmatch(r"[a-zA-Z0-9_-]{1,100}", course["id"]) or not isinstance(course.get("selected"), bool) or course.get("status") not in {"active", "completed", "paused"}:
@@ -68,7 +68,7 @@ def resolve_profile(config):
         raise ValueError("Invalid semester ID.")
     daily_plan(profile["daily"])
     config.update(school=profile["school"], base_url=origin, entry_url=entry, profile_id=profile["id"], timezone=profile["daily"]["timezone"],
-                  semester_id=semester["id"], semester_label=semester["label"], platform=profile["platform"], daily=profile["daily"],
+                  semester_id=semester["id"], semester_label=semester["label"], platform=profile.get("platform") or ("brightspace" if urlsplit(origin).hostname in SCHOOL_HOSTS else "unsupported"), daily=profile["daily"],
                   courses=[{"id": c["id"], "name": c["name"]} for c in semester["courses"] if c["selected"] and c["status"] == "active"],
                   course_status={c["id"]: c["status"] for c in semester["courses"]})
     return config

@@ -15,7 +15,6 @@ from urllib.request import Request, urlopen
 
 from core import Ledger, atomic_json, component, export_course
 from secrets_store import load_secret, save_secret
-from course_content import extract_material
 from school_profile import (resolve_profile, require_public_url, session_path, session_storage,
                             session_envelope, browser_route_policy, require_supported_school, daily_plan, schedule_xml)
 
@@ -23,8 +22,8 @@ HERE = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) el
 LOG = logging.getLogger("lms-sync")
 
 
-def load_config(path: Path):
-    config = resolve_profile(json.loads(path.read_text(encoding="utf-8-sig")))
+def load_config(path: Path, allow_pending=False):
+    config = resolve_profile(json.loads(path.read_text(encoding="utf-8-sig")), allow_pending=allow_pending)
     config["config_path"] = str(path)
     target = urlparse(config.get("butler_url", "http://127.0.0.1:3000"))
     if target.hostname not in ("localhost", "127.0.0.1", "::1") or target.scheme not in ("http", "https"):
@@ -84,22 +83,6 @@ def configure_bridge(config):
         additions.append("LMS_SYNC_TOKEN=" + token)
     if "BUTLER_DB_PATH=" not in env:
         additions.append('BUTLER_DB_PATH="' + (private / "butler.sqlite").as_posix() + '"')
-    if "OLLAMA_SERVER_BASE_URL=" not in env and "DEEPSEEK_BASE_URL=" not in env:
-        additions.append("OLLAMA_SERVER_BASE_URL=http://127.0.0.1:11434/v1")
-    if "DEEPSEEK_API_KEY=" not in env:
-        additions.append("DEEPSEEK_API_KEY=ollama")
-    if "OLLAMA_SERVER_MODEL=" not in env:
-        model = config.get("ai_model")
-        if not model:
-            try:
-                with urlopen("http://127.0.0.1:11434/api/tags", timeout=3) as response:
-                    installed = json.load(response)["models"]
-                names = [m["name"] for m in installed if "completion" in m.get("capabilities", ["completion"]) and "embed" not in m["name"]]
-                model = next((n for n in names if n == "qwen38-huihui:latest"), names[0] if names else None)
-            except Exception:
-                pass
-        if model:
-            additions.append("OLLAMA_SERVER_MODEL=" + model)
     if "LMS_ALLOWED_ORIGIN=" not in env:
         # Butler also accepts any https://*.polite.edu.sg school, so this only matters for non-POLITEMall schools.
         additions.append("LMS_ALLOWED_ORIGIN=" + (config["base_url"] or POLITEMALL_PORTAL))
@@ -185,6 +168,8 @@ async def login(config):
 
 
 async def sync(config, metadata_only=False, catalog_only=False):
+    if not catalog_only:
+        from course_content import extract_material
     require_supported_school(config)
     if config["platform"] != "brightspace":
         raise ValueError("Only confirmed Brightspace profiles can sync. Other LMS adapters are not implemented.")
@@ -208,7 +193,7 @@ async def sync(config, metadata_only=False, catalog_only=False):
             browser = await p.chromium.launch(channel=config.get("browser_channel", "msedge"), headless=True)
             context = await browser.new_context(storage_state=state, service_workers="block")
             await context.route("**/*", browser_route_policy(config["base_url"]))
-            adapter = Brightspace(context, {**config, "courses": []} if catalog_only else config)
+            adapter = Brightspace(context, {**config, "courses": [], "discover_semesters": True} if catalog_only else config)
             try:
                 await adapter.initialize()
                 courses = await adapter.courses()
@@ -313,7 +298,7 @@ def main():
     parser.add_argument("--task-executable")
     parser.add_argument("--expected-profile")
     args = parser.parse_args()
-    config = load_config(args.config.resolve())
+    config = load_config(args.config.resolve(), allow_pending=args.command in ("setup", "login", "catalog", "session-check", "status"))
     if args.expected_profile and args.expected_profile != config["profile_id"]:
         raise ValueError("The scheduled school profile changed. Review and approve a separate schedule for that school.")
     if args.command == "schedule-plan":

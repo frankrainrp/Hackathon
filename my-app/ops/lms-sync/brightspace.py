@@ -81,7 +81,25 @@ class Brightspace:
         result, bookmark = [], ""
         for _ in range(100):
             page = await self.get(f"/d2l/api/lp/{self.versions['lp']}/enrollments/myenrollments/?orgUnitTypeId=3&bookmark={bookmark}")
-            result.extend({"id": str(e["OrgUnit"]["Id"]), "name": e["OrgUnit"]["Name"]} for e in page["Items"])
+            for enrollment in page["Items"]:
+                unit, access = enrollment["OrgUnit"], enrollment.get("Access", {})
+                row = {"id": str(unit["Id"]), "name": unit["Name"], "code": unit.get("Code"),
+                       "isActive": access.get("IsActive"), "canAccess": access.get("CanAccess"),
+                       "startAt": access.get("StartDate"), "endAt": access.get("EndDate")}
+                if self.config.get("discover_semesters"):
+                    if len(result) >= 100:
+                        raise AccessUnavailable("Course discovery exceeded the 100-course limit; previous selections were preserved.")
+                    try:
+                        info = await self.get(f"/d2l/api/lp/{self.versions['lp']}/courses/{row['id']}")
+                        term = info.get("Semester")
+                        if term and term.get("Name"):
+                            row["semester"] = {"id": str(term["Identifier"]), "name": term["Name"]}
+                        row["startAt"] = info.get("StartDate") or row["startAt"]
+                        row["endAt"] = info.get("EndDate") or row["endAt"]
+                    except AccessUnavailable:
+                        # Some student roles cannot read offering metadata. Preserve enrollment evidence.
+                        pass
+                result.append(row)
             if not page["PagingInfo"]["HasMoreItems"]:
                 return result
             new = str(page["PagingInfo"]["Bookmark"])

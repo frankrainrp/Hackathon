@@ -2,6 +2,10 @@
 .settings { border:1px solid var(--color-border-soft); border-radius:12px; padding:16px; margin:18px 0; background:var(--color-surface); font-size:13px; }
 .settings summary { cursor:pointer; font-weight:600; }
 .settings p { color:var(--color-text-muted); line-height:1.65; margin:12px 0; overflow-wrap:anywhere; }
+.settings form { display:grid; gap:14px; margin:20px 0; }
+.schoolIdentity { margin:24px 0 16px; padding-block:16px; border-block:1px solid var(--color-border); overflow-wrap:anywhere; }
+.settings select:focus-visible { outline:2px solid var(--color-accent); outline-offset:4px; }
+@media(max-width:768px) { .settings input:not([type=checkbox]),.settings select { font-size:16px; } }
 .settingsGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:16px 0; }
 .settings label, .recordView { display:flex; flex-direction:column; gap:7px; line-height:1.5; }
 .settings input:not([type=checkbox]), .settings select, .recordView select { width:100%; min-width:0; padding:10px; border:1px solid var(--color-border); border-radius:7px; background:var(--color-surface); color:var(--color-text); font:inherit; }
