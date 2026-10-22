@@ -37,7 +37,7 @@ export async function applyDiscoveredCatalog(profileId: string, canApply = () =>
   updateLmsFeed(feed => applyProfileMetadata(feed, saved));
   return !!latestSemester(catalog);
 }
-export function startSchoolDiscovery(login: boolean) {
+export function startSchoolDiscovery(login: boolean, download = false) {
   if (schoolJob()?.state === "running") throw new Error(uiText("school.auto.busy"));
   const profile = activeProfile(readProfiles());
   if (!profile || !supportsSchoolConnection(profile.domain, profile.platform)) throw new Error(uiText("school.auto.connectionUnsupported"));
@@ -47,8 +47,8 @@ export function startSchoolDiscovery(login: boolean) {
   let stopChild: (() => void) | undefined;
   shared.butlerSchoolCancel = () => { job.state = "error"; job.message = uiText("school.auto.cancelled"); stopChild?.(); };
   const run = (action: SchoolAction) => new Promise<void>((ok, fail) => {
-    if (action === "inspect") job.message = uiText("school.auto.importing");
-    const child = spawn(command.exe, [...command.prefix, "--config", configPath(), "--expected-profile", profile.id, ...(action === "inspect" ? ["--no-ai-brief"] : []), action], { cwd: command.directory, env: { ...process.env, LMS_SYNC_TOKEN: workerLmsToken() }, windowsHide: true, stdio: "ignore" });
+    if (action === "inspect" || action === "sync") job.message = uiText(action === "sync" ? "school.auto.downloading" : "school.auto.importing");
+    const child = spawn(command.exe, [...command.prefix, "--config", configPath(), "--expected-profile", profile.id, ...(["inspect", "sync"].includes(action) ? ["--no-ai-brief"] : []), action], { cwd: command.directory, env: { ...process.env, LMS_SYNC_TOKEN: workerLmsToken() }, windowsHide: true, stdio: "ignore" });
     stopChild = () => {
       if (child.pid && child.exitCode === null) {
         if (process.platform === "win32") spawnSync("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
@@ -65,7 +65,7 @@ export function startSchoolDiscovery(login: boolean) {
   void (async () => {
     try {
       const canContinue = () => shared.butlerSchoolJob === job && job.state === "running" && readProfiles().activeProfileId === profile.id;
-      const result = await runSchoolWorkflow({ login, run,
+      const result = await runSchoolWorkflow({ login, download, run,
         discover: () => applyDiscoveredCatalog(profile.id, canContinue), canContinue,
         hasSelectedCourses: () => {
           const current = activeProfile(readProfiles()), semester = current?.semesters.find(s => s.id === current.activeSemesterId);

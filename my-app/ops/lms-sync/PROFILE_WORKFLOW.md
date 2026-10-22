@@ -28,7 +28,7 @@ From `my-app/ops/lms-sync`, with the local app stopped before setup:
 .\.venv\Scripts\python.exe lms_sync.py catalog
 ```
 
-Login opens a fresh Edge window for the user to complete SSO/MFA. `catalog` retrieves only enrollment IDs/names and stores them locally; it does not download course materials or assign a semester automatically. Reload settings, select and confirm the current semester's courses, then explicitly run:
+Login opens a separate Edge window for the user to complete SSO/MFA, restoring Butler's previous encrypted session when available. It does not attach to or copy the ordinary Edge profile. Choose Microsoft's **Stay signed in** option when offered if you want the school session retained. `catalog` retrieves enrollment IDs/names and official semester metadata without downloading files; the app then selects the latest accessible semester. Review the selected courses, then use **Download selected course files** or explicitly run:
 
 ```powershell
 .\.venv\Scripts\python.exe lms_sync.py sync
@@ -40,7 +40,7 @@ For a rebuilt portable package use `ButlerSync.exe` in place of the Python/scrip
 
 - `config.local.json`: confirmed profiles, active profile/semester, all previous semester selections and course statuses, and daily preferences. Before each update, `config.local.json.bak` retains the previous metadata version; replacement is atomic.
 - `.private/catalogs/<profile-id>.json`: discovered enrollment names/IDs, still unassigned until user confirmation.
-- `.private/sessions/<scope>/session.enc`: browser cookies/localStorage, encrypted with Windows user DPAPI. Scope includes the profile, school name and origin. Switching school/domain requires a new profile and separate login; old sessions are not silently reused or moved. Legacy unscoped sessions remain on disk but require a fresh scoped login.
+- `.private/sessions/<scope>/session.enc`: browser cookies, localStorage and IndexedDB, encrypted with Windows user DPAPI. Login, catalog and successful sync save refreshed state, including permitted Microsoft SSO state, so a later process can reuse it. `savedAt` prevents an older expiry snapshot from invalidating a newer successful login. Scope includes the profile, school name and origin. Switching school/domain requires a new profile and separate login; old sessions are not silently reused or moved. Legacy unscoped sessions remain on disk but require a fresh scoped login. Plaintext passwords are never stored; regular Edge profile databases are never read, copied or decrypted.
 - `.private/sync.sqlite`: incremental download ledger. File identity now includes school profile and semester. Existing legacy archives are retained; the first scoped sync may download them again. Within a scope, unchanged materials are reused, with the existing file-size limit, partial-file replacement and lock behavior preserved.
 - `courses/<profile-id>/<semester-id>/<school>/<module>/...`: retained downloads and indexes, separated by semester.
 - `.private/sync-history.json`, `.private/last-snapshot.json`: durable sync outcomes and retry data, including login-expiry outcomes.
@@ -49,6 +49,8 @@ For a rebuilt portable package use `ButlerSync.exe` in place of the Python/scrip
 Only session/bridge secrets are encrypted; ordinary metadata, course files and SQLite are local personal data. DPAPI protects against other user accounts, not every process under the same account. The local bridge token also exists in the app's ignored `.env.local`. The web UI never exports those files or decrypted session data. Optional institution-issued `LMS_ACCESS_TOKEN` must also specify the exact `LMS_ACCESS_TOKEN_ORIGIN` and `LMS_ACCESS_TOKEN_PROFILE`; it cannot follow a profile change.
 
 Login expiry does not erase profiles, semesters, selections, course states or tasks. A new manual login is required. No refresh-token service or school-side revocation endpoint is implemented.
+
+Retention does not override Microsoft Entra conditional access, session revocation, sign-in frequency, MFA or school expiry. The worker never rewrites cookie/token expiry and never creates a timer to defeat sign-in policy. A local `session-check` verifies encrypted state and known expiry metadata; a successful live `catalog`/`sync` is the evidence that the school still accepts it. See [Playwright authentication](https://playwright.dev/python/docs/auth) and [Microsoft session lifetime](https://learn.microsoft.com/en-us/entra/identity/authentication/concepts-azure-multi-factor-authentication-prompts-session-lifetime).
 
 ## Daily scheduler — preview first
 

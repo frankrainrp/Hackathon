@@ -142,9 +142,11 @@ async def login(config):
         raise ValueError("This profile is saved, but its LMS needs a separate adapter. Only Brightspace is supported.")
     require_public_url(config["entry_url"])
     expected = urlparse(config["base_url"]).netloc
+    saved_path = session_path(config)
+    state = session_storage(config, load_secret(saved_path)) if saved_path.exists() else {"cookies": [], "origins": []}
     async with async_playwright() as p:
         browser = await p.chromium.launch(channel=config.get("browser_channel", "msedge"), headless=False)
-        context = await browser.new_context(service_workers="block")
+        context = await browser.new_context(storage_state=state, service_workers="block")
         await context.route("**/*", browser_route_policy(config["base_url"]))
         await context.route_web_socket("**/*", lambda socket: socket.close())
         page = await context.new_page()
@@ -157,8 +159,8 @@ async def login(config):
                 host = parsed.hostname or ""
                 on_school = parsed.netloc == expected
                 if parsed.scheme == "https" and on_school and parsed.path.startswith("/d2l/home") and await signed_in(page):
-                    state = await context.storage_state()
-                    save_secret(session_path(config), session_envelope(config, state))
+                    state = await context.storage_state(indexed_db=True)
+                    save_secret(saved_path, session_envelope(config, state))
                     LOG.info("School session saved encrypted; no password was stored.")
                     return 0
                 await asyncio.sleep(2)
@@ -199,6 +201,7 @@ async def sync(config, metadata_only=False, catalog_only=False):
                 courses = await adapter.courses()
                 if catalog_only:
                     atomic_json(private / "catalogs" / (config["profile_id"] + ".json"), courses)
+                    save_secret(saved_path, session_envelope(config, await context.storage_state(indexed_db=True)))
                     LOG.info("Course catalog saved locally. Assign courses to the current semester in Courses > School settings.")
                     return 0
                 seen_folders = {}
@@ -257,7 +260,7 @@ async def sync(config, metadata_only=False, catalog_only=False):
                                     material["text"] = text[:remaining]
                                     material["textStatus"] = "truncated"
                                 remaining -= len(material.get("text", ""))
-                save_secret(saved_path, session_envelope(config, await context.storage_state()))
+                save_secret(saved_path, session_envelope(config, await context.storage_state(indexed_db=True)))
             finally:
                 await browser.close()
     except LoginRequired as error:
@@ -316,10 +319,18 @@ def main():
         saved = session_path(config)
         if not saved.exists():
             return 3
-        session_storage(config, load_secret(saved))
+        envelope = load_secret(saved)
+        session_storage(config, envelope)
         status_file = private / "last-snapshot.json"
         status = json.loads(status_file.read_text(encoding="utf-8")) if status_file.exists() else {}
-        return 3 if status.get("profileId") == config["profile_id"] and status.get("status") == "login_required" else 0
+        if status.get("profileId") == config["profile_id"] and status.get("status") == "login_required":
+            try:
+                failed_at = datetime.fromisoformat(status["syncedAt"].replace("Z", "+00:00"))
+                renewed_at = datetime.fromisoformat(envelope["savedAt"].replace("Z", "+00:00"))
+                return 3 if failed_at >= renewed_at else 0
+            except (KeyError, ValueError, TypeError):
+                return 3
+        return 0
     private.mkdir(parents=True, exist_ok=True)
     from logging.handlers import RotatingFileHandler
     handlers = [RotatingFileHandler(private / "sync.log", maxBytes=1024 * 1024, backupCount=3, encoding="utf-8")]

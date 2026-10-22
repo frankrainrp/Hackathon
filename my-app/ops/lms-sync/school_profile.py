@@ -84,7 +84,8 @@ def session_path(config):
 
 
 def session_envelope(config, storage):
-    return {"scope": session_scope(config), "origin": config["base_url"], "storage": storage}
+    return {"scope": session_scope(config), "origin": config["base_url"],
+            "savedAt": datetime.now(timezone.utc).isoformat(), "storage": storage}
 
 
 def session_storage(config, saved):

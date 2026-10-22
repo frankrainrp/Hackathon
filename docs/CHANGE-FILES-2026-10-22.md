@@ -1,5 +1,23 @@
 # Changes by file · 22 October 2026
 
+## Session reuse and explicit course-file download follow-up
+
+| File | Fix and verification |
+| --- | --- |
+| `my-app/ops/lms-sync/lms_sync.py` | Restore the encrypted session on repeat login, include IndexedDB, save rotated state before catalog returns, and compare expiry snapshots with the newer login timestamp. |
+| `my-app/ops/lms-sync/school_profile.py` | Add encrypted session `savedAt` metadata while retaining school/profile isolation. |
+| `my-app/ops/lms-sync/test_session_reuse.py` | Three regressions fail on the old worker and pass after the fix: repeat-login restoration, catalog rotation followed by a second process, and stale expiry after login. |
+| `my-app/ops/lms-sync/requirements.txt` | Require Playwright 1.51+ for IndexedDB storage snapshots; the existing pinned runtime remains 1.64.0. |
+| `my-app/ops/lms-sync/PROFILE_WORKFLOW.md` | Explain encrypted SSO retention, ordinary Edge isolation, explicit file download and Microsoft policy limits. |
+| `my-app/apps/web/src/lib/school-workflow.ts` | Add explicit file sync after authenticated catalog, verified semester and selected-course checks; normal refresh remains metadata only. |
+| `my-app/apps/web/src/lib/lms-worker.ts` | Launch the real `sync` command for file jobs with the server-owned bridge token and cloud brief disabled. |
+| `my-app/apps/web/src/app/api/lms/settings/route.ts` | Accept the local, origin-checked `sync` action. |
+| `my-app/apps/web/src/components/SchoolSettings.tsx` | Offer Download selected course files, disabled without a confirmed semester and active selection. |
+| `my-app/apps/web/src/lib/locales/en.ts`, `zh.ts` | Matching download progress/completion and accurate session-retention instructions. |
+| `my-app/apps/web/tests/school-workflow.test.mjs` | Prove explicit download calls sync rather than metadata-only inspect and propagates failures. |
+
+Validation at this stage: 56 Node tests, 26 Python tests and production Next build pass. These regression results are separate from the live C304 backend/SSO acceptance evidence kept locally; no private course material, model output, session or credential is included in source or runtime archives.
+
 New model onboarding scans the device automatically, ranks curated models by dated capability evidence, and recommends API when no eligible model above 8B fits. Paths are derived at runtime. School setup accepts one URL and discovers real courses and the latest accessible term after explicit login. Existing data and model files are preserved.
 
 

@@ -24,7 +24,7 @@ async function handlePOST(req: Request) {
     if (Buffer.byteLength(text) > 100_000) return Response.json({ error: uiText("server.a965b1014d22") }, { status: 413 });
     const body = JSON.parse(text);
     if (body.action === "cancel") return Response.json({ job: cancelSchoolDiscovery() });
-    if (body.action === "login" || body.action === "catalog") return Response.json({ job: startSchoolDiscovery(body.action === "login") });
+    if (body.action === "login" || body.action === "catalog" || body.action === "sync") return Response.json({ job: startSchoolDiscovery(body.action === "login", body.action === "sync") });
     if (schoolJob()?.state === "running") return Response.json({ error: uiText("school.auto.busy") }, { status: 409 });
     let input = body.profile;
     if (typeof body.entryUrl === "string") {

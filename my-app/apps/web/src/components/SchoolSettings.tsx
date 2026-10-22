@@ -63,6 +63,7 @@ export default function SchoolSettings({ onSaved }: { feed: LmsFeed | null; lang
       <div className={styles.actions}>
         <button disabled={busy || running || entryUrl !== profile.entryUrl || !supportsSchoolConnection(profile.domain, profile.platform)} onClick={() => void send({ action: "login" })}>{uiText("school.auto.login")}</button>
         <button disabled={busy || running || entryUrl !== profile.entryUrl || !supportsSchoolConnection(profile.domain, profile.platform)} onClick={() => void send({ action: "catalog" })}>{uiText("school.auto.refresh")}</button>
+        <button disabled={busy || running || entryUrl !== profile.entryUrl || !supportsSchoolConnection(profile.domain, profile.platform) || !semester?.confirmed || !semester.courses.some(c => c.selected && c.status === "active")} onClick={() => void send({ action: "sync" })}>{uiText("school.auto.download")}</button>
         {running && <button disabled={busy} onClick={() => void send({ action: "cancel" })}>{uiText("school.auto.cancel")}</button>}
       </div>
       <p>{uiText(supportsSchoolConnection(profile.domain, profile.platform) ? "school.auto.loginHelp" : "school.auto.connectionUnsupported")}</p>

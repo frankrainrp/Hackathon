@@ -31,3 +31,17 @@ test('failed import is an error, never a completed school setup', async () => {
     discover: async () => true, hasSelectedCourses: () => true,
   }), /delivery failure/);
 });
+
+test('explicit file sync downloads and parses only after discovery and selection checks', async () => {
+  const calls = [];
+  const result = await runSchoolWorkflow({ login: false, download: true, canContinue: () => true,
+    run: async action => { calls.push(action); },
+    discover: async () => { calls.push('confirm'); return true; }, hasSelectedCourses: () => true,
+  });
+  assert.deepEqual(calls, ['catalog', 'confirm', 'sync']);
+  assert.equal(result, 'downloaded');
+  await assert.rejects(runSchoolWorkflow({ login: false, download: true, canContinue: () => true,
+    run: async action => { if (action === 'sync') throw Error('file retrieval failed'); },
+    discover: async () => true, hasSelectedCourses: () => true,
+  }), /file retrieval failed/);
+});
