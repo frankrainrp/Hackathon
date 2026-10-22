@@ -47,7 +47,7 @@ Butler retains its own encrypted school session and reuses it across runs until 
 
 ## 4. Ask about an actual course
 
-Open **Courses**, expand a downloaded course and check its material list. **Archived locally** indicates a saved file. The readable-text count tells you whether AI has extracted source text; a scanned document or image ZIP can be saved successfully without readable text.
+Open **Courses** and expand a course to enter its reader. Choose one lesson in the contents, then switch between that lesson's documents. PDFs use the browser's document viewer for paging and zoom; **Read text** provides the extracted version. Resource archives and page instructions use a readable text layout. **Save a copy** downloads the already saved local file. Supporting resources and **Assignments** have their own entries. Use **Previous** / **Next lesson** to continue, and mark a lesson as learned when finished. On narrow screens, the contents become a lesson selector.
 
 Course downloads also save the published instructions of linked Brightspace assignment pages as local text files. Original page links stay available. Pages with no published instructions are saved as empty and do not count as readable sources; the app never fills in missing content or submits the assignment.
 

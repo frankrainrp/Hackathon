@@ -1,5 +1,20 @@
 # Changes by file · 22 October 2026
 
+## Lesson-by-lesson document reader
+
+| File | Change and purpose |
+| --- | --- |
+| `my-app/apps/web/src/components/CourseReader.tsx`, `CourseReader.module.css` | Replace the long mixed resource list with a contents pane and one lesson document at a time. Provide document switching, native PDF preview/extracted text, original sources, local save, previous/next and retained learning checkboxes. Supporting resources and assignment records have separate entries. Narrow layouts use a native selector. |
+| `my-app/apps/web/src/components/CoursesPanel.tsx`, `CoursesPanel.module.css` | Keep the existing current-term overview and single assignment bar; open the reader at full available width. Remove redundant nested lists and repeated readable counters. Count actual lesson groups separately from supporting week folders. |
+| `my-app/apps/web/src/lib/course-reader.ts` | Derive teaching/supporting sections without deleting or renaming records, shorten repeated display prefixes, prefer original PDF documents and build scoped local document URLs without exposing filesystem paths in requests. |
+| `my-app/apps/web/src/lib/lms-material-file.ts`, `app/api/lms/material/route.ts` | Serve only registered files in the configured course output directory for the exact school/semester/course/material scope. Check real paths and PDF signatures, keep non-PDF files as attachments and support HEAD/byte-range requests for native PDF paging. Retain local-origin access controls and no-store responses. |
+| `my-app/apps/web/src/lib/locales/en.ts`, `zh.ts` | Add matching reader/navigation/document/recovery copy and dynamic count/date parameters; preserve English defaults and user content. |
+| `my-app/apps/web/tests/course-reader.test.mjs`, `lms-material-file.test.mjs` | Verify lesson separation and source retention, display cleanup, scoped file URLs, actual path/junction boundaries, PDF signature checks and byte ranges. |
+| `my-app/apps/web/tests/lms-settings.integration.mjs` | Exercise actual production document streaming, PDF headers, range/HEAD, explicit attachment, cross-site rejection and invalid school/term/path access with synthetic local files. |
+| `distribution/GETTING-STARTED.md`, `GETTING-STARTED.zh-CN.md` | Explain the lesson reader and document controls in both language guides. |
+
+Validation: all 73 Node regressions, the 1,671-key bilingual interface audit, TypeScript/production build and both isolated HTTP integration suites pass. The changed component/style detector reports no findings. Exact ZIP and retained-data live delivery checks are recorded in the local release report. Browser automation remains origin-blocked; source/static checks and live backend file delivery are distinguished from rendered UI acceptance. The existing school session, model and downloaded files are retained, with no new weights or paid API usage.
+
 ## Downloaded course files and linked assignment pages
 
 | File | Change and verification |

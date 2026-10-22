@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { existsSync, mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -92,7 +92,28 @@ try {
   foreignSnapshot.baseUrl = 'https://rplms.polite.edu.sg';
   foreignSnapshot.courses[0].assignments[0].url = 'https://rplms.polite.edu.sg/d2l/assignment/1';
   await request('/api/lms/ingest', foreignSnapshot, 403, { authorization: `Bearer ${token}` });
+  mkdirSync(join(folder, 'courses'), { recursive: true });
+  const pdfBytes = '%PDF-1.7\nSynthetic course document';
+  writeFileSync(join(folder, 'courses', 'slides.pdf'), pdfBytes);
+  writeFileSync(join(folder, 'private-fixture.txt'), 'Synthetic private data');
+  snapshot.courses[0].lessons[0].materials = [
+    { id: 'slides', title: 'Synthetic slides', url: 'https://tplms.polite.edu.sg/d2l/content/101/slides', filePath: join(folder, 'courses', 'slides.pdf') },
+    { id: 'outside', title: 'Untrusted outside path', url: 'https://tplms.polite.edu.sg/d2l/content/101/outside', filePath: join(folder, 'private-fixture.txt') },
+  ];
   await ingest(snapshot);
+  const fileUrl = '/api/lms/material?profile=fixture-tp&semester=fixture-term1&course=101&material=slides';
+  const pdf = await fetch(origin + fileUrl);
+  assert.equal(pdf.status, 200); assert.equal(pdf.headers.get('content-type'), 'application/pdf');
+  assert.match(pdf.headers.get('content-disposition'), /^inline/); assert.equal(await pdf.text(), pdfBytes);
+  const seek = await fetch(origin + fileUrl, { headers: { range: 'bytes=0-4' } });
+  assert.equal(seek.status, 206); assert.equal(await seek.text(), '%PDF-');
+  const head = await fetch(origin + fileUrl, { method: 'HEAD' });
+  assert.equal(head.headers.get('content-length'), String(Buffer.byteLength(pdfBytes))); assert.equal(await head.text(), '');
+  const download = await fetch(origin + fileUrl + '&download=1');
+  assert.match(download.headers.get('content-disposition'), /^attachment/); await download.arrayBuffer();
+  assert.equal((await fetch(origin + fileUrl.replace('fixture-term1', 'other-term'))).status, 404);
+  assert.equal((await fetch(origin + fileUrl.replace('material=slides', 'material=outside'))).status, 404);
+  assert.equal((await fetch(origin + fileUrl, { headers: { origin: 'https://foreign.example', 'sec-fetch-site': 'cross-site' } })).status, 403);
   assert.equal((await request('/api/lms/feed')).ddls.length, 0, 'Already submitted work must not create a new task');
   const missingSnapshot = structuredClone(snapshot);
   missingSnapshot.courses[0].assignments[0].submissionState = 'missing';
@@ -130,9 +151,9 @@ try {
   assert.deepEqual(backup.state.notes[0].lmsCompletedLessons, ['lesson1']);
   assert.equal(JSON.stringify(backup).includes(token), false);
   assert.equal(existsSync(join(folder, '.private', 'sessions')), false);
-  assert.equal(existsSync(join(folder, 'courses')), false);
+  assert.deepEqual(readdirSync(join(folder, 'courses')), ['slides.pdf'], 'Metadata ingest must not create files beyond the explicit document fixture');
   assert.equal((await fetch(origin + '/?view=courses')).status, 200);
-  console.log('HTTP integration passed: preview/confirm, local auth, URL policy, idempotency, expiry, semester history, restart and credential-free export. No school login or scheduler activation.');
+  console.log('HTTP integration passed: preview/confirm, local auth, URL policy, scoped PDF/HEAD/range delivery, idempotency, expiry, semester history, restart and credential-free export. No school login or scheduler activation.');
 } finally {
   await stop();
   const target = resolve(folder);

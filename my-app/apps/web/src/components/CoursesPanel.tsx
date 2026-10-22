@@ -4,7 +4,7 @@ import { useT as useCopyLanguage } from "@/lib/i18n";
 
 
 import { useMemo, useState } from "react";
-import { BookOpen, ChevronDown, ExternalLink, FileText, Search } from "lucide-react";
+import { BookOpen, ChevronDown, FileText, Search } from "lucide-react";
 import type { LmsCourse, LmsFeed } from "@/lib/lms-sync";
 import type { Note } from "@/lib/types";
 import styles from "./CoursesPanel.module.css";
@@ -13,7 +13,8 @@ import { courseCopy } from "@/lib/course-copy";
 import { demoCourses } from "@/lib/course-demo";
 import { activeProfile, type ProfileSettings } from "@/lib/lms-profile";
 import { overviewCourses, type OverviewCourse } from "@/lib/course-overview";
-import SourceLink from "./SourceLink";
+import CourseReader from "./CourseReader";
+import { readerSections } from "@/lib/course-reader";
 
 interface Props {
   feed: LmsFeed | null;
@@ -79,7 +80,7 @@ export default function CoursesPanel({ feed, profiles, notes, onOpenSettings, on
         const code = course.moduleName.match(/^[A-Z]\d+/)?.[0] || uiText("course.module");
         const name = course.moduleName.replace(/^[A-Z]\d+\s*/, "");
         const open = expanded === course.noteId;
-        const lessons = course.lessons.filter(l => l.number !== null);
+        const lessons = readerSections(course.lessons).primary;
         const completedIds = new Set(notes.find(n => n.id === course.noteId)?.lmsCompletedLessons || []);
         const learned = lessons.filter(l => completedIds.has(l.id)).length;
         return <article key={course.noteId} className={styles.row}>
@@ -93,14 +94,9 @@ export default function CoursesPanel({ feed, profiles, notes, onOpenSettings, on
             <div className={styles.percent}>{total ? `${Math.round(submitted / total * 100)}%` : "—"}<ChevronDown size={18} style={{ transform: open ? "rotate(180deg)" : undefined }} /></div>
           </button>
           {open && <div id={`course-${course.noteId}`} className={styles.details}>
-            <div className={styles.detailHeader}><h3>{c.materials}</h3><div className={styles.actions}>{course.catalogOnly ? <button onClick={onOpenSettings}>{uiText("course.schoolSettings")}</button> : <><button onClick={() => onAskCourse(course)}>{c.ask}</button>{!historical && <button onClick={() => onOpenNote(course.noteId)}><FileText size={15} />{c.notes}</button>}</>}</div></div>
-            {!course.catalogOnly && <p className={styles.emptyDetail}>{course.lessons.flatMap(l => l.materials).filter(m => m.text?.trim()).length} {c.readable} · {course.lessons.flatMap(l => l.materials).filter(m => !m.text?.trim()).length} {c.unreadable}</p>}
+            <div className={styles.detailHeader}><h3>{uiText("reader.title")}</h3><div className={styles.actions}>{course.catalogOnly ? <button onClick={onOpenSettings}>{uiText("course.schoolSettings")}</button> : <><button onClick={() => onAskCourse(course)}>{c.ask}</button>{!historical && <button onClick={() => onOpenNote(course.noteId)}><FileText size={15} />{c.notes}</button>}</>}</div></div>
             {historical && <p className={styles.emptyDetail}>{c.demoLesson}</p>}
-            {!course.lessons.length ? <p className={styles.emptyDetail}>{course.catalogOnly ? uiText("course.downloadNeeded") : c.noLessons}</p> : course.lessons.map(lesson => <div key={lesson.id} className={styles.lesson}>
-              {lesson.number !== null ? <label><input type="checkbox" disabled={historical} checked={completedIds.has(lesson.id)} onChange={() => onToggleLesson(course.noteId, lesson.id)} /><span>{lesson.kind ?? uiText("course.lesson")} {String(lesson.number).padStart(2, "0")}{lesson.endNumber && lesson.endNumber !== lesson.number ? `–${String(lesson.endNumber).padStart(2, "0")}` : ""} · {lesson.title}</span></label> : <strong>{c.resources} · {lesson.title}</strong>}
-              <ul>{lesson.materials.map(m => <li key={m.id}><SourceLink href={m.url}>{m.title}<ExternalLink size={12} /></SourceLink><span>{m.filePath ? c.archived : c.schoolFile}</span></li>)}</ul>
-            </div>)}
-            {!!course.assignments.length && <><h3 className={styles.assignmentHeading}>{c.schoolAssignments}</h3><ul className={styles.assignments}>{course.assignments.map(a => <li key={a.id}><SourceLink href={a.url}>{a.title}<ExternalLink size={12} /></SourceLink><span>{c[a.submissionState === "submitted" ? "submitted" : a.submissionState === "missing" ? "missing" : "unknown"]}</span></li>)}</ul></>}
+            {course.catalogOnly ? <p className={styles.emptyDetail}>{uiText("course.downloadNeeded")}</p> : <CourseReader key={course.noteId} course={course} completed={completedIds} historical={historical} onToggleLesson={onToggleLesson} onOpenSettings={onOpenSettings} />}
           </div>}
         </article>;
       })}

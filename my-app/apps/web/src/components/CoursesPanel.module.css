@@ -58,23 +58,14 @@
 .fill, .uncertain, .missing { height:100%; display:block; flex-shrink:0; }
 .percent { display:flex; align-items:center; justify-content:flex-end; gap:10px; font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; }
 .percent svg { flex-shrink:0; color:var(--color-text-muted); transition:transform .2s; }
-.details { padding:0 0 24px 80px; }
+.details { padding:0 0 24px; }
 .detailHeader { display:flex; justify-content:space-between; align-items:center; gap:16px; }
-.details h3 { font-size:14px; font-weight:600; margin:0; }
+.detailHeader h3 { font-size:14px; font-weight:600; margin:0; }
 .detailHeader button { display:flex; align-items:center; gap:6px; }
 .emptyDetail { color:var(--color-text-muted); font-size:13px; margin:15px 0 0; }
-.lesson { margin-top:16px; }
-.lesson label { display:flex; align-items:flex-start; gap:10px; font-size:13px; line-height:1.6; cursor:pointer; }
-.lesson input { margin-top:4px; width:16px; height:16px; accent-color:var(--color-accent); flex-shrink:0; }
-.lesson strong { font-size:13px; }
-.lesson ul, .assignments { list-style:none; padding:0; margin:8px 0 0 26px; }
-.lesson li, .assignments li { display:flex; align-items:baseline; justify-content:space-between; gap:16px; font-size:12px; padding:6px 0; }
 .details a { color:var(--color-text); text-decoration:underline; text-decoration-color:var(--color-border); text-underline-offset:3px; overflow-wrap:anywhere; }
 .details a:hover { text-decoration-color:var(--color-accent); }
 .details a svg { display:inline; margin-left:5px; }
-.details li > span { color:var(--color-text-muted); font-size:11px; white-space:nowrap; }
-.details .assignmentHeading { margin-top:24px; }
-.assignments { margin-left:0; }
 .empty { padding:50px 0; text-align:center; }
 .empty > svg { margin:0 auto 15px; color:var(--color-text-muted); }
 .empty h2 { font-size:18px; margin-bottom:8px; }
