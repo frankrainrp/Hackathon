@@ -24,8 +24,8 @@ Four steps cover Choose, Prepare, Test and Use. Settings are applied on explicit
 Modes:
 
 - `none`: actionable AI-off response; manual work remains usable.
-- `local/bundled`: only the app-managed CPU server on `127.0.0.1:18639/v1`, authenticated with a per-process random token. Uses the catalog file as an explicit model alias.
-- `local/external`: only an HTTP loopback `/v1` URL and an explicitly selected installed model. No cloud fallback. The existing service owns its lifecycle and model installation.
+- `local/bundled`: only the app-managed CPU server on `127.0.0.1:18639/v1`, authenticated with a per-process random token. Uses the basename of the verified on-disk file as the explicit runtime alias, and verifies that `/v1/models` reports it before marking the engine ready. A stopped engine exposes no active model name.
+- `local/external`: only an HTTP loopback `/v1` URL and a service-reported model ID. Finding models saves the sole valid ID only when no model is selected. Multiple IDs require a user choice; existing choices are preserved and a removed model fails the connection test. No cloud fallback. The existing service owns its lifecycle and model installation.
 - `deepseek`: fixed official `https://api.deepseek.com`, actual `deepseek-flash` or `deepseek-v4-pro`, DPAPI credential. Shared non-streaming calls disable thinking for bounded structured outputs; setup sample is capped at 128 output tokens. User requests can still incur costs. No automatic balance top-up or paid retry occurs.
 - `legacy`: explicit existing primary/alternate `OLLAMA_SERVER_*` and `OLLAMA_WINDOWS_*` order, including alternate-first for the retained thinking selection ID. Existing configured network routes can be used here; it is identified separately in setup. `DEEPSEEK_*` never supplies a hidden local URL, model or key.
 
@@ -41,7 +41,7 @@ Hardware inspection uses `os` RAM/architecture/OS, `statfs` for the chosen drive
 
 ## Model catalog and downloads
 
-`ai-catalog.ts` version `2026-10-21.1` records official publisher URLs, capabilities/limits, license, exact revision, filename, size and SHA-256. The reviewed catalog is deliberately small: Qwen3 0.6B Q8, 4B Q4_K_M and 8B Q4_K_M. The quality-first suggestion is scoped to this catalog and task fit; it is not a claim of strongest available model. Current free RAM, conservative working-memory overhead, chosen context and free disk filter suggestions. Small models explicitly warn about reasoning/tool limitations. No GPU runtime is selected by inference from VRAM alone.
+`ai-catalog.ts` version `2026-10-22.2` records reviewed evidence links, capabilities/limits, license, exact revision, filename, size and SHA-256. Current recommendations include Gemma 4 12B, Qwen3.8 27B and Qwen3.6 35B-A3B variants. Preference comes from the maintained capability review, then available RAM, context overhead, CPU backend and remaining disk filter eligibility. Eligible lower-resource models remain selectable; no eligible model means an API recommendation. Models of 8B and below remain compatibility metadata for existing installations and isolated tests, but are not offered for new downloads. Catalog labels describe recommendations, never an active runtime identity. No GPU runtime is selected by inference from VRAM alone.
 
 Maintainers can run `node my-app/ops/local-ai/check-catalog.mjs` from the source root to compare current public publisher metadata. This fetches no weights and changes nothing. Review capability/license/engine compatibility before editing the versioned catalog and rebuilding. Arbitrary unreviewed model URLs are not accepted through the UI. Existing noncatalog GGUF files are listed, but must be run through an existing compatible local service; managed-engine startup requires a reviewed SHA-256.
 
@@ -68,3 +68,14 @@ Use Node 24.18.0 and the pnpm 9 lockfile for this verified build. Install with `
 From the source root, run `node tools/package-windows.cjs <new-absolute-output-folder>`. It refuses to overwrite an existing folder/ZIP, materializes traced dependency links, copies static/public assets and the actual CPU engine/Node runtime, collects notices, excludes private data/model weights and writes a manifest, ZIP and SHA-256. It performs no download, install or publication. The launcher sets separate new data paths and starts only a loopback web server. School scripts are included but are not activated.
 
 Tests: `node --test tests/ai-local.test.mjs tests/lms-ai-scope.test.mjs` plus existing LMS/context unit tests; `node tests/ai-http.integration.mjs`; `node tests/ai-native.integration.mjs`; `node tests/ai-download-restart.integration.mjs`; `node tests/lms-settings.integration.mjs`, all from `apps/web`. `tools/smoke-package.cjs` verifies a completed ZIP's SHA-256 before extracting it into a new directory and testing the actual packaged runtime. The cloud preloader is test-only and routes the official DeepSeek hostname to a loopback fixture; the product launcher never loads it. Native tests generate an untrained 115,264-byte GGUF locally and replace checksum metadata only in the test process; no product catalog is changed, model downloaded or reasoning quality implied. See the repository change record and localization guide for verification scope and browser acceptance limits.
+
+
+## Fresh installations and moving devices
+
+A new browser defaults to English and Retro; saved language/theme preferences survive. Chat and Courses contain no seeded records or fictional-course fallback. UI labels and prompt suggestions remain localized copy; names, counts, model IDs and school facts come from their actual sources.
+
+The Windows x64 CPU package resolves its companion runtime from the executable directory and fixes its data/engine/worker paths there, even when started from another working directory or a shell with stale paths. It refuses an occupied port without stopping any process. Source mode defaults SQLite to `apps/web/.private/butler.sqlite`; `BUTLER_DB_PATH` explicitly selects any existing external store. It no longer adopts drive-root `/data/butler.sqlite` automatically.
+
+Copy the full package to a writable local folder. Model auto-storage follows the current account; custom folders require a path that exists on the destination. Export or back up records separately. DPAPI keys and school sessions belong to the original Windows account; moving to a different account/device requires entering the key and signing in again. Browser pending edits and preferences also belong to that browser profile/origin.
+
+The release is Windows x64 CPU only. Ubuntu CI checks source/backend regressions, not a Linux desktop bundle. ARM64, macOS, clean Windows installations and rendered phone acceptance are not certified by these checks. The server binds loopback, so this package does not expose a phone/LAN deployment automatically.

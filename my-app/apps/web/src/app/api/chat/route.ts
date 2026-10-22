@@ -117,7 +117,7 @@ async function handlePOST(req: Request) {
     ...body.messages.filter((m) => m.role !== "system"),
   ];
 
-  // 模型选择：客户端 model 必须通过白名单；未传或非法 → 默认 V4 Flash
+  // Saved UI identifiers select primary/alternate routing. Provider settings determine the real model.
   const requestedModel: AiModelId =
     body.model && isValidModelId(body.model) ? body.model : DEFAULT_MODEL_ID;
   const modelMeta = getModelMeta(requestedModel);
@@ -137,7 +137,6 @@ async function handlePOST(req: Request) {
   try {
     type ChatCreateParams = Parameters<OpenAI["chat"]["completions"]["create"]>[0];
     const createParams = {
-      model: modelMeta.apiModel,
       messages: messages as ChatCreateParams["messages"],
       tools: useTools ? TOOLS : undefined,
       tool_choice: useTools ? "auto" : undefined,

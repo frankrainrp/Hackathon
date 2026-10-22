@@ -53,9 +53,9 @@ const THEME_KEY = "butler.theme";
 const FONT_KEY = "butler.fontSize";
 const PERSONALITY_KEY = "butler.personality";
 
-// [081] 去掉浅色/深色切换：默认深炭蓝暗色。light 一律归一到 dark；仅保留 dark / retro。
+// New installations use Retro. Keep explicitly saved dark preferences and legacy light migration.
 function normalizeTheme(raw: string | null): Theme {
-  return raw === "retro" ? "retro" : "dark";
+  return raw === "dark" || raw === "light" ? "dark" : "retro";
 }
 
 export function applyStoredPreferences() {
@@ -70,13 +70,13 @@ export function applyStoredPreferences() {
   applyStoredAccent();
 }
 
-/** 读当前主题（dark 默认；light 归一到 dark）*/
+/** Read a saved preference; an unconfigured browser uses Retro. */
 export function getStoredTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
+  if (typeof window === "undefined") return "retro";
   try {
     return normalizeTheme(localStorage.getItem(THEME_KEY));
   } catch {
-    return "dark";
+    return "retro";
   }
 }
 
@@ -111,7 +111,7 @@ export default function PreferencesPanel({ open, onClose, feed, schoolOpen, onSc
   const uiLanguage = useCopyLanguage().lang;
   const isMobile = useIsMobile();
   const { t, lang, setLang } = useT();
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("retro");
   const [font, setFont] = useState<FontSize>("md");
   const [personality, setPersonality] = useState<Personality>("standard");
   const [accent, setAccent] = useState<string>(DEFAULT_ACCENT);

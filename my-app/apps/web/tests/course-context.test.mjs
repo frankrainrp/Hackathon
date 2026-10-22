@@ -29,13 +29,11 @@ test('retrieves late passages without leaking another course into the selected s
   assert.deepEqual(selectCourseContext(feed, 'Willow', 'missing').sources, []);
   assert.equal(result.sources[0].url, 'https://example.com/material');
 });
-test('reports missing text and supports fictional demo without school records', () => {
+test('reports missing text and never invents course sources for an empty school', () => {
   assert.equal(selectCourseContext({ courses: [course('alpha', '')] }, '', 'alpha').missingText, 1);
   const demo = selectCourseContext({ courses: [] }, 'variable', 'demo-C101');
-  assert.match(demo.sources[0].excerpt, /fictional practice lesson/);
-  assert.match(demo.sources[0].excerpt, /not a school record/);
-  assert.doesNotMatch(demo.sources[0].excerpt, /Willow|74%/);
-  assert.equal(demo.courses.length, 1);
+  assert.deepEqual(demo.sources, []);
+  assert.deepEqual(demo.courses, []);
 });
 test('course interface has matching Chinese and English keys', () => {
   assert.deepEqual(Object.keys(courseCopy.zh).sort(), Object.keys(courseCopy.en).sort());

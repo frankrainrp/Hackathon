@@ -12,9 +12,9 @@ A local learning assistant built on [Bulter](https://github.com/frankrainrp/Bult
 4. Newly discovered current-term courses are selected by default; existing choices are retained. Login/refresh imports selected learning records. **Download selected course files** explicitly saves and parses files locally. No daily schedule or cloud summary is enabled by these actions.
 5. **Courses** shows the detected school/term and every discovered current-term course. Expand a downloaded course, choose **Ask course AI** and check the answer's actual source. School configuration, course download choices, sync history and export remain in Settings.
 
-The interface defaults to English; choose Chinese in AI setup or **Settings → Language**. User-authored records keep their original language. Example courses are opt-in and labelled; new panels start empty.
+The interface defaults to English; choose Chinese in AI setup or **Settings → Language**. User-authored records keep their original language. New conversations, courses, tasks, notes and panels start empty; no fictional record importer is included.
 
-The default dark appearance uses neutral translucent surfaces. Courses starts with the current semester and combines submitted/missing/unknown states into one three-colour bar. Ordinary Chat can retrieve a course by its code or title, and app-supplied source links open the original page in Edge. Note-writing proposals remain reviewable before saving.
+Fresh browsers use Retro. Settings retains Dark as a neutral translucent option and preserves an existing saved theme. Wallpaper is an optional user-provided local image. Courses starts with the current semester and combines submitted/missing/unknown states into one three-colour bar. Ordinary Chat can retrieve a course by its code or title, and app-supplied source links open the original page in Edge. Note-writing proposals remain reviewable before saving.
 
 An optional weekly check in School settings imports confirmed missing work from every active current-term course into Tasks without downloading files or calling cloud AI. Unknown submissions stay unknown and outside the active task queue; no missing work produces a clear empty result. The packaged app catches up due checks when opened and runs them while it stays open. This installs no Windows scheduled task; fresh packages have the option off.
 

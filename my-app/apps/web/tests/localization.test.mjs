@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { messageCatalogs, DEFAULT_LANGUAGE, LANG_KEY, LANG_EVENT, getStoredLang, setStoredLang, getUiLanguage, applyStoredLang, translate, uiText, localizeExternal, formatDate, appFetch, requestLanguage } from '../src/lib/messages.ts';
 import { withUiLanguage, generationLanguage } from '../src/lib/api-language.ts';
 import { emptyPanelSpec } from '../src/lib/panel-schema.ts';
-import { demoCourses } from '../src/lib/course-demo.ts';
 
 const original = { window: globalThis.window, document: globalThis.document, fetch: globalThis.fetch };
 afterEach(() => { for (const [key,value] of Object.entries(original)) { if(value===undefined) delete globalThis[key]; else globalThis[key]=value; } setStoredLang('en'); });
@@ -41,10 +40,10 @@ test('interpolation preserves real names, special characters, counts and unknown
   assert.equal(localizeExternal(english,'zh'),translate('ai.modelsFound','zh',{count:37}));
   assert.equal(localizeExternal('Vendor-defined raw detail 具体内容 $&','zh'),'Vendor-defined raw detail 具体内容 $&');
 });
-test('language switches update runtime labels and optional demos without rewriting stored records', () => {
-  environment();setStoredLang('en');const english=demoCourses()[0].moduleName;
-  setStoredLang('zh');assert.notEqual(uiText('app.title'),translate('app.title','en'));assert.notEqual(demoCourses()[0].moduleName,english);
-  setStoredLang('en');assert.equal(demoCourses()[0].moduleName,english);
+test('language switches update runtime labels without adding sample records', () => {
+  environment();setStoredLang('en');const english=uiText('app.title');
+  setStoredLang('zh');assert.notEqual(uiText('app.title'),english);
+  setStoredLang('en');assert.equal(uiText('app.title'),english);
   const first=emptyPanelSpec();assert.deepEqual(first,{version:1,title:'',sources:[],blocks:[]});first.sources.push({id:'user',kind:'static',data:[]});assert.deepEqual(emptyPanelSpec().sources,[]);
 });
 test('date formatting follows the selected locale and handles unavailable dates', () => {

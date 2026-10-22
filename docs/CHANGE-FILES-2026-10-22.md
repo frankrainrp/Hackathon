@@ -222,3 +222,33 @@ PostCSS analysis reproduces both failures in the previous commit and verifies th
 | `my-app/ops/lms-sync/test_discovery.py` | Verify the real CLI passes metadata-only and no-cloud-summary configuration to the worker. |
 
 Validation: 55 Node and 23 Python checks pass, with production build, copy audit and isolated HTTP contracts. The frozen worker is rebuilt for the changed CLI. Exact package checks and preserved-data live restart are recorded locally after packaging. Parent-thread rendered browser acceptance remains blocked and is not claimed.
+
+
+## Retro defaults, runtime model identity and deployment cleanup
+
+| File | Final change |
+| --- | --- |
+| `distribution/ButlerLauncher.cs` | Check port ownership before launch/browser readiness; refuse an occupied port without stopping its owner. |
+| `distribution/GETTING-STARTED.md`, `distribution/GETTING-STARTED.zh-CN.md` | Explain Retro defaults, actual service IDs, empty records, EXE launch and user-provided wallpaper. |
+| `README.md`, `README.zh-CN.md`, `my-app/docs/local-ai.md` | Document final defaults, current catalog vs runtime identity, portable paths and account/device boundaries. |
+| `my-app/apps/web/.env.local.example` | Replace device-specific absolute examples with explicit path placeholders. |
+| `my-app/apps/web/public/manifest.webmanifest`, `my-app/apps/web/src/app/layout.tsx` | Serve fresh English/Retro HTML and matching browser colour. |
+| `my-app/apps/web/src/components/PreferencesPanel.tsx` | Default missing/inaccessible preferences to Retro while retaining saved Dark/Retro choices and legacy migration. |
+| `my-app/apps/web/src/lib/server-db.ts` | Keep source data local unless an external database path is explicitly configured; remove drive-root auto-adoption. |
+| `my-app/apps/web/src/lib/ai-engine.ts` | Derive active identity from the verified file basename and require the authenticated engine model list to confirm it. |
+| `my-app/apps/web/src/lib/ai-provider.ts` | Send the actual engine/service model ID; validate/deduplicate discovered IDs and remove catalog-based active-name fallback. |
+| `my-app/apps/web/src/lib/ai-models.ts` | Remove unused fixed small-model names; preserve stored primary/alternate route IDs for compatibility. |
+| `my-app/apps/web/src/app/api/ai/setup/route.ts` | Return no active name for a stopped bundled engine; select the sole reported service model only when no selection exists. |
+| `my-app/apps/web/src/components/AiSetup.tsx` | Adopt discovered settings and show the actual runtime/file ID in the Test summary. |
+| `my-app/apps/web/src/app/api/chat/route.ts`, `my-app/apps/web/src/app/api/lms/ingest/route.ts` | Remove obsolete fixed fallback fields; all inference uses the selected endpoint's real ID. |
+| `my-app/apps/web/src/app/page.tsx`, `my-app/apps/web/src/components/ChatCanvas.tsx` | Remove the fictional task/note importer from Chat. |
+| `my-app/apps/web/src/components/CoursesPanel.tsx`, `my-app/apps/web/src/components/CourseReader.tsx` | Remove fictional course preview branches; empty courses guide the user to connect their school. |
+| `my-app/apps/web/src/lib/course-context.ts`, `my-app/apps/web/src/lib/course-copy.ts` | Retrieve only actual stored courses; remove fictional sources and unused demo copy references. |
+| `my-app/apps/web/src/lib/course-demo.ts`, `my-app/apps/web/src/lib/demo-data.ts` | Delete production fixture generators. |
+| `my-app/apps/web/src/lib/locales/en.ts`, `my-app/apps/web/src/lib/locales/zh.ts` | Remove fictional record text; localize engine identity errors and actual school setup guidance. |
+| `my-app/apps/web/tests/deployment-defaults.test.mjs` | Exercise actual SQLite/theme source with old drive-root presence, explicit paths, absent/corrupt/blocked browser storage. |
+| `my-app/apps/web/tests/ai-http.integration.mjs`, `my-app/apps/web/tests/ai-native.integration.mjs` | Verify sole/multiple/stale service IDs, stopped identity and an actual renamed tiny GGUF runtime alias. |
+| `my-app/apps/web/tests/course-context.test.mjs`, `my-app/apps/web/tests/localization.test.mjs` | Require empty schools to return no invented source; retain localization and empty-schema contracts. |
+| `tools/smoke-package.cjs` | Test the exact ZIP from another working directory with stale inherited paths, empty records, English/Retro, occupied port and real service ID discovery/restart. |
+
+Validation: 75 Node regressions, interface-copy audit (1,631 matching language keys), TypeScript, production build, isolated AI/school HTTP suites and native lifecycle with a locally generated 115 KiB untrained GGUF pass. Exact ZIP, local cleanup and preserved-data restart results are recorded in the local release receipt. No new model weights or paid requests are used. Rendered desktop/mobile acceptance remains unverified; portable startup checks do not certify other physical devices or operating systems.

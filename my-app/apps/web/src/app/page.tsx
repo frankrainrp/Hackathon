@@ -1480,26 +1480,6 @@ export default function HomePage() {
     toast.info(uiText("ui.page.b93e573532", { value0: newDate, value1: newTime }));
   }, [toast]);
 
-  // G1.1 一键填入 Demo 数据(激活新用户;支持 Undo)
-  const handleLoadDemo = useCallback(async () => {
-    const { buildDemoData } = await import("@/lib/demo-data");
-    const { ddls: demoDdls, notes: demoNotes } = buildDemoData();
-    const prevDdls = ddlsRef.current;
-    const prevNotes = notes;
-    setDdls((p) => [...p, ...demoDdls]);
-    setNotes((p) => [...demoNotes, ...p]);
-    toast.success(uiText("ui.page.98a5f46dc8", { value0: demoDdls.length, value1: demoNotes.length }), {
-      duration: 8000,
-      action: {
-        label: uiText("ui.page.926a50b98e"),
-        onClick: () => {
-          setDdls(prevDdls);
-          setNotes(prevNotes);
-        },
-      },
-    });
-  }, [notes, toast]);
-
   // B4 笔记 `- [ ] todo` 自动同步到 Tasks（单向）
   // 1. 为每个新 todo 创建一个 task,默认 dueDate="待定",source="笔记自动同步"
   // 2. task.noteId 自动关联回这个笔记
@@ -1825,8 +1805,6 @@ export default function HomePage() {
               onSelectModel={handleSelectModel}
               ddls={ddls}
               onJumpToTask={handleJumpToTask}
-              onLoadDemo={handleLoadDemo}
-              hasAnyData={ddls.length > 0 || notes.length > 0}
               streakDays={streakDays}
               bestHourLabel={bestHourLabel}
               butlerPosition={butlerPosition}

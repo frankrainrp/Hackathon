@@ -14,7 +14,7 @@ import { contextPlan, estimatedModelGiB } from "@/lib/ai-context";
 import type { DownloadStatus } from "@/lib/ai-download";
 import styles from "./AiSetup.module.css";
 
-type Engine = { state: string; error?: string; model?: string; context?: number; url: string };
+type Engine = { state: string; error?: string; model?: string; modelName?: string | null; context?: number; url: string };
 type Snapshot = { defaultModelsDir: string; memory: { ramGiB: number; freeRamGiB: number }; settings: AiSettings; catalog: CatalogModel[]; catalogVersion: string; downloads: DownloadStatus[]; engine: Engine; keyPresent: boolean; protectedStorage: boolean; legacyAvailable: boolean };
 type Advice = ReturnType<typeof recommendations>;
 const TITLES = () => [uiText("ui.aisetup.55b34f7a67"), uiText("ui.aisetup.900d603e31"), uiText("ui.aisetup.3535b67e2d"), uiText("ui.aisetup.00d1fd3c24")];
@@ -22,7 +22,7 @@ async function request(action?: string, data: Record<string, unknown> = {}) {
   const response = await fetch("/api/ai/setup", action ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...data }), cache: "no-store" } : { cache: "no-store" });
   const result = await response.json();
   if (!response.ok || result.error) throw new Error(result.error || uiText("ui.aisetup.dd30b1d7ce"));
-  if (action === "save") window.dispatchEvent(new CustomEvent("butler:ai-settings-change"));
+  if (action === "save" || action === "models" && result.settings) window.dispatchEvent(new CustomEvent("butler:ai-settings-change"));
   return result;
 }
 export default function AiSetupGate({ standalone = false }: { standalone?: boolean }) {
@@ -129,7 +129,7 @@ function AiSetup({ initial, onClose }: { initial: Snapshot; onClose: () => Promi
                 <p className={styles.hint}>{uiText("ui.aisetup.ac7ed6fe4e")}</p>
               </> : <>
                 <label className={styles.field}>{uiText("ui.aisetup.4978763040")}<input value={s.externalURL} onChange={e => update({ externalURL: e.target.value })} spellCheck={false} /><small>{uiText("ui.aisetup.a85170b9fe")}</small></label>
-                <button disabled={!!busy} onClick={() => void run("models", async () => { await save(); const result = await request("models"); setModels(result.models); setMessage(uiText("ai.modelsFound", { count: result.models.length })); })}><RefreshCw size={16} />{uiText("ui.aisetup.49f5c4c6f8")}</button>
+                <button disabled={!!busy} onClick={() => void run("models", async () => { await save(); const result = await request("models"); setModels(result.models); setS(result.settings); latest.current = result.settings; setMessage(uiText("ai.modelsFound", { count: result.models.length })); })}><RefreshCw size={16} />{uiText("ui.aisetup.49f5c4c6f8")}</button>
                 <label className={styles.field}>{uiText("ui.aisetup.1fc190413f")}<select value={s.externalModel} onChange={e => update({ externalModel: e.target.value })}><option value="">{uiText("ui.aisetup.78a7ab5e31")}</option>{Array.from(new Set([...models, ...(s.externalModel ? [s.externalModel] : [])])).map(id => <option key={id}>{id}</option>)}</select></label><p>{uiText("ui.aisetup.d04a0e8319")}</p>
               </>}
             </>}
@@ -144,7 +144,7 @@ function AiSetup({ initial, onClose }: { initial: Snapshot; onClose: () => Promi
             {s.mode === "legacy" && <p>{uiText("ui.aisetup.e0365cdb2d")}</p>}
           </>}
           {s.step === 2 && <>
-            <div className={styles.connection}><h2>{s.mode === "deepseek" ? uiText("ui.aisetup.8b161ecc9d") : bundled ? uiText("ui.aisetup.e01271bfea") : uiText("ui.aisetup.481e12e1df")}</h2><p>{s.mode === "deepseek" ? s.deepseekModel : bundled ? selected?.label || uiText("ai.chooseInPrepare") : s.externalModel || uiText("ui.aisetup.9c35e10161")}</p><p>{uiText("ui.aisetup.85ad3ffac8")}</p></div>
+            <div className={styles.connection}><h2>{s.mode === "deepseek" ? uiText("ui.aisetup.8b161ecc9d") : bundled ? uiText("ui.aisetup.e01271bfea") : uiText("ui.aisetup.481e12e1df")}</h2><p>{s.mode === "deepseek" ? s.deepseekModel : bundled ? status.engine.modelName || selected?.file || uiText("ai.chooseInPrepare") : s.externalModel || uiText("ui.aisetup.9c35e10161")}</p><p>{uiText("ui.aisetup.85ad3ffac8")}</p></div>
             <button disabled={!!busy} onClick={() => void run("test", async () => { await save(); const result = await request("test"); setTested(true); setMessage(result.message); })}><RefreshCw size={16} />{uiText("ui.aisetup.5bcf311b19")}</button>
             <label className={styles.consent}><input type="checkbox" checked={sampleConsent} onChange={e => setSampleConsent(e.target.checked)} />{uiText("ui.aisetup.25283bc0f6")}{s.mode === "deepseek" && uiText("ui.aisetup.0a4a9128bd")}</label>
             <button disabled={!!busy || !tested || !sampleConsent} onClick={() => void run("sample", async () => { await save(); const result = await request("sample", { confirm: sampleConsent }); setSample(result.sample); setMessage(result.message); })}>{uiText("ui.aisetup.400d156107")}</button>

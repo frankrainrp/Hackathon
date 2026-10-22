@@ -1,7 +1,7 @@
 import { uiText } from "./messages.ts";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { resolve, join, basename } from "node:path";
 import { randomBytes } from "node:crypto";
 import { createServer } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
@@ -12,7 +12,7 @@ import { contextPlan, estimatedModelGiB } from "./ai-context.ts";
 import { hardwareSummary } from "./ai-hardware.ts";
 
 export const ENGINE_PORT = 18639;
-type Runtime = { child?: ChildProcess; key: string; state: "stopped" | "starting" | "ready" | "error"; error?: string; model?: string; context?: number };
+type Runtime = { child?: ChildProcess; key: string; state: "stopped" | "starting" | "ready" | "error"; error?: string; model?: string; modelName?: string; context?: number };
 const shared = globalThis as typeof globalThis & { butlerEngine?: Runtime };
 const engine = shared.butlerEngine ||= { key: randomBytes(32).toString("hex"), state: "stopped" };
 export const engineDirectory = () => resolve(process.env.BUTLER_ENGINE_DIR || "../../../runtime/llama");
@@ -25,15 +25,27 @@ export function engineProbe() {
 }
 export async function engineStatus() {
   if (engine.child && engine.child.exitCode === null) {
-    try { const res = await fetch(`http://127.0.0.1:${ENGINE_PORT}/v1/models`, { headers: { Authorization: `Bearer ${engine.key}` }, signal: AbortSignal.timeout(1500) }); if (res.ok) engine.state = "ready"; } catch { /* Loading or stopped; do not infer cloud availability. */ }
+    try {
+      const res = await fetch(`http://127.0.0.1:${ENGINE_PORT}/v1/models`, { headers: { Authorization: `Bearer ${engine.key}` }, signal: AbortSignal.timeout(1500) });
+      if (res.ok) {
+        const result = await res.json();
+        if (Array.isArray(result.data) && result.data.some((m: { id?: unknown }) => m.id === engine.modelName)) { engine.state = "ready"; engine.error = undefined; }
+        else { engine.state = "error"; engine.error = uiText("ai.engine.identityMismatch"); }
+      }
+    } catch { /* Loading or stopped; do not infer cloud availability. */ }
   }
-  return { state: engine.state, error: engine.error, model: engine.model, context: engine.context, url: `http://127.0.0.1:${ENGINE_PORT}/v1` };
+  return { state: engine.state, error: engine.error, model: engine.model, modelName: engine.state === "ready" ? engine.modelName : null, context: engine.context, url: `http://127.0.0.1:${ENGINE_PORT}/v1` };
 }
 export function engineCredential() {
   if (engine.state !== "ready" || !engine.child || engine.child.exitCode !== null) throw new Error(uiText("server.673edd68e2fa"));
   const s = readAiSettings();
   if (engine.model !== s.modelId || engine.context !== s.context) throw new Error(uiText("server.7951c7cf813d"));
   return engine.key;
+}
+export function engineModelName() {
+  engineCredential();
+  if (!engine.modelName) throw new Error(uiText("ai.engine.identityMismatch"));
+  return engine.modelName;
 }
 export async function startEngine() {
   if (engine.state === "starting" || engine.child && engine.child.exitCode === null) throw new Error(uiText("server.494d67b683b1"));
@@ -47,7 +59,7 @@ export async function startEngine() {
     const file = await verifyModel(s.modelsDir, s.modelId);
     await new Promise<void>((ok, fail) => { const server = createServer(); server.once("error", () => fail(new Error(uiText("server.ad78294d64fc")))); server.listen(ENGINE_PORT, "127.0.0.1", () => server.close(() => ok())); });
     const child = spawn(process.execPath, [join(engineDirectory(), "engine-host.cjs"), join(engineDirectory(), "llama-server.exe"), file, String(s.context), String(ENGINE_PORT), engine.key], { windowsHide: true, stdio: ["ignore", "ignore", "ignore", "ipc"] });
-    engine.child = child; engine.model = s.modelId; engine.context = s.context;
+    engine.child = child; engine.model = s.modelId; engine.modelName = basename(file); engine.context = s.context;
     child.on("error", () => { engine.state = "error"; engine.error = uiText("ai.recovery.16705afafc"); });
     child.on("exit", () => { if (engine.child !== child) return; if (engine.state !== "stopped") { engine.state = "error"; engine.error = uiText("ai.recovery.5381a1c088"); } });
     // UI polling continues while a large model loads; the request does not block for minutes.

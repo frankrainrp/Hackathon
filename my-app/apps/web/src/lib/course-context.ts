@@ -1,5 +1,4 @@
 import type { LmsCourse, LmsFeed } from "./lms-sync";
-import { demoCourses } from "./course-demo.ts";
 
 export interface CourseSource { label: string; url: string; excerpt: string; truncated: boolean }
 export interface CourseContext { courses: string[]; sources: CourseSource[]; metadata: string; missingText: number }
@@ -31,8 +30,7 @@ export function sourceLinksMarkdown(context: CourseContext, language: "en" | "zh
 
 /** Server reads verified stored data, never client-provided paths or course text. */
 export function selectCourseContext(feed: LmsFeed, query: string, noteId?: string): CourseContext {
-  const selected = noteId?.startsWith("demo-") ? demoCourses().filter(c => c.noteId === noteId)
-    : noteId ? (feed.courses || []).filter(c => c.noteId === noteId) : (feed.courses || []).filter(c => !c.archived);
+  const selected = noteId ? (feed.courses || []).filter(c => c.noteId === noteId) : (feed.courses || []).filter(c => !c.archived);
   const terms = tokens(query);
   const explicit = selected.filter(c => matchesCourse(c, query));
   const courses: LmsCourse[] = !noteId && explicit.length ? explicit : selected;

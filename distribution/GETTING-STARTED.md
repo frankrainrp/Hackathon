@@ -6,7 +6,9 @@
 
 Extract the **entire ZIP** into a writable local folder. Double-click **Butler.exe** and keep its console open. It starts the bundled runtime and opens Microsoft Edge when the app is ready. The address printed in the console defaults to `http://127.0.0.1:3000`; a configured `PORT` changes it. `Start-Hackathon.cmd` remains a manual-browser fallback. No Node installation is needed. Ctrl+C stops Butler and its managed engine. Keep the EXE beside its companion folders; it is a portable launcher, not a single-file installer.
 
-English is the default. Choose **中文** in AI setup or **Settings → Language** to change the interface. Your own course names, notes and conversations keep their original text.
+English and Retro are the defaults for a fresh browser. An existing saved theme is retained; change it in Settings. Add your own wallpaper there if wanted. No sample courses, tasks or conversations are imported.
+
+English is the default language. Choose **中文** in AI setup or **Settings → Language** to change the interface. Your own course names, notes and conversations keep their original text.
 
 ## 2. Connect AI, or skip it
 
@@ -15,7 +17,7 @@ The optional setup has four steps: **Choose → Prepare → Test → Use**. **Sk
 If you already run a local model, use it without downloading another one:
 
 1. **Choose:** select **Local on this computer**.
-2. **Prepare:** choose **I already run Ollama or an OpenAI-compatible local service**. Enter that service's loopback `/v1` URL, choose **Find installed models**, then select its actual model. Keep that service running; Butler does not manage it.
+2. **Prepare:** choose **I already run Ollama or an OpenAI-compatible local service**. Enter that service's loopback `/v1` URL, choose **Find installed models**, then select its actual model. If exactly one model ID is returned and none was selected, Butler saves that ID automatically. Multiple models require a choice; an existing selection is not replaced. Keep that service running; Butler does not manage it.
 3. Continue to **Test** and choose **Test connection**. This checks the connection and available model.
 4. To check actual generation, select **Send one sample request to my selected provider**, then **Send example: “Explain a study plan”**. A successful sample proves text generation, not course knowledge or reasoning accuracy. Leave optional cloud OCR off unless you separately want it.
 5. Continue to **Use** and choose **Start using Butler**.
@@ -55,7 +57,7 @@ Choose **Ask course AI** and ask, for example: “Explain this lesson and tell m
 
 You can also name the course directly in ordinary Chat, for example “Explain C304 lesson one”. Butler retrieves its locally extracted sources. App-supplied **Course sources** are clickable even when the model omits Markdown links; selecting a source opens its original HTTPS page in Microsoft Edge. This works with the chosen local or API provider and does not require a provider call just to open a link. You may ask the AI to save course notes; review its proposed note before confirming.
 
-Courses defaults to the current semester. Submitted, missing and unknown assignment states share one bar, using blue, red and amber segments. Lesson completion remains a separate text count. The default dark theme uses neutral translucent surfaces; colour and other personalisation controls remain in Settings.
+Courses defaults to the current semester. Submitted, missing and unknown assignment states share one bar, using blue, red and amber segments. Lesson completion remains a separate text count. Fresh browsers use Retro; Dark remains a neutral translucent option. Colour, your own wallpaper and other personalisation controls remain in Settings.
 
 Lesson checkboxes record your learning progress. They do not submit school assignments. School submission status and dates come from Brightspace; missing information stays unknown. Quiz, forum and external LTI submission tracking is not covered.
 

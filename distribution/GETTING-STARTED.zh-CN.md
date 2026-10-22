@@ -4,9 +4,9 @@
 
 ## 1. 启动软件
 
-将 ZIP **完整解压**到可写文件夹，双击 `Start-Hackathon.cmd`，保持控制台开启。在浏览器中打开控制台打印的网址，默认是 `http://127.0.0.1:3000`；设置过 `PORT` 时以实际地址为准。启动器不会自动打开浏览器，也不需要另装 Node。Ctrl+C 停止 Butler 和由它管理的推理引擎。
+将 ZIP **完整解压**到可写文件夹，双击 **Butler.exe**，保持控制台开启。服务准备好后自动打开 Microsoft Edge，无需另装 Node。默认网址是 `http://127.0.0.1:3000`；设置过 `PORT` 时以控制台打印的实际地址为准。EXE 必须和随附文件夹放在一起，它是便携启动程序，不是单文件安装器。`Start-Hackathon.cmd` 保留为手工打开浏览器的备用入口。Ctrl+C 停止 Butler 和由它管理的推理引擎。
 
-新版也提供 **Butler.exe**：完整解压后双击即可启动内置运行时，服务准备好后自动打开 Microsoft Edge。EXE 必须和随附文件夹放在一起，它是便携启动程序，不是单文件安装器。上述 CMD 仍可用于手工打开浏览器。
+新浏览器默认使用 Retro，已有主题选择保留，可在 Settings 切换。壁纸由你自己提供本地图片。新工作区不会导入示例课程、任务或对话。
 
 界面默认英文，在 AI 设置或 **Settings → Language** 中选择中文。你自己的课程、笔记和历史对话保持原文。下文使用英文按钮名称，方便对照默认界面。
 
@@ -17,7 +17,7 @@ AI 设置分为 **Choose → Prepare → Test → Use**。选择 **Skip for now*
 已经有本地模型服务时，无需下载其他模型：
 
 1. **Choose：**选择 **Local on this computer**。
-2. **Prepare：**选择 **I already run Ollama or an OpenAI-compatible local service**，填写已有服务的本机回环 `/v1` 地址，点击 **Find installed models**，选择真实模型。保持该服务运行；Butler 不管理它的启动和停止。
+2. **Prepare：**选择 **I already run Ollama or an OpenAI-compatible local service**，填写已有服务的本机回环 `/v1` 地址，点击 **Find installed models**，选择真实模型。服务只返回一个模型 ID 且尚未选择时自动保存；多个模型需选择，已有选择不被替换。保持该服务运行；Butler 不管理它的启动和停止。
 3. 进入 **Test**，点击 **Test connection**，检查连接及可用模型。
 4. 如需测试实际生成，勾选 **Send one sample request to my selected provider**，再点击 **Send example: “Explain a study plan”**。成功只代表可以生成文本，不代表已经读取课程或证明推理准确。此次无需开启云端 OCR。
 5. 进入 **Use**，点击 **Start using Butler**。
@@ -57,7 +57,7 @@ AI 设置分为 **Choose → Prepare → Test → Use**。选择 **Skip for now*
 
 也可在普通 Chat 直接说课程名或编号，例如“解释 C304 第一课”，软件会检索本机已提取的资料。回答末尾由软件提供可点击的 **Course sources**，点击后在 Edge 打开原始 HTTPS 来源，不要求模型自己正确生成链接。打开链接本身不调用 AI，支持所选本地或 API 模型。可让 AI 写课程笔记，再审核并确认它提出的笔记。
 
-Courses 默认只看当前学期。已提交、未提交、未知三种状态使用蓝、红、琥珀色片段合并为同一条进度条，学习课次保留独立文字计数。默认 dark 使用中性透明质感；颜色和其他个性化设置仍在 Settings。
+Courses 默认只看当前学期。已提交、未提交、未知三种状态使用蓝、红、琥珀色片段合并为同一条进度条，学习课次保留独立文字计数。新浏览器默认使用 Retro，Dark 保留中性透明质感；颜色、自选壁纸和其他个性化设置仍在 Settings。
 
 课次勾选只记录学习进度，不会提交学校作业。学校截止时间和提交状态来自 Brightspace，缺少信息时保留未知；Quiz、论坛及校外 LTI 提交状态尚未覆盖。
 

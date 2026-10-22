@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 
 internal static class ButlerLauncher {
@@ -23,6 +24,15 @@ internal static class ButlerLauncher {
             return 1;
         }
         try {
+            // Do not open another application's existing page on the requested port.
+            var probe = new TcpListener(IPAddress.Loopback, port);
+            probe.Server.ExclusiveAddressUse = true;
+            try { probe.Start(); }
+            catch (SocketException) {
+                Console.Error.WriteLine("Port " + port + " is already in use. Close the other Butler instance or choose another PORT. No process was stopped.");
+                return 1;
+            }
+            finally { probe.Stop(); }
             var start = new ProcessStartInfo(node, "\"" + launch + "\"") { WorkingDirectory = root, UseShellExecute = false };
             using (var child = Process.Start(start)) {
                 string url = "http://127.0.0.1:" + port;

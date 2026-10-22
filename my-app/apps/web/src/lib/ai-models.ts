@@ -16,8 +16,6 @@ export type AiModelId =
 
 export interface AiModelMeta {
   id: AiModelId;
-  /** 实际传给 DeepSeek API 的 model 字段 */
-  apiModel: string;
   /** 显示名（短，badge 用） */
   label: string;
   /** 副标题（下拉项里用） */
@@ -41,7 +39,6 @@ export interface AiModelMeta {
 export const AI_MODELS: AiModelMeta[] = [
   {
     id: "deepseek-v4-flash",
-    apiModel: "qwen3:0.6b",
     get label() { return uiText("ui.aimodels.51cbaf4cd5"); },
     get tagline() { return uiText("ui.aimodels.c8bd967ae7"); },
     get desc() { return uiText("ui.aimodels.6719344a0d"); },
@@ -51,7 +48,6 @@ export const AI_MODELS: AiModelMeta[] = [
   },
   {
     id: "deepseek-v4-thinking",
-    apiModel: "qwen3:0.6b",
     get label() { return uiText("ui.aimodels.7906d82fcc"); },
     get tagline() { return uiText("ui.aimodels.1cac84470d"); },
     get desc() { return uiText("ui.aimodels.0e1146c4ca"); },
