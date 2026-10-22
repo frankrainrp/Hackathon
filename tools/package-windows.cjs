@@ -58,7 +58,7 @@ materialize(path.join(root,'my-app/ops/lms-sync'),path.join(output,'ops/lms-sync
 const schoolWorker=path.join(root,'runtime/school-worker/ButlerSync');
 if(!fs.existsSync(path.join(schoolWorker,'ButlerSync.exe')))throw new Error('Build the school connector with tools/package-school-worker.cjs first.');
 materialize(schoolWorker,path.join(output,'ops/lms-sync'));
-for(const name of ['Launch.cjs','Start-Hackathon.cmd','GETTING-STARTED.md','THIRD-PARTY-NOTICES.md'])fs.copyFileSync(path.join(root,'distribution',name),path.join(output,name));
+for(const name of ['Launch.cjs','Start-Hackathon.cmd','GETTING-STARTED.md','GETTING-STARTED.zh-CN.md','THIRD-PARTY-NOTICES.md'])fs.copyFileSync(path.join(root,'distribution',name),path.join(output,name));
 // Preserve license texts even if Next's file tracer omitted non-runtime notice files.
 const licenses=[],store=path.join(workspace,'node_modules/.pnpm');
 for(const entry of fs.readdirSync(store)){const modules=path.join(store,entry,'node_modules');if(!fs.existsSync(modules))continue;let packages=[];

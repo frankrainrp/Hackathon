@@ -1,5 +1,25 @@
 # Changes by file · 22 October 2026
 
+## Settings and course overview follow-up
+
+School connection belongs in Settings; Courses should show the detected school, semester and all discovered courses without presenting a setup form. The user also confirmed the existing local model passed both connection and sample generation in the AI setup UI.
+
+| File | Change |
+| --- | --- |
+| `my-app/apps/web/src/components/PreferencesPanel.tsx` | Host school connection in Settings, widen the desktop settings panel for course controls and retain keyboard focus with Escape/return-to-trigger support. |
+| `my-app/apps/web/src/components/SchoolSettings.tsx` | Open its section directly from the overview shortcut and keep login, download, selection, sync history and export together. |
+| `my-app/apps/web/src/components/CoursesPanel.tsx` | Remove the connection form and sync-history controls; show the saved school/semester and all authenticated current-term enrollments. Keep real imported materials/progress and direct unimported courses to Settings. Language selection remains in Settings. |
+| `my-app/apps/web/src/components/CoursesPanel.module.css` | Style the small Settings shortcut and empty-state actions, preserving responsive course rows and extending focus styling to school controls inside Settings. |
+| `my-app/apps/web/src/lib/course-overview.ts` | Merge enrollments and imported facts by profile, semester and course ID, retaining source text and history without inventing progress for unimported courses. |
+| `my-app/apps/web/src/app/page.tsx` | Load school identity alongside the existing inbox, refresh after settings operations and connect the overview shortcut to its Settings section. |
+| `my-app/apps/web/src/lib/locales/en.ts`, `zh.ts` | Match both languages for discovered-course states, Settings recovery and the real first-course path. Clarify that existing local services need no model download. |
+| `my-app/apps/web/tests/course-overview.test.mjs` | Verify all enrollments remain visible regardless of download selection, imported facts survive, and identical course IDs in other terms/schools cannot supply current materials. |
+| `README.md`, `README.zh-CN.md` | Replace obsolete manual school/semester/bridge setup with the current Settings workflow. |
+| `distribution/GETTING-STARTED.md`, `GETTING-STARTED.zh-CN.md` | Provide an English-first and optional Chinese walkthrough from launch through existing local AI, school sign-in, explicit file download and a sourced course answer; explain session reuse and recovery. |
+| `tools/package-windows.cjs` | Include both language guides in fresh runtime packages. |
+
+Validation: all 61 Node regressions, the 1,620-key bilingual copy audit, TypeScript checks and production build pass. The design detector reports no findings in the changed components. These checks do not substitute for rendered desktop/mobile acceptance. Existing model configuration, school session, course files and user records are retained; no new weights, cloud OCR or paid API calls are involved.
+
 ## Frozen connector bridge follow-up
 
 | File | Fix and verification |

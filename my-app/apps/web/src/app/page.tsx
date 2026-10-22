@@ -78,6 +78,7 @@ import {
 import { workspaceState } from "@/lib/workspace-state";
 import type { SyncStatus } from "@/lib/state-sync";
 import { mergeLmsTasks, mergeLmsRows, mergeLmsNotes, type LmsFeed } from "@/lib/lms-sync";
+import { emptyProfiles, type ProfileSettings } from "@/lib/lms-profile";
 import { playSound } from "@/lib/sound";
 import RecurringTasksManager from "@/components/RecurringTasksManager";
 import {
@@ -161,6 +162,7 @@ export default function HomePage() {
   // Notes 浏览器版（Dexie v5）
   const [notes, setNotes] = useState<Note[]>([]);
   const [lmsFeed, setLmsFeed] = useState<LmsFeed | null>(null);
+  const [schoolProfiles, setSchoolProfiles] = useState<ProfileSettings>(emptyProfiles);
   // AI 模型选择（localStorage 持久化）
   const [selectedModel, setSelectedModel] = useState<AiModelId>(DEFAULT_MODEL_ID);
   useEffect(() => {
@@ -209,6 +211,13 @@ export default function HomePage() {
         if (!response.ok) return;
         const feed: LmsFeed = await response.json();
         if (!cancelled) setLmsFeed(feed);
+        try {
+          const profileResponse = await fetch("/api/lms/settings", { cache: "no-store" });
+          if (profileResponse.ok) {
+            const data = await profileResponse.json();
+            if (!cancelled) setSchoolProfiles(data.settings);
+          }
+        } catch { /* Imported records remain available if school settings cannot be read. */ }
         if (cancelled || feed.revision === revision || !feed.revision) return;
         revision = feed.revision;
         setDdls(prev => mergeLmsTasks(prev, feed.ddls));
@@ -231,7 +240,8 @@ export default function HomePage() {
     };
     void poll();
     const interval = setInterval(poll, 30000);
-    return () => { cancelled = true; clearInterval(interval); };
+    window.addEventListener("butler:lms-changed", poll);
+    return () => { cancelled = true; clearInterval(interval); window.removeEventListener("butler:lms-changed", poll); };
   }, [hydrated]);
 
   // 启动一次性 load
@@ -1166,6 +1176,7 @@ export default function HomePage() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   // Epic 3 偏好设置 modal
   const [prefsOpen, setPrefsOpen] = useState(false);
+  const [prefsSchool, setPrefsSchool] = useState(false);
   // #3 成就收藏室 modal
   const [achievementsOpen, setAchievementsOpen] = useState(false);
   // [072] 付费体系：账单面板 / 定价页 / 结账（演示模式）
@@ -1707,7 +1718,7 @@ export default function HomePage() {
         notes={notes}
         messages={messages}
         onSearchJump={handleSearchJump}
-        onOpenPreferences={() => setPrefsOpen(true)}
+        onOpenPreferences={() => { setPrefsSchool(false); setPrefsOpen(true); }}
         onOpenAchievements={() => setAchievementsOpen(true)}
         onOpenBilling={() => setBillingOpen(true)}
         onUpgrade={openPricing}
@@ -1824,7 +1835,8 @@ export default function HomePage() {
             </div>
           )}
           {!activeCustomPanelId && activeNav === "courses" && (
-            <CoursesPanel feed={lmsFeed} notes={notes}
+            <CoursesPanel feed={lmsFeed} profiles={schoolProfiles} notes={notes}
+              onOpenSettings={() => { setPrefsSchool(true); setPrefsOpen(true); }}
               onAskCourse={course => {
                 const id = `course-${course.noteId}`;
                 setSessions(prev => prev.some(s => s.id === id)
@@ -1950,7 +1962,7 @@ export default function HomePage() {
         {/* Epic 2.3 快捷键帮助面板（? 触发） */}
         <KeyboardShortcutsHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
         {/* Epic 3 偏好设置 modal */}
-        <PreferencesPanel open={prefsOpen} onClose={() => setPrefsOpen(false)} />
+        <PreferencesPanel open={prefsOpen} onClose={() => setPrefsOpen(false)} feed={lmsFeed} schoolOpen={prefsSchool} onSchoolSaved={() => window.dispatchEvent(new Event("butler:lms-changed"))} />
         {/* #3 成就收藏室 */}
         <AchievementsRoom
           open={achievementsOpen}

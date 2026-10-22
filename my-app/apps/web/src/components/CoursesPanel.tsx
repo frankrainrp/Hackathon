@@ -1,6 +1,4 @@
 "use client";
-import { appFetch as fetch } from "@/lib/messages";
-
 import { uiText, stateLabel } from "@/lib/messages";
 import { useT as useCopyLanguage } from "@/lib/i18n";
 
@@ -13,17 +11,20 @@ import styles from "./CoursesPanel.module.css";
 import { useT } from "@/lib/i18n";
 import { courseCopy } from "@/lib/course-copy";
 import { demoCourses } from "@/lib/course-demo";
-import SchoolSettings from "./SchoolSettings";
+import { activeProfile, type ProfileSettings } from "@/lib/lms-profile";
+import { overviewCourses, type OverviewCourse } from "@/lib/course-overview";
 
 interface Props {
   feed: LmsFeed | null;
+  profiles: ProfileSettings;
+  onOpenSettings: () => void;
   notes: Note[];
   onToggleLesson: (noteId: string, lessonId: string) => void;
   onOpenNote: (noteId: string) => void;
   onAskCourse: (course: LmsCourse) => void;
 }
 
-type Row = { course: LmsCourse; total: number; submitted: number; unknown: number; missing: number };
+type Row = { course: OverviewCourse; total: number; submitted: number; unknown: number; missing: number };
 
 function Track({ value, total, unknown = 0, label }: { value: number; total: number; unknown?: number; label: string }) {
   const uiLanguage = useCopyLanguage().lang;
@@ -36,35 +37,34 @@ function Track({ value, total, unknown = 0, label }: { value: number; total: num
   </div>;
 }
 
-export default function CoursesPanel({ feed, notes, onToggleLesson, onOpenNote, onAskCourse }: Props) {
+export default function CoursesPanel({ feed, profiles, notes, onOpenSettings, onToggleLesson, onOpenNote, onAskCourse }: Props) {
   const uiLanguage = useCopyLanguage().lang;
-  const { lang, setLang } = useT();
+  const { lang } = useT();
   const c = courseCopy[lang];
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [recordView, setRecordView] = useState("current");
-  const [latestFeed, setLatestFeed] = useState<LmsFeed | null>(null);
-  const visibleFeed = latestFeed && latestFeed.revision > (feed?.revision || 0) ? latestFeed : feed;
-  const historical = !visibleFeed?.courses?.length && showPreview;
-  const rows: Row[] = useMemo(() => (historical ? demoCourses() : visibleFeed?.courses || []).map(course => ({ course, total: course.assignments.length,
+  const discovered = useMemo(() => overviewCourses(feed?.courses || [], profiles), [feed, profiles]);
+  const profile = activeProfile(profiles);
+  const semester = profile?.semesters.find(s => s.id === profile.activeSemesterId);
+  const historical = !discovered.length && showPreview;
+  const rows: Row[] = useMemo(() => (historical ? demoCourses() : discovered).map(course => ({ course, total: course.assignments.length,
     submitted: course.assignments.filter(a => a.submissionState === "submitted").length,
     unknown: course.assignments.filter(a => a.submissionState === "unknown").length,
     missing: course.assignments.filter(a => a.submissionState === "missing").length,
-  })), [visibleFeed, historical, uiLanguage]);
+  })), [discovered, historical, uiLanguage]);
   const filtered = rows.filter(r => (historical || recordView === "all" || (recordView === "history" ? (r.course.archived || !r.course.semesterId) : (r.course.semesterId && !r.course.archived))) && `${r.course.moduleName} ${r.course.school}`.toLowerCase().includes(query.trim().toLowerCase()));
   const totals = filtered.reduce((s, r) => ({ total: s.total + r.total, submitted: s.submitted + r.submitted, unknown: s.unknown + r.unknown }), { total: 0, submitted: 0, unknown: 0 });
   const syncedAt = feed?.status?.syncedAt;
 
   return <section className={styles.panel} aria-label={c.title}>
     <header className={styles.header}>
-      <div><h1>{c.title}</h1><p>{c.intro}</p></div>
-      <div className={styles.sync}>{historical ? c.demoDate : syncedAt ? `${c.lastSync} ${new Date(syncedAt).toLocaleString(lang === "en" ? "en-GB" : "zh-CN", { timeZone: "Asia/Shanghai", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : c.waiting}<button className={styles.language} onClick={() => setLang(lang === "zh" ? "en" : "zh")}>{lang === "zh" ? "English" : "中文"}</button></div>
+      <div><h1>{c.title}</h1><p>{!historical && profile ? `${profile.school} · ${semester?.confirmed ? semester.label : uiText("school.auto.pendingTerm")}` : c.intro}</p></div>
+      <div className={styles.sync}>{historical ? c.demoDate : syncedAt ? `${c.lastSync} ${new Date(syncedAt).toLocaleString(lang === "en" ? "en-GB" : "zh-CN", { timeZone: "Asia/Singapore", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : c.waiting}<button className={styles.settingsLink} onClick={onOpenSettings}>{uiText("course.schoolSettings")}</button></div>
     </header>
 
-    <SchoolSettings feed={visibleFeed} lang={lang} onSaved={() => { void fetch("/api/lms/feed", { cache: "no-store" }).then(r => r.json()).then(setLatestFeed); }} />
     {!historical && <label className={styles.recordView}>{lang === "zh" ? uiText("ui.coursespanel.d575c9f5ee") : uiText("ui.coursespanel.189795a882")}<select value={recordView} onChange={e => setRecordView(e.target.value)}><option value="current">{lang === "zh" ? uiText("ui.coursespanel.42d6be3dd0") : uiText("ui.coursespanel.a139a24717")}</option><option value="history">{lang === "zh" ? uiText("ui.coursespanel.396cda143a") : uiText("ui.coursespanel.c61b937507")}</option><option value="all">{lang === "zh" ? uiText("ui.coursespanel.a63b6b827c") : uiText("ui.coursespanel.7cedd970fd")}</option></select></label>}
-    {!!visibleFeed?.syncHistory?.length && <details className={styles.settings}><summary>{lang === "zh" ? uiText("ui.coursespanel.d30b58d6e7") : uiText("ui.coursespanel.4677323363")}</summary><ul>{visibleFeed.syncHistory.slice(-10).reverse().map(s => <li key={`${s.profileId}-${s.semesterId}-${s.syncedAt}`}>{s.syncedAt} · {s.semesterId || uiText("course.legacy")} · {stateLabel(s.status)}</li>)}</ul></details>}
 
     {historical && <div className={styles.notice}><BookOpen size={18} /><div><strong>{c.demoTitle}</strong><p>{c.demoBody}</p></div><button onClick={() => setShowPreview(false)}>{c.exit}</button></div>}
     {!historical && feed?.status && feed.status.status !== "ok" && <div className={styles.notice}><div><strong>{feed.status.status === "login_required" ? c.expired : c.partial}</strong><p>{c.retry}</p></div></div>}
@@ -84,17 +84,17 @@ export default function CoursesPanel({ feed, notes, onToggleLesson, onOpenNote, 
           <button className={styles.rowButton} aria-expanded={open} aria-controls={`course-${course.noteId}`} onClick={() => setExpanded(open ? null : course.noteId)}>
             <div className={styles.code}>{code}</div>
             <div className={styles.content}><div className={styles.title}><h2>{name}</h2><span>{course.school}</span></div><p className={styles.emptyDetail}>{historical ? c.demoTitle : `${course.semesterLabel || (lang === "zh" ? uiText("ui.coursespanel.9fa5908b31") : uiText("ui.coursespanel.1aa799f77b"))} · ${course.archived ? (lang === "zh" ? uiText("ui.coursespanel.d1f810edb8") : uiText("ui.coursespanel.183a8dfcff")) : (lang === "zh" ? uiText("ui.coursespanel.42d6be3dd0") : uiText("ui.coursespanel.a139a24717"))} · ${stateLabel(course.courseStatus || "active")}`}</p>
-              <div className={styles.progressLabel}><span>{c.submission}</span><span>{total ? `${submitted} / ${total} ${c.submitted}${unknown ? ` · ${unknown} ${c.unknown}` : ""}${missing ? ` · ${missing} ${c.missing}` : ""}` : c.noAssignments}</span></div>
-              <Track value={submitted} total={total} unknown={unknown} label={`${course.moduleName} ${c.submission}`} />
+              {course.catalogOnly ? <p className={styles.emptyDetail}>{uiText("course.catalogOnly")}</p> : <><div className={styles.progressLabel}><span>{c.submission}</span><span>{total ? `${submitted} / ${total} ${c.submitted}${unknown ? ` · ${unknown} ${c.unknown}` : ""}${missing ? ` · ${missing} ${c.missing}` : ""}` : c.noAssignments}</span></div>
+              <Track value={submitted} total={total} unknown={unknown} label={`${course.moduleName} ${c.submission}`} /></>}
               {!!lessons.length && <><div className={styles.progressLabel}><span>{c.learning}</span><span>{learned} / {lessons.length} {c.learned}</span></div><Track value={learned} total={lessons.length} label={`${course.moduleName} ${c.learning}`} /></>}
             </div>
             <div className={styles.percent}>{total ? `${Math.round(submitted / total * 100)}%` : "—"}<ChevronDown size={18} style={{ transform: open ? "rotate(180deg)" : undefined }} /></div>
           </button>
           {open && <div id={`course-${course.noteId}`} className={styles.details}>
-            <div className={styles.detailHeader}><h3>{c.materials}</h3><div className={styles.actions}><button onClick={() => onAskCourse(course)}>{c.ask}</button>{!historical && <button onClick={() => onOpenNote(course.noteId)}><FileText size={15} />{c.notes}</button>}</div></div>
-            <p className={styles.emptyDetail}>{course.lessons.flatMap(l => l.materials).filter(m => m.text?.trim()).length} {c.readable} · {course.lessons.flatMap(l => l.materials).filter(m => !m.text?.trim()).length} {c.unreadable}</p>
+            <div className={styles.detailHeader}><h3>{c.materials}</h3><div className={styles.actions}>{course.catalogOnly ? <button onClick={onOpenSettings}>{uiText("course.schoolSettings")}</button> : <><button onClick={() => onAskCourse(course)}>{c.ask}</button>{!historical && <button onClick={() => onOpenNote(course.noteId)}><FileText size={15} />{c.notes}</button>}</>}</div></div>
+            {!course.catalogOnly && <p className={styles.emptyDetail}>{course.lessons.flatMap(l => l.materials).filter(m => m.text?.trim()).length} {c.readable} · {course.lessons.flatMap(l => l.materials).filter(m => !m.text?.trim()).length} {c.unreadable}</p>}
             {historical && <p className={styles.emptyDetail}>{c.demoLesson}</p>}
-            {!course.lessons.length ? <p className={styles.emptyDetail}>{c.noLessons}</p> : course.lessons.map(lesson => <div key={lesson.id} className={styles.lesson}>
+            {!course.lessons.length ? <p className={styles.emptyDetail}>{course.catalogOnly ? uiText("course.downloadNeeded") : c.noLessons}</p> : course.lessons.map(lesson => <div key={lesson.id} className={styles.lesson}>
               {lesson.number !== null ? <label><input type="checkbox" disabled={historical} checked={completedIds.has(lesson.id)} onChange={() => onToggleLesson(course.noteId, lesson.id)} /><span>{lesson.kind ?? uiText("course.lesson")} {String(lesson.number).padStart(2, "0")}{lesson.endNumber && lesson.endNumber !== lesson.number ? `–${String(lesson.endNumber).padStart(2, "0")}` : ""} · {lesson.title}</span></label> : <strong>{c.resources} · {lesson.title}</strong>}
               <ul>{lesson.materials.map(m => <li key={m.id}><a href={m.url} target="_blank" rel="noreferrer">{m.title}<ExternalLink size={12} /></a><span>{m.filePath ? c.archived : c.schoolFile}</span></li>)}</ul>
             </div>)}
@@ -102,7 +102,7 @@ export default function CoursesPanel({ feed, notes, onToggleLesson, onOpenNote, 
           </div>}
         </article>;
       })}
-      {!filtered.length && <div className={styles.empty}><BookOpen size={32} /><h2>{rows.length ? c.notFound : c.empty}</h2><p>{rows.length ? c.searchTip : c.loginTip}</p>{!rows.length && <button onClick={() => setShowPreview(true)}>{c.showDemo}</button>}</div>}
+      {!filtered.length && <div className={styles.empty}><BookOpen size={32} /><h2>{rows.length ? c.notFound : c.empty}</h2><p>{rows.length ? c.searchTip : c.loginTip}</p>{!rows.length && <div className={styles.emptyActions}><button onClick={onOpenSettings}>{uiText("course.schoolSettings")}</button><button onClick={() => setShowPreview(true)}>{c.showDemo}</button></div>}</div>}
     </div>
     <footer className={styles.footer}>{c.footer}</footer>
   </section>;

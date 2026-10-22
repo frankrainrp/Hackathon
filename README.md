@@ -1,28 +1,24 @@
 # Hackathon
 
-A local learning assistant built on [Bulter](https://github.com/frankrainrp/Bulter): retained course records, tasks, reminders and source-grounded AI.
+A local learning assistant built on [Bulter](https://github.com/frankrainrp/Bulter): course records, tasks, notes and source-grounded AI.
 
-[中文说明](README.zh-CN.md)
+[中文说明](README.zh-CN.md) · [Windows beginner guide](distribution/GETTING-STARTED.md) · [AI setup and storage](my-app/docs/local-ai.md)
 
-## Interface language and optional AI
+## First successful course answer
 
-The interface defaults to English. Select **中文** on the first AI setup screen or in **Preferences → Language**; existing course titles, notes and conversation history keep their original text. Example courses are opt-in and clearly labelled. New panels start empty.
+1. Extract the full Windows package, start `Start-Hackathon.cmd`, keep its console open and open the address it prints (default `http://127.0.0.1:3000`).
+2. Optional AI setup: choose an existing local OpenAI-compatible service, the included CPU engine with an explicitly approved model download, DeepSeek with your own key, or Skip. **Test connection** checks availability; the separately consented sample checks actual text generation. Local mode has no cloud fallback.
+3. Open **Settings → Connect your Singapore polytechnic**. Paste the direct school learning URL, choose **Recognise and save school**, then **Sign in and find courses**. Complete your own SSO/MFA. The school, latest accessible semester and course names/IDs come from the URL and authenticated school data.
+4. Newly discovered current-term courses are selected by default; existing choices are retained. Login/refresh imports selected learning records. **Download selected course files** explicitly saves and parses files locally. No daily schedule or cloud summary is enabled by these actions.
+5. **Courses** shows the detected school/term and every discovered current-term course. Expand a downloaded course, choose **Ask course AI** and check the answer's actual source. School configuration, course download choices, sync history and export remain in Settings.
 
-First launch offers **Local on this computer**, **DeepSeek API**, or **Skip for now**. The Windows CPU engine is pinned in this repository; model weights are separate and download only after an explicit choice. An existing loopback OpenAI-compatible service is also supported. DeepSeek keys are entered through the masked setup field and protected with Windows DPAPI. Provider charges and the local billing demonstration are separate.
+The interface defaults to English; choose Chinese in AI setup or **Settings → Language**. User-authored records keep their original language. Example courses are opt-in and labelled; new panels start empty.
 
-Read [AI setup and storage](my-app/docs/local-ai.md), [Windows package startup](distribution/GETTING-STARTED.md), [language verification](LOCALIZATION.md), and the [file-by-file change record](docs/CHANGE-FILES-2026-10-21.md).
+Recognition covers five Singapore polytechnics. Reviewed login adapters support exact TP/RP/SP Brightspace hosts; other recognised URLs remain metadata only. Your normal Edge session is separate: Butler retains its own encrypted session and reuses it until expired. Microsoft/school policy may require signing in again. No password or artificial extension of token expiry is used.
 
-## Configure your school first
+## Windows source quick start
 
-Open **Courses → School, semester and daily checks**. Enter your school name and HTTPS LMS entry, preview the normalized domain, and confirm the current semester and course selection. TP/RP buttons are examples, never an inferred user identity. Only selected active courses are downloaded; switching semesters retains historical records.
-
-Connections currently support the explicit `tplms.polite.edu.sg` and `rplms.polite.edu.sg` Brightspace hosts with a restricted Microsoft SSO policy. Other public custom URLs can be saved as profiles, but login, sync and schedule activation fail closed until a reviewed connection policy/adapter is added. A DNS preflight is not advertised as making an arbitrary URL safe.
-
-Daily preferences default to **09:00 Asia/Singapore**, with a configurable time and UTC alternative. Saving preferences does not enable a background task. Daily checks can miss shorter-notice deadlines.
-
-## Source quick start — Windows
-
-Use Node 24, pnpm 9, Python 3.11+ and Edge. Ollama is optional for AI; deterministic school facts do not require it.
+Use Node 24, pnpm 9, Python 3.11+ and Edge. An existing local model service is optional; deterministic school facts do not need AI.
 
 ```powershell
 cd my-app
@@ -33,31 +29,18 @@ $env:BUTLER_DB_PATH = "$PWD/ops/lms-sync/.private/butler.sqlite"
 pnpm --filter @smart-hub/web dev --hostname 127.0.0.1
 ```
 
-Open [Courses](http://127.0.0.1:3000/?view=courses) and confirm the profile. Then stop the local app, run `lms_sync.py setup`, restart it, and perform manual login/catalog/first-sync only when ready. Full commands and access boundaries are in [School profile workflow](my-app/ops/lms-sync/PROFILE_WORKFLOW.md).
+Use the Settings workflow above. The app supplies its owned worker's local bridge credential; you do not need to stop the app and run the old manual `setup` command. Advanced CLI, connection boundaries and retention details are in [School profile workflow](my-app/ops/lms-sync/PROFILE_WORKFLOW.md).
 
-The rebuilt portable launcher opens the local UI only. It does not log in, save a school session, sync or register a schedule. Existing [release ZIPs](https://github.com/frankrainrp/Hackathon/releases) are not automatically updated by this source change.
+## Data and verification
 
-## Persistence and checks
+Back up existing data before upgrading. SQLite, school profiles, extracted files and encrypted sessions remain local across restarts; browser pending edits also depend on the browser/profile and origin. Export non-secret records from School settings. See the [beginner guide](distribution/GETTING-STARTED.md#keep-your-data) for package paths. DPAPI protects credentials for the current Windows account; ordinary course files and SQLite are not encrypted vaults.
 
-School profiles, all confirmed semesters, course status/selection, sync outcomes, notes and task state remain on this computer across restarts and login expiry. Credentials are separate DPAPI-encrypted scoped session files. Export non-secret records from Courses and back up the local database/archive; retention is not a guarantee against disk loss. See the [retention and recovery guide](my-app/ops/lms-sync/PROFILE_WORKFLOW.md#retention-export-and-recovery).
+Assignment dates/status come from Brightspace, with missing facts kept unknown. Lesson checkboxes do not submit assignments. Scans need separate OCR; Quiz/forum/LTI submissions and DeepTutor are not integrated. AI task changes require review and confirmation. Provider charges are separate from the app's local billing demonstration.
 
-`install-schedule.ps1 -DryRun` generates a daily plan. Only an explicitly approved later `-Install` can register it; the app does not silently replace old hourly tasks. No deployment or external automation is enabled.
+GitHub Actions runs Node regressions, type checks and a production build on Ubuntu and Python/DPAPI tests on Windows. HTTP checks use isolated synthetic data. Real school/course evidence stays local and is excluded from fresh archives. Read [language verification](LOCALIZATION.md) and [changes by file](docs/CHANGE-FILES-2026-10-22.md).
 
-GitHub Actions runs Node regression tests, TypeScript checks and a production build on Ubuntu, plus Python/DPAPI tests on Windows. API integration tests use synthetic records in temporary storage, with no school login or private downloads.
+## Build a Windows package
 
-```mermaid
-flowchart LR
-    School[Confirmed Brightspace school] --> Worker[Daily incremental worker]
-    Worker --> API[Local authenticated bridge]
-    API --> DB[(SQLite: current and historical semesters)]
-    DB --> UI[Courses / Tasks / Calendar / Notes]
-    UI --> Export[Non-secret record export]
-    UI -->|Course question| AI[Configured AI endpoint]
-```
+From `my-app`, run `pnpm --filter @smart-hub/web build`. From the repository root, run `node tools/package-windows.cjs <new-absolute-output-folder>`. The packager uses the locally present pinned engine, frozen connector and Node, refuses to overwrite an installation and includes both beginner guides. It includes no weights, private database, key or school session. Microsoft runtime prerequisites and notices are in the beginner guide.
 
-School assignment deadlines come from Brightspace. Missing dates stay unknown; AI does not invent school deadlines. Scans still need OCR, Quiz/forum/LTI submissions are not covered, and DeepTutor is not integrated. Source and artwork remain attributed to Bulter and existing third-party notices.
-## Build the current Windows package
-
-From `my-app`, run `pnpm --filter @smart-hub/web build`. Then, from the repository root, run `node tools/package-windows.cjs <new-absolute-output-folder>`. The packager uses the locally present pinned engine and Node runtime and refuses to overwrite an existing installation. It includes no model weights, private database, key or school session. See the distribution quick start for system prerequisites.
-
-Source updates on `main` do not replace previously uploaded release assets. A binary release must be published separately; the old Releases download is not claimed to be the new build.
+Pushing `main` updates source; it does not replace old [GitHub Releases](https://github.com/frankrainrp/Hackathon/releases) ZIPs. Daily schedules require a separate explicit `install-schedule.ps1 -Install`; `-DryRun` only previews. Source/artwork attribution and existing third-party notices from Bulter are retained.

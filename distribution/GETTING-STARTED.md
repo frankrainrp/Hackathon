@@ -1,61 +1,77 @@
-# Start Hackathon Butler on Windows
+# Your first course answer with Butler
 
-Extract the entire ZIP into a writable local folder. Double-click `Start-Hackathon.cmd`, keep the console open, and open **http://127.0.0.1:3000** in your browser. No Node installation is required. Ctrl+C stops the app and its managed inference engine.
+[中文指南](GETTING-STARTED.zh-CN.md)
 
-The first screen is optional AI setup. Manual courses, tasks, calendar and notes remain available if you choose **Skip for now**. Resume using the banner or **Settings → AI connection → Open AI setup**. You can also open `/ai-setup` directly.
+## 1. Start the app
 
-English is the default interface language. Select **中文** in the first AI setup screen or **Preferences → Language** to switch instantly; the choice is remembered in that browser. Your existing course titles, notes and conversation history keep their original language. Optional example courses and practice data are clearly labelled and appear only when requested. New panels start empty.
+Extract the **entire ZIP** into a writable local folder. Double-click `Start-Hackathon.cmd` and keep its console open. Open the address printed there in your browser; the default is `http://127.0.0.1:3000`. A configured `PORT` changes that address. The launcher starts the app but does not open a browser automatically. No Node installation is needed. Ctrl+C stops Butler and its managed engine.
 
-## Local on this computer
+English is the default. Choose **中文** in AI setup or **Settings → Language** to change the interface. Your own course names, notes and conversations keep their original text.
 
-1. Choose **Local on this computer**, then the included Windows x64 CPU engine.
-2. The device check runs automatically. Capability evidence determines model preference; current free RAM, CPU backend, task context and model-folder disk space determine eligibility. Low-resource devices are directed to API setup, without a provider call. Models of 8B and below are excluded. GPU detection does not mean this CPU package uses the GPU.
-3. The default model folder is derived from this account (on Windows, `%LOCALAPPDATA%/Butler/models`), or the explicit `BUTLER_MODELS_DIR` override. Paste a local path and click **Use this folder**, or restore **Use default folder**. Custom stores and existing weights are preserved. Choose an eligible model; lower-resource eligible alternatives remain selectable. Context follows model metadata and free RAM, with manual options above each model’s task floor. Source-based recommendations are labelled and are not a benchmark on this device.
-4. Review the displayed size, explicitly check the download/license choice, then click **Download selected model**. Model weights are not in this ZIP and are never downloaded automatically. Partial files stay in this folder when canceled or interrupted. Select the same model/folder and choose **Resume** after restarting. SHA-256 verification runs before use.
-5. Click **Start engine**, continue, **Test connection**, then explicitly send the sample. The sample proves that this connection can generate text; it does not measure reasoning or tool accuracy.
-6. Start with a short lesson question in Chat. Review any proposed task changes before confirming them. After restarting Butler, reopen setup and start the engine again.
+## 2. Connect AI, or skip it
 
-Already use Ollama or another local OpenAI-compatible service? Choose the existing-service option, enter a loopback `/v1` URL, click **Find installed models**, and choose one. Start/install models in that service yourself. Butler does not manage its lifecycle. Explicit legacy mode also preserves existing primary/alternate `OLLAMA_*` network routes. In Local mode there is no cloud fallback.
+The optional setup has four steps: **Choose → Prepare → Test → Use**. **Skip for now** keeps tasks, notes and school sync available. Reopen setup from **Settings → AI connection → Open AI setup**, or `/ai-setup`.
 
-## DeepSeek API
+If you already run a local model, use it without downloading another one:
 
-Open the linked official platform yourself, obtain your own key and review pricing/balance. Paste it in the masked field and click **Save protected key**. The key is protected using Windows DPAPI for the current Windows account, separate from study exports and browser storage. Test connection before explicitly sending the sample, which may incur provider charges.
+1. **Choose:** select **Local on this computer**.
+2. **Prepare:** choose **I already run Ollama or an OpenAI-compatible local service**. Enter that service's loopback `/v1` URL, choose **Find installed models**, then select its actual model. Keep that service running; Butler does not manage it.
+3. Continue to **Test** and choose **Test connection**. This checks the connection and available model.
+4. To check actual generation, select **Send one sample request to my selected provider**, then **Send example: “Explain a study plan”**. A successful sample proves text generation, not course knowledge or reasoning accuracy. Leave optional cloud OCR off unless you separately want it.
+5. Continue to **Use** and choose **Start using Butler**.
 
-The official OpenAI-compatible base is `https://api.deepseek.com`; setup offers `deepseek-flash` and `deepseek-v4-pro`, verified on 21 October 2026. See [DeepSeek's first-call guide](https://api-docs.deepseek.com/). No account creation, login or payment is performed by Butler. Cloud requests contain your submitted prompt and selected course context, not hardware inventory.
+Other choices are optional:
 
-## Recovery
+- **Included Windows CPU engine:** device detection recommends eligible models using capability evidence and available RAM/disk. Models of 8B and below are excluded from new recommendations; devices without an eligible model are directed to API setup. The default folder follows the current account (`%LOCALAPPDATA%/Butler/models`), or `BUTLER_MODELS_DIR`. You can choose another folder. Context depends on the selected model and free RAM. Review size/license, explicitly consent and choose **Download selected model**, then **Start engine**. No weights download automatically. After restarting, start the engine again. GPU detection does not make this CPU package use the GPU.
+- **DeepSeek API:** obtain your own key and review charges on the linked official platform. **Save protected key** stores it with Windows DPAPI for this Windows account. Sending a sample or question can incur provider charges. Choosing this mode does not create an account or payment.
 
-- **Workspace saving:** drafts are written to this browser and a durable retry queue before server sync. Rapid typing is combined into fewer server requests. If the server is unavailable, keep using the same browser/profile; pending edits take priority over an older server snapshot when reopening and retry automatically. A visible warning provides Retry. If both stores are unavailable, keep the page open and retry before leaving.
+Local mode has no cloud fallback. You can keep using an existing local service even if the device recommendation suggests API.
 
-- **Interrupted download:** select the original folder and model, confirm, then Resume. A damaged partial file is discarded after checksum failure. No automatic restart download occurs.
-- **Disk full:** free space or use a larger local folder. To preserve partial bytes when moving, stop/cancel first and move the relevant `.gguf.part` file yourself; Butler never moves your files automatically.
-- **Low RAM / stopped engine:** close other applications, select a smaller model or reduce context, then start again. This package uses system RAM, not GPU VRAM. Very small models have limited reasoning and tool reliability.
-- **Invalid key (401):** replace the saved key using the official platform. **No balance (402):** review your account there yourself, or switch to Local. **Rate limit (429):** wait, then retry with fewer parallel requests. **Server overload (503):** retry later.
-- **Offline:** verified local text inference can work without internet. Downloads, DeepSeek, school sync and cloud OCR need their respective connections. Optional browser semantic-model assets may need an initial download.
-- **Key fails after copying the app:** DPAPI ciphertext belongs to its Windows account. Save the key again on the new account/computer. Do not copy it into text configuration.
-- **Engine probe fails / missing DLL:** the official engine requires the Microsoft Visual C++ v14 x64 runtime and Windows 10/11 UCRT. The Microsoft runtime is a system prerequisite and is **not redistributed** here because the publisher's redistribution entitlement was not established. Obtain it yourself from [Microsoft's official downloads](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist). Butler does not install it or change drivers. Alternatively, use an already working local service or DeepSeek. This package was tested on the authorized computer with its existing runtime; a clean Windows installation was not tested.
-- **Port in use:** close your other Butler console or start with a different `PORT`. The launcher never stops an unrelated process. The managed engine uses loopback port 18639.
+## 3. Connect school in Settings
 
-## Scanned documents are separate
+Open **Settings → Connect your Singapore polytechnic**. On an empty Courses page, **School settings** opens this same section.
 
-Mistral OCR is a separate cloud capability. It is off until you explicitly opt in within AI setup. It still requires `MISTRAL_API_KEY` in the server environment and uploads the selected scanned document. The included text model does not provide offline OCR. No local OCR adapter is shipped. Text PDFs and manual notes remain usable separately.
+1. Paste your direct **School learning URL**, then choose **Recognise and save school**. You do not need to type a school name, platform, course ID or semester.
+2. Choose **Sign in and find courses**. Complete your own SSO/MFA in the separate Edge window; choose “Stay signed in” if offered. The frozen connector needs no Python installation.
+3. Butler finds the latest accessible semester from school evidence and lists its courses. First discovery selects all courses in that term; later refreshes preserve your choices and course statuses. Ambiguous terms stay pending rather than being guessed.
+4. Login/refresh imports learning records for selected active courses. **Refresh semester and learning records** reuses the saved session while valid. **Download selected course files** is the separate action that saves and parses materials locally. Choose it when you want course-source answers.
+5. Wait for the completion or error message. Saving, sign-in, refresh and download do not enable a daily schedule or request a cloud AI summary.
 
-## Data and existing installations
+School setup, course selection, sync history and record export live in **Settings**. **Courses** is a compact overview: it shows the detected school/semester and every discovered course in the latest term, including courses whose files have not been downloaded. Historical imported courses remain available in its history filter. Existing manual deselections are retained and do not hide a discovered course from the overview.
 
-This new folder starts with no personal records. `data/butler.sqlite` stores durable application state and the LMS inbox; `data/ai/` stores nonsecret setup, protected ciphertext and download journals; school profiles and separate session/archive directories are under `data/lms/`. Browser IndexedDB is scoped to its browser/origin. Models live in the chosen folder. Do not delete these when upgrading.
+URL recognition covers five Singapore polytechnics. Reviewed login adapters cover the exact TP/RP/SP Brightspace hosts (`tplms.polite.edu.sg`, `rplms.polite.edu.sg`, `splms.polite.edu.sg`). Other recognised URLs can be saved but cannot connect until their adapter is available. A shared POLITEMall URL alone does not identify your school.
 
-The original repair workspace was not reset, cleaned or overwritten. Do not overwrite an existing installation or its data with this package. Stop the old app and make your own backup before any future migration; no private database or school session was copied for this task. The profile, semester, submission-fact and confirmation-card code is retained. Existing task Active/history presentation behavior was not redesigned.
+Butler retains its own encrypted school session and reuses it across runs until expired. Your normal Edge tabs use a separate session. Microsoft/school policy can require another login; Butler does not change token expiry or save your password.
 
-## Package limits and notices
+## 4. Ask about an actual course
 
-Bundled target: Windows x64 **CPU**. Node, the actual pinned llama.cpp engine, LLVM OpenMP and notices are present. No CUDA/Vulkan/Metal runtime or model weights are bundled; other platforms can build the source and use a loopback compatible service, but no other-platform package was produced. See `THIRD-PARTY-NOTICES.md`, `licenses/` and `PACKAGE-MANIFEST.json`. Nothing is uploaded or published by these launch/package scripts.
+Open **Courses**, expand a downloaded course and check its material list. **Archived locally** indicates a saved file. The readable-text count tells you whether AI has extracted source text; a scanned document or image ZIP can be saved successfully without readable text.
 
-## URL-only Singapore polytechnic connection
+Choose **Ask course AI** and ask, for example: “Explain this lesson and tell me which source you used.” Check the named source and school link in the answer. A discovered course without imported records directs you back to School settings; it does not fabricate progress or materials.
 
-Open Courses and expand **Connect your Singapore polytechnic**. Paste the direct school learning URL and choose **Recognise and save school**. School identity is derived from the URL; platform is derived at use time. There are no school-name, platform, semester-label, course-ID/name, daily-time or timezone inputs in this flow.
+Lesson checkboxes record your learning progress. They do not submit school assignments. School submission status and dates come from Brightspace; missing information stays unknown. Quiz, forum and external LTI submission tracking is not covered.
 
-Choose **Sign in and find courses** to open the existing Edge installation for your own SSO/MFA. The included frozen connector needs no Python installation. It reads enrollment IDs/names and official semester/start-date metadata, then selects the latest accessible started term and retains older terms and selections. A saved session can be refreshed with **Find latest semester and courses**. Cancel stops only this discovery worker. Ambiguous or unavailable semester evidence stays pending rather than guessing. A selected local model may interpret nonstandard labels only when its output matches source text and actual enrollment IDs; discovery never calls a cloud model. No materials or schedules are activated by discovery.
+## If something goes wrong
 
-Recognition covers the five Singapore polytechnics. Reviewed login connections currently cover the exact TP/RP/SP Brightspace hosts; other recognised URLs remain saved with a clear adapter limitation. A shared POLITEMall URL alone cannot identify an institution. Edge and the existing Microsoft runtime prerequisite are required; browsers are not downloaded automatically.
+| What you see | What to do |
+| --- | --- |
+| Local address will not open | Keep the launcher console open and use its printed address. Check its startup error before changing browser permissions. |
+| Port already in use | Close your other Butler console or choose another `PORT`. The launcher never stops unrelated processes. |
+| Model connection fails | Ensure your existing service is running, its loopback `/v1` URL is right and its actual model is selected. A cold model may need time to load. |
+| School asks you to sign in | Use **Sign in and find courses** again. Existing records and files remain. |
+| Delivery failed after download | Retry the operation with Butler running. This does not necessarily mean the school session expired. |
+| No courses / pending semester | Check the direct school URL and sign-in result, then refresh. Butler needs authenticated semester evidence. |
+| Course visible but no readable sources | Download its files in Settings. Image-only archives/scans need a separate OCR step. |
+| Interrupted model download | Select the same folder/model, explicitly consent and choose **Resume**. Verification runs before use. |
+| Low RAM or disk full | Close other apps, choose an eligible lower-resource model/context, or use an existing service. Free disk space or select another local folder. |
+| Missing engine DLL | Install the required Visual C++ v14 x64 runtime from [Microsoft](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist), or use an existing service. The Microsoft runtime is not redistributed here. No driver/runtime installer runs automatically. |
+| Workspace save warning | Keep the same browser/profile open and choose Retry. Edits enter a local retry queue before server sync; if both stores fail, do not leave until saved. |
+| API key/balance/rate error | Review the provider account yourself or return to Local. Butler does not purchase credits. |
 
-After discovering a real accessible term, login/refresh continues by importing lesson links, assignments and announcements for selected active courses into the workspace. This metadata import does not download course files, request a cloud AI summary or enable a schedule. The server supplies its own worker a private process credential, so this path does not require the old manual bridge setup command. If no courses are selected or the term cannot be confirmed, the interface reports that condition rather than claiming import succeeded.
+## Keep your data
+
+`data/butler.sqlite` holds durable workspace/LMS state, `data/ai/` holds AI settings/protected keys/download journals, and `data/lms/` holds school profiles, encrypted sessions and course files. Models live in the chosen model folder. Browser pending edits are tied to that browser/profile and origin. Stop the app and back up existing data before upgrading; never replace an existing data folder with a fresh package's empty state. Export non-secret learning records from School settings. Session files are separate from exports; copying encrypted keys/sessions to another Windows account does not make them usable there.
+
+Cloud OCR is separate and off until explicitly enabled. It requires a configured Mistral key and uploads the selected scanned document; the text model does not provide offline OCR. No local OCR adapter is bundled. Optional browser semantic-model assets may need an initial download.
+
+This package targets Windows x64 CPU with the pinned llama.cpp engine and Node. It includes no model weights, private state, browser or Microsoft runtime. A clean Windows installation has not been tested. Read `THIRD-PARTY-NOTICES.md`, `licenses/` and `PACKAGE-MANIFEST.json`. The scripts do not upload or publish anything.

@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
-import { appFetch as fetch, uiText, localizeExternal } from "@/lib/messages";
+import { appFetch as fetch, uiText, localizeExternal, stateLabel } from "@/lib/messages";
 import { activeProfile, emptyProfiles, supportsSchoolConnection, type ProfileSettings, type ProfileInput } from "@/lib/lms-profile";
 import type { LmsFeed } from "@/lib/lms-sync";
 import styles from "./CoursesPanel.module.css";
 
 type Job = { profileId: string; state: "running" | "complete" | "error"; message: string };
-export default function SchoolSettings({ onSaved }: { feed: LmsFeed | null; lang: "zh" | "en"; onSaved: () => void }) {
+export default function SchoolSettings({ feed, initialOpen = false, onSaved }: { feed: LmsFeed | null; initialOpen?: boolean; onSaved: () => void }) {
+  const [expanded, setExpanded] = useState(initialOpen);
   const [settings, setSettings] = useState<ProfileSettings>(emptyProfiles);
   const [entryUrl, setEntryUrl] = useState(""), [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false), [job, setJob] = useState<Job | null>(null);
@@ -50,7 +51,7 @@ export default function SchoolSettings({ onSaved }: { feed: LmsFeed | null; lang
     const { semesters: _history, activeSemesterId: _active, origin: _origin, domain: _domain, confirmedAt: _at, ...fields } = profile;
     void send({ confirm: true, profile: { ...fields, semester: { ...semester, courses: semester.courses.map(c => c.id === id ? { ...c, ...update } : c) } } });
   }
-  return <details className={styles.settings}>
+  return <details className={styles.settings} open={expanded} onToggle={e => setExpanded(e.currentTarget.open)}>
     <summary>{uiText("school.auto.title")}</summary>
     <p>{uiText("school.auto.intro")}</p>
     <form onSubmit={event => { event.preventDefault(); void send({ entryUrl, confirm: true }); }}>
@@ -72,6 +73,7 @@ export default function SchoolSettings({ onSaved }: { feed: LmsFeed | null; lang
     </>}
     <div role="status" aria-live="polite"><p>{localizeExternal(message)}</p>{job && <p>{localizeExternal(job.message)}</p>}</div>
     <p>{uiText("school.auto.retention")}</p>
+    {!!feed?.syncHistory?.length && <details><summary>{uiText("course.syncHistory")}</summary><ul>{feed.syncHistory.slice(-10).reverse().map(s => <li key={`${s.profileId}-${s.semesterId}-${s.syncedAt}`}>{s.syncedAt} · {s.semesterId || uiText("course.legacy")} · {stateLabel(s.status)}</li>)}</ul></details>}
     <a href="/api/lms/settings?export=1" download>{uiText("ui.schoolsettings.3dd7932ba8")}</a>
   </details>;
 }
