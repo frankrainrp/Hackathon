@@ -15,6 +15,9 @@
 .courseSetting label { flex:1; display:block; }
 .courseSetting input { margin-right:8px; }
 .courseSetting select { width:130px; }
+.weeklyOptions { margin:22px 0; }
+.settings .weeklyToggle { flex-direction:row; align-items:flex-start; gap:10px; }
+.weeklyToggle input { width:18px; height:18px; flex-shrink:0; margin-top:2px; accent-color:var(--color-accent); }
 .recordView { max-width:320px; font-size:12px; margin:20px 0; }
 @media(max-width:768px) { .settings input:not([type=checkbox]),.settings select { font-size:16px; } .settingsGrid { grid-template-columns:1fr; } .courseSetting { align-items:stretch; flex-direction:column; } .courseSetting select { width:100%; } }
 .header { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:24px; }
@@ -40,9 +43,9 @@
 .legend { display:flex; gap:20px; color:var(--color-text-muted); font-size:11px; margin-bottom:8px; }
 .legend span { display:flex; align-items:center; gap:6px; }
 .legend i { width:7px; height:7px; display:block; border-radius:2px; }
-.doneDot, .fill { background:var(--color-accent); }
+.doneDot, .fill { background:var(--color-info); }
 .unknownDot, .uncertain { background:var(--color-warning); }
-.todoDot { background:var(--color-border); }
+.todoDot, .missing { background:var(--color-danger); }
 .row { border-bottom:1px solid var(--color-border-soft); }
 .rowButton { width:100%; display:grid; grid-template-columns:58px minmax(0,1fr) 64px; gap:22px; align-items:center; text-align:left; border:0; background:transparent; padding:23px 0; color:inherit; }
 .rowButton:hover .title h2 { text-decoration:underline; text-underline-offset:4px; }
@@ -52,8 +55,7 @@
 .title > span { font-size:11px; color:var(--color-text-muted); white-space:nowrap; }
 .progressLabel { display:flex; justify-content:space-between; gap:12px; font-size:11px; line-height:1.6; color:var(--color-text-muted); margin:9px 0 5px; }
 .track { display:flex; height:8px; background:var(--color-border-soft); border-radius:3px; overflow:hidden; }
-.fill, .uncertain { height:100%; display:block; }
-.uncertain { opacity:.55; }
+.fill, .uncertain, .missing { height:100%; display:block; flex-shrink:0; }
 .percent { display:flex; align-items:center; justify-content:flex-end; gap:10px; font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; }
 .percent svg { flex-shrink:0; color:var(--color-text-muted); transition:transform .2s; }
 .details { padding:0 0 24px 80px; }

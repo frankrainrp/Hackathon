@@ -6,13 +6,17 @@
 
 ## 完成第一次课程问答
 
-1. 完整解压 Windows 包，运行 `Start-Hackathon.cmd`，保持控制台开启，在浏览器打开它打印的实际网址（默认 `http://127.0.0.1:3000`）。
+1. 完整解压 Windows 包，双击 **Butler.exe**，内置运行时启动后自动打开 Edge。保持控制台开启，默认网址为 `http://127.0.0.1:3000`。EXE 需和随附文件夹放在一起，`Start-Hackathon.cmd` 保留为手工打开浏览器的备用入口。
 2. 可选 AI 设置：接入已有本地 OpenAI 兼容服务，或明确批准后下载模型使用内置 CPU 引擎，或自备密钥使用 DeepSeek，也可以跳过。**Test connection** 检查连接；另行同意并发送示例才验证实际生成。本地模式不回退云端。
 3. 打开 **Settings → Connect your Singapore polytechnic**，只提供学校直接学习网址，点击 **Recognise and save school**，再点 **Sign in and find courses**，自行完成 SSO/MFA。学校名称由网址识别，最新可访问学期和课程 ID/名称来自真实学校数据。
 4. 新发现的当前学期课程默认选中，后续保留已有选择。登录/刷新导入已选课程学习记录，**Download selected course files** 才明确下载并解析文件。不会因此启用每日计划或云端摘要。
 5. **Courses** 简洁显示已识别的学校、学期和该学期全部已发现课程。展开已下载课程，点击 **Ask course AI**，核对回答的实际来源。学校配置、下载课程选择、同步历史和导出放在 Settings。
 
 界面默认英文，可在 AI 设置或 **Settings → Language** 切换中文；个人课程、笔记和历史对话保持原文。示例数据需主动打开并有标记，新面板为空。
+
+默认 dark 改为中性透明质感。Courses 默认当前学期，已交、未交、未知合在同一条三色进度条。普通 Chat 可按课程名或编号检索，软件提供可点击来源并用 Edge 打开。笔记写入仍先审核建议、确认后保存。
+
+学校设置可选择启用每周检查，读取最新学期全部在读课程，只将确认未交的作业加入 Tasks，不下载课件或调用云端 AI。未知状态不当作未交作业，不进入当前任务队列；没有未交作业时明确说明。运行包开启期间自动检查，错过到期检查时下次启动补做，不安装 Windows 计划任务。新包默认关闭，需使用者启用。
 
 网址识别涵盖新加坡五所 polytechnic；可登录适配器目前支持 TP/RP/SP 的明确 Brightspace 域名，其他已识别入口只保存元数据。普通 Edge 会话独立；Butler 加密保存自己的会话，未过期时跨运行复用。Microsoft/学校策略仍可能要求再次登录，软件不保存密码或修改凭证到期时间。
 
@@ -44,3 +48,5 @@ GitHub Actions 在 Ubuntu 运行 Node 回归、类型检查和生产构建，在
 在 `my-app` 运行 `pnpm --filter @smart-hub/web build`，再于仓库根目录运行 `node tools/package-windows.cjs <新的绝对输出目录>`。打包使用本机已有固定引擎、冻结连接器和 Node，拒绝覆盖安装目录，包含中英文指南，不包含模型权重、私人数据库、密钥或学校会话。系统运行库要求与许可见新手指南。
 
 推送 `main` 只更新源码，不替换旧的 [GitHub Releases](https://github.com/frankrainrp/Hackathon/releases) ZIP。每日计划需单独明确执行 `install-schedule.ps1 -Install`，`-DryRun` 仅预览。保留 Bulter 的原框架、美术归因与已有第三方许可声明。
+
+`node tools/audit-portability.cjs --source` 检查源码；`node tools/audit-portability.cjs <新包目录>` 检查包内全部普通文件。打包清除应用编译产物中的本项目绝对路径，检测私人状态、权重和常见凭据格式。未修改的第三方二进制里的编译源码/调试位置单独列出，不作为个人配置或构建电脑的运行依赖。扫描不解码压缩的第三方内部载荷，也不宣称能识别所有秘密格式。

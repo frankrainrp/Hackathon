@@ -15,6 +15,7 @@ import {
   Image as ImageIcon, File as FileIcon, Paperclip, Repeat,
 } from "lucide-react";
 import type { DdlItem, DdlAttachment, TaskPriority, TaskStatus } from "@/lib/types";
+import { isActionableTask } from "@/lib/task-visibility";
 import type { TaskViewId } from "./layout/TasksRail";
 import { EmptyTasks, EmptyFilter } from "./EmptyIllustrations";
 import { useIsMobile } from "@/lib/use-is-mobile";
@@ -56,6 +57,7 @@ function filterByView(ddls: DdlItem[], view: TaskViewId): DdlItem[] {
   today.setHours(0, 0, 0, 0);
   return ddls.filter((d) => {
     const status = effectiveStatus(d);
+    if (["active", "in_progress", "upcoming"].includes(view) && !isActionableTask(d)) return false;
     if (view === "active") return status !== "done";
     if (view === "in_progress") return status === "in_progress";
     if (view === "completed") return status === "done";

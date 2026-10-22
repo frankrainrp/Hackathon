@@ -192,7 +192,7 @@ async def sync(config, metadata_only=False, catalog_only=False):
     snapshot = {"school": config["school"], "baseUrl": config["base_url"], "timezone": config["timezone"],
                 "profileId": config["profile_id"], "semesterId": config["semester_id"], "semesterLabel": config["semester_label"],
                 "syncedAt": datetime.now(timezone.utc).isoformat(), "status": "ok", "warnings": [],
-                "courses": [], "enableAiBrief": config.get("enable_ai_brief", True)}
+                "courses": [], "metadataOnly": metadata_only, "enableAiBrief": config.get("enable_ai_brief", True)}
     ledger = Ledger(private / "sync.sqlite")
     try:
         saved_path = session_path(config)
@@ -233,7 +233,7 @@ async def sync(config, metadata_only=False, catalog_only=False):
                     snapshot["status"] = "partial" if snapshot["warnings"] else "ok"
                     atomic_json(private / "last-snapshot.json", snapshot)
                     try:
-                        push(config, snapshot)
+                        push(config, {**snapshot, "metadataOnly": True})
                     except Exception:
                         LOG.info("Initial metadata delivery pending; downloads continue and final delivery retries.")
                     for course in snapshot["courses"]:
@@ -311,10 +311,17 @@ def main():
     parser.add_argument("--task-executable")
     parser.add_argument("--expected-profile")
     parser.add_argument("--no-ai-brief", action="store_true", help="Import school facts without requesting an AI summary")
+    parser.add_argument("--all-active-courses", action="store_true", help="Read metadata for all active courses without changing download selections")
     args = parser.parse_args()
     config = load_config(args.config.resolve(), allow_pending=args.command in ("setup", "login", "catalog", "session-check", "status"))
     if args.no_ai_brief:
         config["enable_ai_brief"] = False
+    if args.all_active_courses:
+        if args.command != "inspect":
+            raise ValueError("All-course checks are metadata only.")
+        profile = next(p for p in config["profileSettings"]["profiles"] if p["id"] == config["profile_id"])
+        semester = next(s for s in profile["semesters"] if s["id"] == config["semester_id"])
+        config["courses"] = [{"id": c["id"], "name": c["name"]} for c in semester["courses"] if c["status"] == "active"]
     if args.expected_profile and args.expected_profile != config["profile_id"]:
         raise ValueError("The scheduled school profile changed. Review and approve a separate schedule for that school.")
     if args.command == "schedule-plan":

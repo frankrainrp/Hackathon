@@ -15,6 +15,7 @@ import { useT as useCopyLanguage } from "@/lib/i18n";
 import React, { useRef, useEffect, useMemo, useState } from "react";
 import { FileText, Image as ImageIcon, File as FileIcon, Brain, ChevronDown, Copy, RefreshCw, Check as CheckIcon, TrendingUp, LayoutDashboard, Workflow } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import SourceLink from "./SourceLink";
 import remarkGfm from "remark-gfm";
 import type { ChatMessage, ProcessingPipeline as Pipeline, UploadedFile, DdlItem } from "@/lib/types";
 import type { PendingBatch } from "@/lib/pending";
@@ -491,7 +492,7 @@ function ButlerBubble({
             <TypingDots />
           ) : (
             <>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{content || " "}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ href, children }) => <SourceLink href={href}>{children}</SourceLink> }}>{content || " "}</ReactMarkdown>
               {isTyping && (
                 <span
                   style={{

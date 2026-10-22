@@ -10,6 +10,24 @@ from test_school_profile import fixture
 
 
 class DiscoveryTests(unittest.IsolatedAsyncioTestCase):
+    def test_weekly_inspect_reads_unselected_active_courses_without_enabling_downloads(self):
+        import lms_sync
+        with tempfile.TemporaryDirectory() as folder:
+            config = {"private_dir": folder, "profile_id": "p", "semester_id": "s", "enable_ai_brief": True,
+                      "courses": [{"id": "a", "name": "A"}], "profileSettings": {"profiles": [{"id": "p", "semesters": [{"id": "s", "courses": [
+                          {"id": "a", "name": "A", "selected": True, "status": "active"},
+                          {"id": "b", "name": "B", "selected": False, "status": "active"},
+                          {"id": "c", "name": "C", "selected": False, "status": "paused"}]}]}]}}
+            worker = AsyncMock(return_value=0)
+            with patch.object(sys, "argv", ["lms_sync", "--config", str(Path(folder) / "config.json"), "--no-ai-brief", "--all-active-courses", "inspect"]), \
+                 patch.object(lms_sync, "load_config", return_value=config), patch.object(lms_sync, "sync", worker), \
+                 patch("logging.handlers.RotatingFileHandler", return_value=logging.NullHandler()), patch("logging.basicConfig"):
+                self.assertEqual(lms_sync.main(), 0)
+            self.assertEqual([c["id"] for c in worker.call_args.args[0]["courses"]], ["a", "b"])
+            self.assertFalse(config["profileSettings"]["profiles"][0]["semesters"][0]["courses"][1]["selected"])
+            self.assertFalse(worker.call_args.args[0]["enable_ai_brief"])
+            self.assertTrue(worker.call_args.kwargs["metadata_only"])
+
     def test_inspect_cli_disables_cloud_brief_for_owned_worker(self):
         import lms_sync
         with tempfile.TemporaryDirectory() as folder:

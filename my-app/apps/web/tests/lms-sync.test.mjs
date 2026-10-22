@@ -5,6 +5,23 @@ import { lmsSnapshotSchema } from '../src/lib/lms-schema.ts';
 
 const now = Date.parse('2026-10-01T12:00:00Z');
 const empty = () => ({ revision: 0, ddls: [], notes: [], sessions: [], messages: [] });
+
+test('metadata refresh retains unchanged downloaded text, but never reuses text for a changed file', () => {
+  const data = snapshot();
+  const source = { id: 'file', title: 'Lesson source', url: 'https://rplms.polite.edu.sg/material', modifiedAt: 'v1',
+    text: 'Previously downloaded source', filePath: 'relative/archive.pdf', textStatus: 'ready' };
+  data.courses[0].lessons = [{ id: 'lesson', number: 1, title: 'Lesson', materials: [source] }];
+  const first = buildLmsFeed(data, empty(), now);
+  const metadata = structuredClone(data);
+  metadata.metadataOnly = true;
+  metadata.courses[0].lessons[0].materials = [{ id: source.id, title: source.title, url: source.url, modifiedAt: 'v1' }];
+  const refreshed = buildLmsFeed(metadata, first, now + 1000);
+  assert.equal(refreshed.courses[0].lessons[0].materials[0].text, source.text);
+  assert.equal(refreshed.courses[0].lessons[0].materials[0].filePath, source.filePath);
+  metadata.courses[0].lessons[0].materials[0].modifiedAt = 'v2';
+  const changed = buildLmsFeed(metadata, refreshed, now + 2000);
+  assert.equal(changed.courses[0].lessons[0].materials[0].text, undefined);
+});
 function snapshot(state = 'missing') {
   return {
     school: 'Republic Polytechnic', baseUrl: 'https://rplms.polite.edu.sg', timezone: 'Asia/Singapore',
@@ -34,7 +51,9 @@ test('hourly retries deduplicate, preserve manual work, then reflect a real subm
 test('unknown status never becomes a missing-work reminder; outages preserve facts', () => {
   const unknown = buildLmsFeed(snapshot('unknown'), empty(), now);
   assert.equal(unknown.messages.some(m => m.id.includes('-reminder-')), false);
-  const confirmed = buildLmsFeed(snapshot('submitted'), unknown, now + 1000);
+  assert.equal(unknown.ddls.length, 0);
+  assert.equal(buildLmsFeed(snapshot('submitted'), empty(), now).ddls.length, 0);
+  const confirmed = buildLmsFeed(snapshot('submitted'), buildLmsFeed(snapshot(), empty(), now), now + 1000);
   const next = buildLmsFeed(snapshot('unknown'), confirmed, now + 2000);
   assert.equal(next.ddls[0].completed, true);
   const expired = { ...snapshot(), status: 'login_required', courses: [], warnings: ['Login expired'] };
@@ -52,10 +71,10 @@ test('foreign school links and invalid timezones are rejected', () => {
 });
 
 test('new sync messages use the selected language while school names and source text remain intact', () => {
-  const data=snapshot('unknown');data.school='学校原名';data.courses[0].moduleName='课程原名';data.courses[0].assignments[0].title='作业原文 $&';
+  const data=snapshot('missing');data.school='学校原名';data.courses[0].moduleName='课程原名';data.courses[0].assignments[0].title='作业原文 $&';
   const en=buildLmsFeed(data,empty(),now,'en'),zh=buildLmsFeed(data,empty(),now,'zh');
   assert.equal(en.ddls[0].taskName,'作业原文 $&');assert.equal(zh.ddls[0].taskName,en.ddls[0].taskName);
-  assert.match(en.messages[0].content,/needs verification|unverified/i);assert.match(zh.messages[0].content,/待核实/);
+  assert.match(en.messages[0].content,/school sync|Week 1|作业原文/i);assert.match(zh.messages[0].content,/作业原文/);
 });
 
 test('course detail survives an outage and school refresh preserves learner progress', () => {

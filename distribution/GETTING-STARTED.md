@@ -4,7 +4,7 @@
 
 ## 1. Start the app
 
-Extract the **entire ZIP** into a writable local folder. Double-click `Start-Hackathon.cmd` and keep its console open. Open the address printed there in your browser; the default is `http://127.0.0.1:3000`. A configured `PORT` changes that address. The launcher starts the app but does not open a browser automatically. No Node installation is needed. Ctrl+C stops Butler and its managed engine.
+Extract the **entire ZIP** into a writable local folder. Double-click **Butler.exe** and keep its console open. It starts the bundled runtime and opens Microsoft Edge when the app is ready. The address printed in the console defaults to `http://127.0.0.1:3000`; a configured `PORT` changes it. `Start-Hackathon.cmd` remains a manual-browser fallback. No Node installation is needed. Ctrl+C stops Butler and its managed engine. Keep the EXE beside its companion folders; it is a portable launcher, not a single-file installer.
 
 English is the default. Choose **中文** in AI setup or **Settings → Language** to change the interface. Your own course names, notes and conversations keep their original text.
 
@@ -39,6 +39,8 @@ Open **Settings → Connect your Singapore polytechnic**. On an empty Courses pa
 
 School setup, course selection, sync history and record export live in **Settings**. **Courses** is a compact overview: it shows the detected school/semester and every discovered course in the latest term, including courses whose files have not been downloaded. Historical imported courses remain available in its history filter. Existing manual deselections are retained and do not hide a discovered course from the overview.
 
+To check for new unsubmitted work automatically, enable **Check for missing assignments weekly** in School settings. While the packaged app is running, it reads metadata for all active courses in the latest term every seven days, reuses its saved school session and updates Tasks without duplicates. It does not download their files, call cloud AI or submit assignments. If no work is missing, the result says so. A missed due check runs after the next app start. Closing Butler stops this in-app timer; no Windows scheduled task is installed. Fresh packages have this option off until enabled by their user.
+
 URL recognition covers five Singapore polytechnics. Reviewed login adapters cover the exact TP/RP/SP Brightspace hosts (`tplms.polite.edu.sg`, `rplms.polite.edu.sg`, `splms.polite.edu.sg`). Other recognised URLs can be saved but cannot connect until their adapter is available. A shared POLITEMall URL alone does not identify your school.
 
 Butler retains its own encrypted school session and reuses it across runs until expired. Your normal Edge tabs use a separate session. Microsoft/school policy can require another login; Butler does not change token expiry or save your password.
@@ -48,6 +50,10 @@ Butler retains its own encrypted school session and reuses it across runs until 
 Open **Courses**, expand a downloaded course and check its material list. **Archived locally** indicates a saved file. The readable-text count tells you whether AI has extracted source text; a scanned document or image ZIP can be saved successfully without readable text.
 
 Choose **Ask course AI** and ask, for example: “Explain this lesson and tell me which source you used.” Check the named source and school link in the answer. A discovered course without imported records directs you back to School settings; it does not fabricate progress or materials.
+
+You can also name the course directly in ordinary Chat, for example “Explain C304 lesson one”. Butler retrieves its locally extracted sources. App-supplied **Course sources** are clickable even when the model omits Markdown links; selecting a source opens its original HTTPS page in Microsoft Edge. This works with the chosen local or API provider and does not require a provider call just to open a link. You may ask the AI to save course notes; review its proposed note before confirming.
+
+Courses defaults to the current semester. Submitted, missing and unknown assignment states share one bar, using blue, red and amber segments. Lesson completion remains a separate text count. The default dark theme uses neutral translucent surfaces; colour and other personalisation controls remain in Settings.
 
 Lesson checkboxes record your learning progress. They do not submit school assignments. School submission status and dates come from Brightspace; missing information stays unknown. Quiz, forum and external LTI submission tracking is not covered.
 

@@ -13,6 +13,7 @@ import { courseCopy } from "@/lib/course-copy";
 import { demoCourses } from "@/lib/course-demo";
 import { activeProfile, type ProfileSettings } from "@/lib/lms-profile";
 import { overviewCourses, type OverviewCourse } from "@/lib/course-overview";
+import SourceLink from "./SourceLink";
 
 interface Props {
   feed: LmsFeed | null;
@@ -26,13 +27,14 @@ interface Props {
 
 type Row = { course: OverviewCourse; total: number; submitted: number; unknown: number; missing: number };
 
-function Track({ value, total, unknown = 0, label }: { value: number; total: number; unknown?: number; label: string }) {
+function Track({ value, total, unknown = 0, missing = 0, label }: { value: number; total: number; unknown?: number; missing?: number; label: string }) {
   const uiLanguage = useCopyLanguage().lang;
   const { lang } = useT();
   const c = courseCopy[lang];
   const pct = total ? Math.round(value / total * 100) : 0;
-  return <div className={styles.track} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={total || 100} aria-valuenow={value} aria-valuetext={total ? `${value} / ${total}${unknown ? ` · ${unknown} ${c.unknownItems}` : ""}` : c.noData}>
+  return <div className={styles.track} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={total || 100} aria-valuenow={value} aria-valuetext={total ? `${value} ${c.submitted} · ${missing} ${c.missing} · ${unknown} ${c.unknown}` : c.noData}>
     <span className={styles.fill} style={{ width: `${pct}%` }} />
+    {!!missing && <span className={styles.missing} style={{ width: `${missing / total * 100}%` }} />}
     {!!unknown && <span className={styles.uncertain} style={{ width: `${unknown / total * 100}%` }} />}
   </div>;
 }
@@ -85,8 +87,8 @@ export default function CoursesPanel({ feed, profiles, notes, onOpenSettings, on
             <div className={styles.code}>{code}</div>
             <div className={styles.content}><div className={styles.title}><h2>{name}</h2><span>{course.school}</span></div><p className={styles.emptyDetail}>{historical ? c.demoTitle : `${course.semesterLabel || (lang === "zh" ? uiText("ui.coursespanel.9fa5908b31") : uiText("ui.coursespanel.1aa799f77b"))} · ${course.archived ? (lang === "zh" ? uiText("ui.coursespanel.d1f810edb8") : uiText("ui.coursespanel.183a8dfcff")) : (lang === "zh" ? uiText("ui.coursespanel.42d6be3dd0") : uiText("ui.coursespanel.a139a24717"))} · ${stateLabel(course.courseStatus || "active")}`}</p>
               {course.catalogOnly ? <p className={styles.emptyDetail}>{uiText("course.catalogOnly")}</p> : <><div className={styles.progressLabel}><span>{c.submission}</span><span>{total ? `${submitted} / ${total} ${c.submitted}${unknown ? ` · ${unknown} ${c.unknown}` : ""}${missing ? ` · ${missing} ${c.missing}` : ""}` : c.noAssignments}</span></div>
-              <Track value={submitted} total={total} unknown={unknown} label={`${course.moduleName} ${c.submission}`} /></>}
-              {!!lessons.length && <><div className={styles.progressLabel}><span>{c.learning}</span><span>{learned} / {lessons.length} {c.learned}</span></div><Track value={learned} total={lessons.length} label={`${course.moduleName} ${c.learning}`} /></>}
+              <Track value={submitted} total={total} unknown={unknown} missing={missing} label={`${course.moduleName} ${c.submission}`} /></>}
+              {!!lessons.length && <div className={styles.progressLabel}><span>{c.learning}</span><span>{learned} / {lessons.length} {c.learned}</span></div>}
             </div>
             <div className={styles.percent}>{total ? `${Math.round(submitted / total * 100)}%` : "—"}<ChevronDown size={18} style={{ transform: open ? "rotate(180deg)" : undefined }} /></div>
           </button>
@@ -96,9 +98,9 @@ export default function CoursesPanel({ feed, profiles, notes, onOpenSettings, on
             {historical && <p className={styles.emptyDetail}>{c.demoLesson}</p>}
             {!course.lessons.length ? <p className={styles.emptyDetail}>{course.catalogOnly ? uiText("course.downloadNeeded") : c.noLessons}</p> : course.lessons.map(lesson => <div key={lesson.id} className={styles.lesson}>
               {lesson.number !== null ? <label><input type="checkbox" disabled={historical} checked={completedIds.has(lesson.id)} onChange={() => onToggleLesson(course.noteId, lesson.id)} /><span>{lesson.kind ?? uiText("course.lesson")} {String(lesson.number).padStart(2, "0")}{lesson.endNumber && lesson.endNumber !== lesson.number ? `–${String(lesson.endNumber).padStart(2, "0")}` : ""} · {lesson.title}</span></label> : <strong>{c.resources} · {lesson.title}</strong>}
-              <ul>{lesson.materials.map(m => <li key={m.id}><a href={m.url} target="_blank" rel="noreferrer">{m.title}<ExternalLink size={12} /></a><span>{m.filePath ? c.archived : c.schoolFile}</span></li>)}</ul>
+              <ul>{lesson.materials.map(m => <li key={m.id}><SourceLink href={m.url}>{m.title}<ExternalLink size={12} /></SourceLink><span>{m.filePath ? c.archived : c.schoolFile}</span></li>)}</ul>
             </div>)}
-            {!!course.assignments.length && <><h3 className={styles.assignmentHeading}>{c.schoolAssignments}</h3><ul className={styles.assignments}>{course.assignments.map(a => <li key={a.id}><a href={a.url} target="_blank" rel="noreferrer">{a.title}<ExternalLink size={12} /></a><span>{c[a.submissionState === "submitted" ? "submitted" : a.submissionState === "missing" ? "missing" : "unknown"]}</span></li>)}</ul></>}
+            {!!course.assignments.length && <><h3 className={styles.assignmentHeading}>{c.schoolAssignments}</h3><ul className={styles.assignments}>{course.assignments.map(a => <li key={a.id}><SourceLink href={a.url}>{a.title}<ExternalLink size={12} /></SourceLink><span>{c[a.submissionState === "submitted" ? "submitted" : a.submissionState === "missing" ? "missing" : "unknown"]}</span></li>)}</ul></>}
           </div>}
         </article>;
       })}

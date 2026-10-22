@@ -8,6 +8,9 @@ for(const key of Object.keys(env))if(key.startsWith('DEEPSEEK_'))delete env[key]
 const check=net.createServer();check.once('error',()=>{console.error(`Port ${port} is in use. Close the other Butler window/server or select another PORT. No process was stopped.`);process.exitCode=1;});
 check.listen(port,'127.0.0.1',()=>check.close(()=>{
  const child=spawn(process.execPath,[path.join(root,'app/apps/web/server.js')],{cwd:path.join(root,'app/apps/web'),env,windowsHide:true,stdio:'inherit'});
+ const weeklyTick=()=>{fetch(env.BUTLER_APP_URL+'/api/lms/settings',{method:'POST',headers:{origin:env.BUTLER_APP_URL,'content-type':'application/json'},body:JSON.stringify({action:'weekly-check'}),signal:AbortSignal.timeout(5000)}).catch(()=>{});};
+ const firstCheck=setTimeout(weeklyTick,5000),weeklyTimer=setInterval(weeklyTick,60000);
+ child.once('exit',()=>{clearTimeout(firstCheck);clearInterval(weeklyTimer);});
  let stopping=false;const stop=()=>{if(!stopping){stopping=true;child.kill();}};
  process.on('SIGINT',stop);process.on('SIGTERM',stop);
  child.on('exit',code=>{process.exitCode=code||0;});child.on('error',()=>{console.error('Could not start Butler. Extract the complete package into a writable local folder.');process.exitCode=1;});

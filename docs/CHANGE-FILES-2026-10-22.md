@@ -1,5 +1,30 @@
 # Changes by file · 22 October 2026
 
+## Study workspace, weekly checks and portable EXE
+
+| File | Change and purpose |
+| --- | --- |
+| `components/CoursesPanel.tsx`, `CoursesPanel.module.css` | Keep the current-semester default and place submitted, missing and unknown assignment segments on one bar; lesson learning stays a text count. Course/assignment source links use the Edge opener. Paths in this section are relative to `my-app/apps/web/src/` unless stated otherwise. |
+| `app/globals.css`, `lib/theme.ts` | Make default dark neutral/translucent with legible text and preserve optional colour/retro preferences. |
+| `lib/course-context.ts`, `app/api/chat/route.ts` | Recognise course codes/titles in ordinary chat and append deterministic source links from retrieved records. Explicit note-saving requests can use the existing reviewed tool pipeline. |
+| `components/ChatCanvas.tsx`, `SourceLink.tsx` | Make Markdown citations actionable with a shared source control and visible failure feedback. |
+| `lib/browser-links.ts`, `app/api/open-link/route.ts` | Resolve installed Edge on the current machine, require a local origin and public HTTPS URL, reject local/file/credential/command targets and spawn without a shell. |
+| `lib/weekly-plan.ts`, `weekly-check.ts` | Persist per-school opt-in, seven-day due time, results and exact missing/unknown counts. Automatic checks use metadata only and never open sign-in, download files or request cloud summaries. |
+| `lib/lms-worker.ts`, `app/api/lms/settings/route.ts` | Expose weekly controls and run all-active-course metadata reads without changing download selections. Unknown submission warnings count as a partial record result rather than a failed login/download. |
+| `components/SchoolSettings.tsx`, `lib/locales/en.ts`, `zh.ts` | Provide weekly opt-in/Check now, next check time, no-missing-work result and separate unknown-state information in both languages. |
+| `lib/lms-schema.ts`, `lms-sync.ts` | Label metadata-only snapshots and preserve unchanged downloaded source text through refresh; changed file versions cannot reuse stale text. Only confirmed missing assignments create new tasks; existing task edits/history remain retained. |
+| `lib/task-visibility.ts`, `components/TasksPanel.tsx`, `app/page.tsx` | Keep unknown/archived school records outside active/upcoming queues while retaining them in All and keeping counts consistent. |
+| `my-app/ops/lms-sync/lms_sync.py`, `test_discovery.py` | Add a metadata-only all-active flag, preserve explicit course selections and mark initial/final metadata pushes correctly. The frozen worker is rebuilt locally. |
+| `distribution/ButlerLauncher.cs`, `Launch.cjs` | Add a portable EXE that starts the sibling bundled runtime and opens Edge when ready; the owned app launcher checks opted-in weekly work while running. |
+| `tools/portable-paths.cjs`, `audit-portability.cjs`, `package-windows.cjs` | Normalize compiled application build symbols, resolve runtime tracing relative to the package and globally inspect fresh files for device-bound configuration/private state. Vendor compiler source locations remain unmodified and explicitly classified. |
+| `tools/smoke-package.cjs` | Launch the extracted ZIP through its actual EXE, verify a fresh empty school/weekly configuration and reject unsafe browser targets, alongside the frozen HTTP bridge and provider/state checks. |
+| `tests/browser-links.test.mjs`, `course-context.test.mjs`, `weekly-plan.test.mjs`, `portability.test.mjs`, `lms-sync.test.mjs`, `lms-profile.test.mjs` | Cover URL/spawn isolation, natural course lookup, source formatting, weekly due/deduplication, task eligibility, device-path audit and retained source/history semantics. Paths are relative to `my-app/apps/web/`. |
+| `README.md`, `README.zh-CN.md`, `distribution/GETTING-STARTED*.md` | Document EXE startup, actual Settings workflow, natural course questions, Edge sources, optional weekly checks and the audit's precise coverage. |
+
+Local live evidence: an ordinary chat request naming C304 (no manually selected course scope) retrieved its sources and answered through the existing local provider. An all-active metadata check read six current-term courses and found 16 confirmed missing assignments plus 11 unverified submission states, retaining all three previously extracted C304 documents. Unknown states are not treated as confirmed missing work. Private course/session/model evidence stays outside Git and fresh archives. No new weights, paid inference, cloud OCR, automatic assignment submission or Windows schedule registration was used. Rendered browser inspection remains policy-blocked; earlier desktop walkthrough results are user-reported, and the user deferred narrow-screen testing.
+
+Validation: 69 Node regressions, 30 Python checks, the 1,635-key copy audit, TypeScript/production build and isolated school/provider HTTP integrations pass. The exact EXE ZIP is tested after extraction in a new directory. The global audit reports no actionable device-bound configuration/private-state/credential-pattern findings and separately records 24 upstream binaries containing compiler-source locations; it does not modify their bytes. Existing unrelated bounce-easing warnings in the global stylesheet are outside this palette/layout change.
+
 ## Settings and course overview follow-up
 
 School connection belongs in Settings; Courses should show the detected school, semester and all discovered courses without presenting a setup form. The user also confirmed the existing local model passed both connection and sample generation in the AI setup UI.

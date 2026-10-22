@@ -42,13 +42,14 @@ test('confirmed profiles and course statuses survive store restart and semester 
 const source = (semesterId = 'term1', state = 'submitted') => ({ school: 'School', baseUrl: 'https://school.example.edu', timezone: 'Asia/Singapore', profileId: 'school1', semesterId, semesterLabel: semesterId, syncedAt: '2026-10-20T00:00:00Z', status: 'ok', warnings: [], enableAiBrief: false, courses: [{ id: '101', moduleName: 'Module A', courseStatus: 'active', lessons: [], announcements: [], assignments: [{ id: '1', title: 'Assignment', dueAt: null, submissionState: state, url: 'https://school.example.edu/assignment/1' }] }] });
 test('login expiry, repeated delivery and new semesters retain facts and task state', () => {
   const empty = { revision: 0, ddls: [], notes: [], messages: [], sessions: [] };
-  const first = buildLmsFeed(source(), empty);
+  const first = buildLmsFeed(source('term1', 'missing'), empty);
   first.ddls[0].notes = 'my work';
   first.ddls[0].status = 'in_progress';
-  const retry = buildLmsFeed(source(), JSON.parse(JSON.stringify(first)));
+  const retry = buildLmsFeed(source('term1', 'missing'), JSON.parse(JSON.stringify(first)));
   assert.equal(retry.ddls.length, 1); assert.equal(retry.syncHistory.length, 1);
   assert.equal(retry.ddls[0].status, 'in_progress');
-  const expired = buildLmsFeed({ ...source(), courses: [], status: 'login_required' }, retry);
+  const submitted = buildLmsFeed(source(), retry);
+  const expired = buildLmsFeed({ ...source(), courses: [], status: 'login_required' }, submitted);
   assert.equal(expired.courses[0].assignments[0].submissionState, 'submitted');
   assert.equal(expired.ddls[0].notes, 'my work');
   const second = buildLmsFeed(source('term2', 'missing'), expired);
@@ -75,8 +76,8 @@ test('SQLite feed and manual task state survive separate application processes',
 
 test('profile and semester IDs cannot alias another retained record scope', () => {
   const empty = { revision: 0, ddls: [], notes: [], messages: [], sessions: [] };
-  const first = buildLmsFeed({ ...source('x'), profileId: 'school1-term' }, empty);
-  const second = buildLmsFeed(source('term-x'), first);
+  const first = buildLmsFeed({ ...source('x', 'missing'), profileId: 'school1-term' }, empty);
+  const second = buildLmsFeed(source('term-x', 'missing'), first);
   assert.equal(second.ddls.length, 2);
   assert.equal(second.courses.length, 2);
   assert.notEqual(second.courses[0].noteId, second.courses[1].noteId);

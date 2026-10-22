@@ -9,6 +9,7 @@ const manifest=JSON.parse(fs.readFileSync(path.join(packageRoot,'PACKAGE-MANIFES
 const runtime=path.join(packageRoot,'runtime/node.exe');
 execFileSync(path.join(packageRoot,'runtime/llama/llama-server.exe'),['--version'],{windowsHide:true,stdio:'pipe'});
 execFileSync(path.join(packageRoot,'ops/lms-sync/ButlerSync.exe'),['--help'],{windowsHide:true,stdio:'pipe'});
+execFileSync(path.join(packageRoot,'Butler.exe'),['--check'],{windowsHide:true,stdio:'pipe'});
 if(fs.existsSync(path.join(packageRoot,'data')))throw new Error('Fresh ZIP must contain no runtime/private state');
 let requestCount=0,workerPushes=0;
 const workerToken='synthetic-packaged-worker-credential-only';
@@ -25,7 +26,7 @@ async function frozenBridge(){
 }
 let child,exited,port,origin,logs='';
 const delay=ms=>new Promise(ok=>setTimeout(ok,ms));
-async function start(){child=spawn(runtime,[path.join(packageRoot,'Launch.cjs')],{cwd:packageRoot,windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,PORT:String(port)}});exited=new Promise(ok=>child.once('exit',ok));child.stdout.on('data',d=>logs+=d);child.stderr.on('data',d=>logs+=d);for(let i=0;i<100;i++){if(child.exitCode!==null)throw new Error('Package exited: '+logs);try{const res=await fetch(origin+'/api/ai/setup');if(res.ok)return;}catch{}await delay(150);}throw new Error('Packaged server did not become ready: '+logs);}
+async function start(){child=spawn(path.join(packageRoot,'Butler.exe'),['--no-browser'],{cwd:packageRoot,windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,PORT:String(port)}});exited=new Promise(ok=>child.once('exit',ok));child.stdout.on('data',d=>logs+=d);child.stderr.on('data',d=>logs+=d);for(let i=0;i<100;i++){if(child.exitCode!==null)throw new Error('Package exited: '+logs);try{const res=await fetch(origin+'/api/ai/setup');if(res.ok)return;}catch{}await delay(150);}throw new Error('Packaged server did not become ready: '+logs);}
 // Direct launcher termination on Windows does not signal children; stop only the exact owned process tree.
 async function stop(){if(child&&child.exitCode===null){execFileSync('taskkill.exe',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'});await exited;}}
 async function api(action,data={}){const response=await fetch(origin+'/api/ai/setup',action?{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({action,...data})}:{});const result=await response.json();if(!response.ok)throw new Error(JSON.stringify(result));return result;}
@@ -33,6 +34,8 @@ async function api(action,data={}){const response=await fetch(origin+'/api/ai/se
  await new Promise(ok=>mock.listen(0,'127.0.0.1',ok));const listener=net.createServer();await new Promise(ok=>listener.listen(0,'127.0.0.1',ok));port=listener.address().port;await new Promise(ok=>listener.close(ok));origin=`http://127.0.0.1:${port}`;
  await frozenBridge();
  await start();let initial=await api();if(initial.settings.onboarding!=='new')throw new Error('Fresh onboarding state missing');
+ const school=await(await fetch(origin+'/api/lms/settings')).json();if(school.settings.profiles.length||school.weekly.enabled)throw Error('Private school or schedule leaked into the fresh package');
+ const invalidLink=await fetch(origin+'/api/open-link',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({url:'file:///private'})});if(invalidLink.status!==400)throw Error('Unsafe browser link accepted');
  const home=await(await fetch(origin+'/')).text();if(!home.includes('<html lang="en"')||!home.includes('Butler — Your study workspace'))throw new Error('Packaged default language is not English');
  const localized=await fetch(origin+'/api/ai/setup',{method:'POST',headers:{origin,'content-type':'application/json','x-butler-language':'zh'},body:JSON.stringify({action:'download',id:'qwen3-8-q4',confirm:false})});if(localized.status!==400||!/\p{Script=Han}/u.test((await localized.json()).error)||requestCount)throw new Error('Packaged localized consent guard failed');
  const html=await(await fetch(origin+'/ai-setup')).text();if(!html.includes('/_next/static/'))throw new Error('Packaged assets missing');const asset=html.match(/(?:src|href)="([^" ]*\/_next\/static\/[^" ]+)"/)[1].replaceAll('&amp;','&');if(!(await fetch(origin+asset)).ok)throw new Error('Packaged static asset failed');

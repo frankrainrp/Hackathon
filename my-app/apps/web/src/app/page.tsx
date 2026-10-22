@@ -79,6 +79,7 @@ import { workspaceState } from "@/lib/workspace-state";
 import type { SyncStatus } from "@/lib/state-sync";
 import { mergeLmsTasks, mergeLmsRows, mergeLmsNotes, type LmsFeed } from "@/lib/lms-sync";
 import { emptyProfiles, type ProfileSettings } from "@/lib/lms-profile";
+import { isActionableTask } from "@/lib/task-visibility";
 import { playSound } from "@/lib/sound";
 import RecurringTasksManager from "@/components/RecurringTasksManager";
 import {
@@ -1141,10 +1142,10 @@ export default function HomePage() {
     const effStatus = (d: DdlItem) => d.status ?? (d.completed ? "done" : "todo");
     return {
       all: ddls.length,
-      active: ddls.filter((d) => effStatus(d) !== "done").length,
-      in_progress: ddls.filter((d) => effStatus(d) === "in_progress").length,
+      active: ddls.filter((d) => isActionableTask(d) && effStatus(d) !== "done").length,
+      in_progress: ddls.filter((d) => isActionableTask(d) && effStatus(d) === "in_progress").length,
       upcoming: ddls.filter(
-        (d) => effStatus(d) !== "done" && d.dueDate && new Date(d.dueDate) >= today,
+        (d) => isActionableTask(d) && effStatus(d) !== "done" && d.dueDate && new Date(d.dueDate) >= today,
       ).length,
       completed: ddls.filter((d) => effStatus(d) === "done").length,
     };

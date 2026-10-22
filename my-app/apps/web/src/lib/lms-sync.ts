@@ -71,13 +71,26 @@ export function buildLmsFeed(snapshot: LmsSnapshot, previous: LmsFeed, now = Dat
   const addMessage = (id: string, content: string) => {
     if (!messages.has(id)) messages.set(id, { id, sessionId, role: "assistant", content, timestamp: new Date(now) });
   };
-  for (const course of snapshot.courses) {
+  for (const incoming of snapshot.courses) {
+    const course = { ...incoming };
+    if (snapshot.metadataOnly) {
+      const stored = courses.get(`${prefix}${course.id}-index`);
+      const materials = new Map(stored?.lessons.flatMap(l => l.materials).map(m => [m.id, m]) || []);
+      course.lessons = course.lessons.map(l => ({ ...l, materials: l.materials.map(m => {
+        const old = materials.get(m.id);
+        return old && old.url === m.url && (old.modifiedAt ?? null) === (m.modifiedAt ?? null)
+          ? { ...m, filePath: old.filePath, text: old.text, textStatus: old.textStatus } : m;
+      }) }));
+    }
     for (const assignment of course.assignments) {
       const id = `${prefix}${course.id}-assignment-${assignment.id}`;
       const { dueDate, dueTime } = localDue(assignment.dueAt, snapshot.timezone);
       const old = tasks.get(id);
       // Unreadable submission status must not regress the last confirmed status.
       const state = assignment.submissionState === "unknown" && old?.lmsSubmissionState ? old.lmsSubmissionState : assignment.submissionState;
+      // New Tasks are actionable missing work, not inferred from an unknown/submitted record.
+      // Existing tasks are retained so their edits/history and later submission updates survive.
+      if (!old && state !== "missing") continue;
       const done = state === "submitted";
       const task: DdlItem = { id, taskName: assignment.title, source: course.moduleName, weight: null,
         dueDate, dueTime, completed: done, status: done ? "done" : "todo", isGroupWork: false,

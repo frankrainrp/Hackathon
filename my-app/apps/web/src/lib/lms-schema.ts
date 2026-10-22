@@ -11,6 +11,7 @@ export const lmsSnapshotSchema = z.object({
   timezone: z.string().max(80).refine(v => { try { new Intl.DateTimeFormat("en", { timeZone: v }); return true; } catch { return false; } }),
   syncedAt: z.string().datetime({ offset: true }),
   enableAiBrief: z.boolean().default(true),
+  metadataOnly: z.boolean().optional(),
   status: z.enum(["ok", "partial", "login_required", "error"]),
   warnings: z.array(z.string().max(1000)).max(200),
   courses: z.array(z.object({
