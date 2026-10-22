@@ -22,16 +22,24 @@
 
 ## Windows 源码启动
 
-准备 Node 24、pnpm 9、Python 3.11+ 和 Edge。可选接入已有本地模型；学校确定性数据不依赖 AI。
+先根据文件判断你拿到的是哪一种包：
+
+| 文件夹中的内容 | 启动方式 |
+| --- | --- |
+| `Butler.exe`、`Launch.cjs`、`app/`、`runtime/` | 运行包：直接双击 **Butler.exe**，不需要执行 pnpm 或源码安装命令。 |
+| `README.md`、`Start-Source.cmd`、`my-app/`、`tools/` | 源码仓库或源码 ZIP：使用 **Start-Source.cmd**。 |
+
+GitHub ZIP 和源码 ZIP 都会带一层外部文件夹。请进入**同时包含 `README.md` 与 `my-app` 的内层项目目录**，不要停在解压的上一层。例如项目在 `demo/Hackathon` 时，`demo` 本身不是项目目录。前一步报错后，必须停止，不能继续执行后面的命令。
+
+准备 Node.js **24**、pnpm **9**、Python **3.11 或 3.12** 和 Microsoft Edge，然后双击 **Start-Source.cmd**。启动器会自行定位项目，首次安装锁定的 Node/Python 程序依赖，检查 SQLite 原生模块，服务就绪后再打开 Edge。保持控制台开启。首次缺少程序依赖时需要联网，不下载模型权重，也不发送 AI 请求。
+
+如果已经在内层项目目录打开 PowerShell，只需执行：
 
 ```powershell
-cd my-app
-pnpm install --frozen-lockfile
-python -m venv ops/lms-sync/.venv
-./ops/lms-sync/.venv/Scripts/python.exe -m pip install -r ops/lms-sync/requirements.txt -c ops/lms-sync/requirements-ci.txt
-$env:BUTLER_DB_PATH = "$PWD/ops/lms-sync/.private/butler.sqlite"
-pnpm --filter @smart-hub/web dev --hostname 127.0.0.1
+.\Start-Source.cmd
 ```
+
+也可以从其他目录用完整路径调用启动器。仅诊断依赖、不启动服务时使用 `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-source.ps1 -Check`。需要更换端口时，在 `Start-Source.cmd` 后添加 `-Port 3001`。源码入口用于开发；自动每周检查计时器由 Windows 运行包提供。
 
 使用上述 Settings 流程即可。应用为自己的连接器提供本机桥接凭证，不必停止服务运行旧的手工 `setup` 命令。高级 CLI、访问范围及备份恢复见 [School profile workflow](my-app/ops/lms-sync/PROFILE_WORKFLOW.md)。
 
@@ -45,7 +53,7 @@ GitHub Actions 在 Ubuntu 运行 Node 回归、类型检查和生产构建，在
 
 ## 构建 Windows 包
 
-在 `my-app` 运行 `pnpm --filter @smart-hub/web build`，再于仓库根目录运行 `node tools/package-windows.cjs <新的绝对输出目录>`。打包使用本机已有固定引擎、冻结连接器和 Node，拒绝覆盖安装目录，包含中英文指南，不包含模型权重、私人数据库、密钥或学校会话。系统运行库要求与许可见新手指南。
+打包不仅需要 `pnpm build`，还必须先构建**冻结的学校连接器**。完整步骤见 [Windows 构建指南](docs/BUILD-WINDOWS.md)，包括锁定连接器依赖、PyInstaller、前置条件与最终 ZIP 验证。新包不包含模型权重、私人数据库、密钥或学校会话。
 
 推送 `main` 只更新源码，不替换旧的 [GitHub Releases](https://github.com/frankrainrp/Hackathon/releases) ZIP。每日计划需单独明确执行 `install-schedule.ps1 -Install`，`-DryRun` 仅预览。保留 Bulter 的原框架、美术归因与已有第三方许可声明。
 

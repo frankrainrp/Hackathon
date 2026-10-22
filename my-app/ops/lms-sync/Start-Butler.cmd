@@ -1,4 +1,4 @@
 @echo off
 cd /d "%~dp0"
-powershell.exe -NoProfile -File "%~dp0portable-launch.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0portable-launch.ps1"
 if errorlevel 1 pause

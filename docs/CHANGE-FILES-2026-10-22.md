@@ -252,3 +252,20 @@ Validation: 55 Node and 23 Python checks pass, with production build, copy audit
 | `tools/smoke-package.cjs` | Test the exact ZIP from another working directory with stale inherited paths, empty records, English/Retro, occupied port and real service ID discovery/restart. |
 
 Validation: 75 Node regressions, interface-copy audit (1,631 matching language keys), TypeScript, production build, isolated AI/school HTTP suites and native lifecycle with a locally generated 115 KiB untrained GGUF pass. Exact ZIP, local cleanup and preserved-data restart results are recorded in the local release receipt. No new model weights or paid requests are used. Rendered desktop/mobile acceptance remains unverified; portable startup checks do not certify other physical devices or operating systems.
+
+
+## Submission entry-point correction
+
+The README began with `cd my-app` without establishing the inner project directory. From an extraction parent this fails, and manually pasted later lines can create `ops` outside the project. The old school shortcut also appended `my-app/ops/lms-sync` to its own already nested directory.
+
+| File | Correction |
+| --- | --- |
+| `Start-Source.cmd`, `tools/start-source.ps1` | Anchor source startup to the script location, select the declared pnpm version from the workspace, check prerequisites, stop failed dependency commands, install locked application dependencies, verify native SQLite and open Edge only after server readiness. No model installation or AI request occurs. |
+| `README.md`, `README.zh-CN.md` | Distinguish runtime/source archives, identify the inner project folder and replace fragile multi-command onboarding with the source entry point. |
+| `docs/BUILD-WINDOWS.md` | Supply the missing frozen-connector/PyInstaller build prerequisites and a guarded complete package/exact-ZIP verification sequence. |
+| `my-app/ops/lms-sync/portable-launch.ps1`, `my-app/ops/lms-sync/Start-Butler.cmd` | Route legacy shortcuts to the correct source or runtime entry for their respective archive layouts; keep Demo as an alias without seeding records. |
+| `my-app/ops/lms-sync/test_source_launcher.py` | Exercise actual Windows PowerShell from another working directory, incomplete-source failure, missing prerequisites and legacy root resolution without installers or servers. |
+| `tools/smoke-source.cjs` | Extract the exact source ZIP and run first-time locked Node/Python installation, real readiness, dependency checks and empty English/Retro HTTP state from the extraction parent. |
+| `tools/smoke-package.cjs` | Also validate the packaged legacy shortcut through its real `-Check` path. |
+
+Validation: the previous README first command reproduces failure from an extraction parent. The corrected source archive passes first dependency installation and actual source startup there, including the native SQLite check. All three new PowerShell regressions pass. The app's PDF endpoint also returns SAMEORIGIN/self framing policy for its embedded reader. Final archive/CI evidence is recorded locally. Browser visual access remains denied by the saved origin policy, so rendered desktop/mobile acceptance is not claimed.

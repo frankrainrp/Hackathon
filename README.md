@@ -22,16 +22,24 @@ Recognition covers five Singapore polytechnics. Reviewed login adapters support 
 
 ## Windows source quick start
 
-Use Node 24, pnpm 9, Python 3.11+ and Edge. An existing local model service is optional; deterministic school facts do not need AI.
+First identify your download:
+
+| Files in the folder | Start here |
+| --- | --- |
+| `Butler.exe`, `Launch.cjs`, `app/`, `runtime/` | Runtime ZIP: double-click **Butler.exe**. Do not run pnpm or the source instructions. |
+| `README.md`, `Start-Source.cmd`, `my-app/`, `tools/` | Source checkout/ZIP: use **Start-Source.cmd**. |
+
+GitHub ZIPs and source ZIPs contain an outer folder. Open the **inner project folder containing `README.md` and `my-app`**, not its extraction parent. For example, if that folder is `demo/Hackathon`, `demo` itself is not the project. Do not continue running later commands after an earlier command fails.
+
+Install Node.js **24**, pnpm **9**, Python **3.11 or 3.12**, and Microsoft Edge, then double-click **Start-Source.cmd**. The launcher locates its own project directory, installs the locked Node/Python dependencies on first run, checks native SQLite, and opens Edge after the source server is ready. Keep its console open. It installs no model weights and sends no AI requests. Internet access is needed for missing application dependencies.
+
+From PowerShell already opened in the inner project folder:
 
 ```powershell
-cd my-app
-pnpm install --frozen-lockfile
-python -m venv ops/lms-sync/.venv
-./ops/lms-sync/.venv/Scripts/python.exe -m pip install -r ops/lms-sync/requirements.txt -c ops/lms-sync/requirements-ci.txt
-$env:BUTLER_DB_PATH = "$PWD/ops/lms-sync/.private/butler.sqlite"
-pnpm --filter @smart-hub/web dev --hostname 127.0.0.1
+.\Start-Source.cmd
 ```
+
+The launcher also works when invoked by its full path from another directory. Diagnose prerequisites without starting the server with `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-source.ps1 -Check`. Choose a different source port by adding `-Port 3001` to `Start-Source.cmd`. The packaged weekly timer belongs to the Windows runtime; source mode is for development.
 
 Use the Settings workflow above. The app supplies its owned worker's local bridge credential; you do not need to stop the app and run the old manual `setup` command. Advanced CLI, connection boundaries and retention details are in [School profile workflow](my-app/ops/lms-sync/PROFILE_WORKFLOW.md).
 
@@ -45,7 +53,7 @@ GitHub Actions runs Node regressions, type checks and a production build on Ubun
 
 ## Build a Windows package
 
-From `my-app`, run `pnpm --filter @smart-hub/web build`. From the repository root, run `node tools/package-windows.cjs <new-absolute-output-folder>`. The packager uses the locally present pinned engine, frozen connector and Node, refuses to overwrite an installation and includes both beginner guides. It includes no weights, private database, key or school session. Microsoft runtime prerequisites and notices are in the beginner guide.
+Packaging requires a production web build **and a frozen school connector**, not just `pnpm build`. Follow [Build a Windows package](docs/BUILD-WINDOWS.md) from a fresh source checkout. The guide includes the locked connector dependencies, PyInstaller, prerequisites and exact ZIP verification. The package includes no model weights, private database, key or school session.
 
 Pushing `main` updates source; it does not replace old [GitHub Releases](https://github.com/frankrainrp/Hackathon/releases) ZIPs. Daily schedules require a separate explicit `install-schedule.ps1 -Install`; `-DryRun` only previews. Source/artwork attribution and existing third-party notices from Bulter are retained.
 

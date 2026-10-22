@@ -10,6 +10,7 @@ const runtime=path.join(packageRoot,'runtime/node.exe');
 execFileSync(path.join(packageRoot,'runtime/llama/llama-server.exe'),['--version'],{windowsHide:true,stdio:'pipe'});
 execFileSync(path.join(packageRoot,'ops/lms-sync/ButlerSync.exe'),['--help'],{windowsHide:true,stdio:'pipe'});
 execFileSync(path.join(packageRoot,'Butler.exe'),['--check'],{windowsHide:true,stdio:'pipe'});
+execFileSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',path.join(packageRoot,'ops/lms-sync/portable-launch.ps1'),'-Check'],{cwd:scratch,windowsHide:true,stdio:'pipe'});
 if(fs.existsSync(path.join(packageRoot,'data')))throw new Error('Fresh ZIP must contain no runtime/private state');
 let requestCount=0,workerPushes=0;
 const workerToken='synthetic-packaged-worker-credential-only';
