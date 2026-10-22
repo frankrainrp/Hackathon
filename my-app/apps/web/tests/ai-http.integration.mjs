@@ -12,13 +12,13 @@ import { setTimeout as delay } from 'node:timers/promises';
 const web=fileURLToPath(new URL('../',import.meta.url)), folder=mkdtempSync(join(tmpdir(),'butler-ai-http-'));
 const next=createRequire(import.meta.url).resolve('next/dist/bin/next');
 const socket=netServer();await new Promise(ok=>socket.listen(0,'127.0.0.1',ok));const port=socket.address().port;await new Promise(ok=>socket.close(ok));
-const origin=`http://127.0.0.1:${port}`; let child,exited,logs='',requests=[],failure=0;
+const origin=`http://127.0.0.1:${port}`; let child,exited,logs='',requests=[],failure=0,availableModels=['synthetic-local','deepseek-flash','deepseek-v4-pro'];
 const payload={version:1,title:'Synthetic panel',emoji:'S',description:'Synthetic fixture',sources:[{id:'s',kind:'static',data:[{label:'A',value:1}]}],source:{id:'s',kind:'static',data:[{label:'A',value:1}]},blocks:[{id:'b',type:'markdown',title:'Synthetic',markdown:'Synthetic text'}],squads:[{title:'Synthetic squad',question:'Synthetic question'}],summary:'Synthetic finding',rows:[{label:'A',value:1}],columns:[{key:'label',label:'Label'},{key:'value',label:'Value'}]};
 const mock=createServer(async(req,res)=>{
   let raw='';for await(const chunk of req)raw+=chunk;
   requests.push({path:req.url,authorization:req.headers.authorization,body:raw?JSON.parse(raw):null});
   if(failure){res.writeHead(failure,{'content-type':'application/json'});res.end(JSON.stringify({error:{message:'sk-synthetic-provider-error-must-be-redacted',type:'fixture'}}));return;}
-  if(req.url.endsWith('/models')){res.setHeader('content-type','application/json');res.end(JSON.stringify({object:'list',data:['synthetic-local','deepseek-flash','deepseek-v4-pro'].map(id=>({id,object:'model',created:0,owned_by:'fixture'}))}));return;}
+  if(req.url.endsWith('/models')){res.setHeader('content-type','application/json');res.end(JSON.stringify({object:'list',data:availableModels.map(id=>({id,object:'model',created:0,owned_by:'fixture'}))}));return;}
   const body=JSON.parse(raw);
   if(body.stream){res.setHeader('content-type','text/event-stream');res.end(`data: ${JSON.stringify({id:'fixture',object:'chat.completion.chunk',created:0,model:body.model,choices:[{index:0,delta:{role:'assistant',content:'Synthetic answer.'},finish_reason:null}]})}\n\ndata: [DONE]\n\n`);return;}
   const message=body.tools?.[0]?.function?.name==='extract_ddls'?{role:'assistant',content:null,tool_calls:[{id:'synthetic-tool',type:'function',function:{name:'extract_ddls',arguments:JSON.stringify({items:[{taskName:'Synthetic assignment',dueDate:'',dueTime:'23:59',weight:null,description:'Synthetic',isGroupWork:false}]})}}]}:{role:'assistant',content:body.response_format?JSON.stringify(payload):'A study plan divides learning into small sessions.'};
@@ -51,6 +51,14 @@ try{
  await api('save',{settings:{...initial.settings,modelsDir:'relative'}},400);
  await api('download',{id:'qwen3-8-q4',confirm:false},400);assert.equal(requests.length,0);
  const hardware=await api('hardware');assert.ok(hardware.hardware.ramGiB>0);assert.equal(requests.length,0);
+ await api('save',{settings:{...(await api()).settings,externalModel:''}});
+ let discovery=await api('models');assert.equal(discovery.settings.externalModel,'');assert.equal(discovery.models.length,3);
+ availableModels=['synthetic-local','synthetic-local',' invalid ','\u0001invalid'];
+ discovery=await api('models');assert.deepEqual(discovery.models,['synthetic-local']);assert.equal(discovery.settings.externalModel,'synthetic-local');
+ availableModels=['other-actual-id'];discovery=await api('models');assert.equal(discovery.settings.externalModel,'synthetic-local');
+ await api('test',{},400);availableModels=['synthetic-local','deepseek-flash','deepseek-v4-pro'];
+ await api('save',{settings:{...(await api()).settings,localKind:'bundled'}});assert.equal((await api()).modelNames.primary,null);
+ await api('save',{settings:{...(await api()).settings,localKind:'external'}});
  await api('test');await api('sample',{confirm:false},400);await api('sample',{confirm:true});
  const paths=[['/api/chat',{messages:[{role:'user',content:'Synthetic question'}],includeTools:false,language:'en'}],['/api/extract-ddls',{markdown:'Synthetic assignment with no explicit due date. Please preserve unknown date.',filename:'synthetic.txt',currentDate:'2026-10-21'}],['/api/generate-panel',{prompt:'Synthetic panel'}],['/api/generate-source',{prompt:'Synthetic source'}],['/api/research/plan',{goal:'Synthetic goal'}],['/api/research/squad',{goal:'Synthetic goal',squadTitle:'Synthetic squad',question:'Synthetic question'}]];
  const count=requests.length;for(const [path,body]of paths)await route(path,body);assert.equal(requests.length-count,paths.length);

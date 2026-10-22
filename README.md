@@ -1,115 +1,106 @@
 # Hackathon
 
-A local learning assistant built on [Bulter](https://github.com/frankrainrp/Bulter): retained course records, tasks, reminders and source-grounded AI.
+A local learning assistant built on [Bulter](https://github.com/frankrainrp/Bulter): course records, tasks, notes and source-grounded AI.
 
-[中文说明](README.zh-CN.md)
+[中文说明](README.zh-CN.md) · [Windows beginner guide](distribution/GETTING-STARTED.md) · [AI setup and storage](my-app/docs/local-ai.md)
 
-## Interface language and optional AI
+## First successful course answer
 
-The interface defaults to English. Select **中文** on the first AI setup screen or in **Preferences → Language**; existing course titles, notes and conversation history keep their original text. Example courses are opt-in and clearly labelled. New panels start empty.
+1. Extract the full Windows package and open **Butler.exe**. It starts the bundled runtime and opens Microsoft Edge when ready. Keep its console open; the default local address is `http://127.0.0.1:3000`. Keep the EXE with its companion folders. `Start-Hackathon.cmd` is a manual-browser fallback.
+2. Optional AI setup: choose an existing local OpenAI-compatible service, the included CPU engine with an explicitly approved model download, DeepSeek with your own key, or Skip. **Test connection** checks availability; the separately consented sample checks actual text generation. Local mode has no cloud fallback.
+3. Open **Settings → Connect your Singapore polytechnic**. Paste the direct school learning URL, choose **Recognise and save school**, then **Sign in and find courses**. Complete your own SSO/MFA. The school, latest accessible semester and course names/IDs come from the URL and authenticated school data.
+4. Newly discovered current-term courses are selected by default; existing choices are retained. Login/refresh imports selected learning records. **Download selected course files** explicitly saves and parses files locally. No daily schedule or cloud summary is enabled by these actions.
+5. **Courses** shows the detected school/term and every discovered current-term course. Expand a downloaded course, choose **Ask course AI** and check the answer's actual source. School configuration, course download choices, sync history and export remain in Settings.
 
-First launch offers **Local on this computer**, **DeepSeek API**, or **Skip for now**. The Windows CPU engine is pinned in this repository; model weights are separate and download only after an explicit choice. An existing loopback OpenAI-compatible service is also supported. DeepSeek keys are entered through the masked setup field and protected with Windows DPAPI. Provider charges and the local billing demonstration are separate.
+The interface defaults to English; choose Chinese in AI setup or **Settings → Language**. User-authored records keep their original language. New conversations, courses, tasks, notes and panels start empty; no fictional record importer is included.
 
-Read [AI setup and storage](my-app/docs/local-ai.md), [Windows package startup](distribution/GETTING-STARTED.md), [language verification](LOCALIZATION.md), and the [file-by-file change record](docs/CHANGE-FILES-2026-10-21.md).
+Fresh browsers use Retro. Settings retains Dark as a neutral translucent option and preserves an existing saved theme. Wallpaper is an optional user-provided local image. Courses starts with the current semester and combines submitted/missing/unknown states into one three-colour bar. Ordinary Chat can retrieve a course by its code or title, and app-supplied source links open the original page in Edge. Note-writing proposals remain reviewable before saving.
 
-## Configure your school first
+An optional weekly check in School settings imports confirmed missing work from every active current-term course into Tasks without downloading files or calling cloud AI. Unknown submissions stay unknown and outside the active task queue; no missing work produces a clear empty result. The packaged app catches up due checks when opened and runs them while it stays open. This installs no Windows scheduled task; fresh packages have the option off.
 
-Open **Courses → School, semester and daily checks**. Enter your school name and HTTPS LMS entry, preview the normalized domain, and confirm the current semester and course selection. TP/RP buttons are examples, never an inferred user identity. Only selected active courses are downloaded; switching semesters retains historical records.
-
-Connections currently support the explicit `tplms.polite.edu.sg` and `rplms.polite.edu.sg` Brightspace hosts with a restricted Microsoft SSO policy. Other public custom URLs can be saved as profiles, but login, sync and schedule activation fail closed until a reviewed connection policy/adapter is added. A DNS preflight is not advertised as making an arbitrary URL safe.
-
-Daily preferences default to **09:00 Asia/Singapore**, with a configurable time and UTC alternative. Saving preferences does not enable a background task. Daily checks can miss shorter-notice deadlines.
+Recognition covers five Singapore polytechnics. Reviewed login adapters support exact TP/RP/SP Brightspace hosts; other recognised URLs remain metadata only. Your normal Edge session is separate: Butler retains its own encrypted session and reuses it until expired. Microsoft/school policy may require signing in again. No password or artificial extension of token expiry is used.
 
 ## Setup guide — Windows
+
+First identify your download:
+
+| Files in the folder | Start here |
+| --- | --- |
+| `Butler.exe`, `Launch.cjs`, `app/`, `runtime/` | Runtime ZIP: double-click **Butler.exe**. Do not run pnpm or the source instructions. |
+| `README.md`, `Start-Source.cmd`, `my-app/`, `tools/` | Source checkout/ZIP: follow the steps below. |
 
 ### 1. What to download
 
 | Download | Version | Needed for | Link |
 | --- | --- | --- | --- |
 | Git | any | Cloning the repo | [git-scm.com](https://git-scm.com/download/win) |
-| Node.js | 24 (20+ works) | Running the app | [nodejs.org](https://nodejs.org/) |
+| Node.js | **24** exactly | Running the app | [nodejs.org](https://nodejs.org/) |
 | pnpm | 9 | Installing app packages | Run `npm install -g pnpm@9` after Node is installed |
-| Python | 3.11 or newer | PoliteMall login and sync | [python.org](https://www.python.org/downloads/) — tick **Add python.exe to PATH** in the installer |
-| Microsoft Edge | latest | Opening the app and PoliteMall login | Already installed on Windows |
-| Ollama | latest | Optional — only if you want to use your own Ollama models; the app can download a local model from its setup screen | [ollama.com](https://ollama.com/download) |
+| Python | **3.11 or 3.12** | School sign-in and course downloads | [python.org](https://www.python.org/downloads/) — tick **Add python.exe to PATH** in the installer |
+| Microsoft Edge | latest | Opening the app and school sign-in | Already installed on Windows |
 
-Close and reopen your terminal after installing, then check everything is found:
+The launcher refuses other Node or Python versions. Close and reopen your terminal after installing, then check everything is found:
 
 ```powershell
 git --version
-node -v
-pnpm -v
-python --version
+node -v          # should start with v24
+pnpm -v          # should start with 9
+python --version # should be 3.11.x or 3.12.x
 ```
 
-### 2. Get the code and install packages
-
-Run these in PowerShell. The first install takes a few minutes.
+### 2. Get the code
 
 ```powershell
 git clone https://github.com/frankrainrp/Hackathon.git
-cd Hackathon/my-app
-pnpm install --frozen-lockfile
-python -m venv ops/lms-sync/.venv
-./ops/lms-sync/.venv/Scripts/python.exe -m pip install -r ops/lms-sync/requirements.txt -c ops/lms-sync/requirements-ci.txt
-New-Item -ItemType Directory -Force ops/lms-sync/.private
+cd Hackathon
 ```
+
+If you downloaded a ZIP instead, open the **inner folder that contains `README.md` and `my-app`**, not the outer folder it was extracted into.
 
 ### 3. Start the app
 
-From `Hackathon/my-app`:
+Double-click **Start-Source.cmd**, or run it from PowerShell in the project folder:
 
 ```powershell
-$env:BUTLER_DB_PATH = "$PWD/ops/lms-sync/.private/butler.sqlite"
-pnpm --filter @smart-hub/web dev --hostname 127.0.0.1
+.\Start-Source.cmd
 ```
 
-Wait for `Ready`, then open <http://127.0.0.1:3000> in Edge. The first page load takes 10–20 seconds while it compiles. Leave this terminal open; press `Ctrl+C` to stop the app. Set `BUTLER_DB_PATH` again every time you open a new terminal, or your records won't be loaded.
+The first run installs the Node and Python packages, which takes a few minutes and needs internet. When it prints `Ready`, Edge opens at <http://127.0.0.1:3000>. Keep the console window open; press `Ctrl+C` in it to stop the app. It downloads no AI model and makes no AI requests on its own.
 
-### 4. Connect PoliteMall
+Useful options:
 
-1. In the app, open [Courses](http://127.0.0.1:3000/?view=courses) and confirm your school, semester and modules.
-2. Stop the app (`Ctrl+C`), then in the same terminal run:
+```powershell
+# Check your downloads without starting the app
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-source.ps1 -Check
 
-   ```powershell
-   cd ops/lms-sync
-   .\.venv\Scripts\python.exe lms_sync.py setup
-   ```
-
-3. Start the app again (step 3, from `Hackathon/my-app`).
-4. In a second terminal, from `Hackathon/my-app/ops/lms-sync`, log in and download your files:
-
-   ```powershell
-   .\.venv\Scripts\python.exe lms_sync.py login     # opens Edge for your school Microsoft login
-   .\.venv\Scripts\python.exe lms_sync.py catalog   # finds your semester and modules
-   .\.venv\Scripts\python.exe lms_sync.py sync      # downloads files for the selected modules
-   ```
-
-Sync only works for TP and RP PoliteMall. More detail, including the optional daily check, is in [School profile workflow](my-app/ops/lms-sync/PROFILE_WORKFLOW.md).
-
-The rebuilt portable launcher opens the local UI only. It does not log in, save a school session, sync or register a schedule. Existing [release ZIPs](https://github.com/frankrainrp/Hackathon/releases) are not automatically updated by this source change.
-
-## Persistence and checks
-
-School profiles, all confirmed semesters, course status/selection, sync outcomes, notes and task state remain on this computer across restarts and login expiry. Credentials are separate DPAPI-encrypted scoped session files. Export non-secret records from Courses and back up the local database/archive; retention is not a guarantee against disk loss. See the [retention and recovery guide](my-app/ops/lms-sync/PROFILE_WORKFLOW.md#retention-export-and-recovery).
-
-`install-schedule.ps1 -DryRun` generates a daily plan. Only an explicitly approved later `-Install` can register it; the app does not silently replace old hourly tasks. No deployment or external automation is enabled.
-
-GitHub Actions runs Node regression tests, TypeScript checks and a production build on Ubuntu, plus Python/DPAPI tests on Windows. API integration tests use synthetic records in temporary storage, with no school login or private downloads.
-
-```mermaid
-flowchart LR
-    School[Confirmed Brightspace school] --> Worker[Daily incremental worker]
-    Worker --> API[Local authenticated bridge]
-    API --> DB[(SQLite: current and historical semesters)]
-    DB --> UI[Courses / Tasks / Calendar / Notes]
-    UI --> Export[Non-secret record export]
-    UI -->|Course question| AI[Configured AI endpoint]
+# Use another port if 3000 is busy
+.\Start-Source.cmd -Port 3001
 ```
 
-School assignment deadlines come from Brightspace. Missing dates stay unknown; AI does not invent school deadlines. Scans still need OCR, Quiz/forum/LTI submissions are not covered, and DeepTutor is not integrated. Source and artwork remain attributed to Bulter and existing third-party notices.
-## Build the current Windows package
+If a command fails, fix that error before running the next one.
 
-From `my-app`, run `pnpm --filter @smart-hub/web build`. Then, from the repository root, run `node tools/package-windows.cjs <new-absolute-output-folder>`. The packager uses the locally present pinned engine and Node runtime and refuses to overwrite an existing installation. It includes no model weights, private database, key or school session. See the distribution quick start for system prerequisites.
+### 4. Connect your school
 
-Source updates on `main` do not replace previously uploaded release assets. A binary release must be published separately; the old Releases download is not claimed to be the new build.
+Everything happens in the app; no terminal commands are needed:
+
+1. Open **Settings → Connect your Singapore polytechnic** and paste your school's learning URL.
+2. Choose **Recognise and save school**, then **Sign in and find courses**, and finish your school's Microsoft sign-in in Edge.
+3. Choose **Download selected course files**, then open **Courses** to browse them or ask the course AI.
+
+Sign-in currently works for TP, RP and SP. The source launcher is for development; the packaged weekly check runs only in the Windows runtime. Advanced CLI commands, connection boundaries and retention details are in [School profile workflow](my-app/ops/lms-sync/PROFILE_WORKFLOW.md).
+
+## Data and verification
+
+Back up existing data before upgrading. SQLite, school profiles, extracted files and encrypted sessions remain local across restarts; browser pending edits also depend on the browser/profile and origin. Export non-secret records from School settings. See the [beginner guide](distribution/GETTING-STARTED.md#keep-your-data) for package paths. DPAPI protects credentials for the current Windows account; ordinary course files and SQLite are not encrypted vaults.
+
+Assignment dates/status come from Brightspace, with missing facts kept unknown. Lesson checkboxes do not submit assignments. Scans need separate OCR; Quiz/forum/LTI submissions and DeepTutor are not integrated. AI task changes require review and confirmation. Provider charges are separate from the app's local billing demonstration.
+
+GitHub Actions runs Node regressions, type checks and a production build on Ubuntu and Python/DPAPI tests on Windows. HTTP checks use isolated synthetic data. Real school/course evidence stays local and is excluded from fresh archives. Read [language verification](LOCALIZATION.md) and [changes by file](docs/CHANGE-FILES-2026-10-22.md).
+
+## Build a Windows package
+
+Packaging requires a production web build **and a frozen school connector**, not just `pnpm build`. Follow [Build a Windows package](docs/BUILD-WINDOWS.md) from a fresh source checkout. The guide includes the locked connector dependencies, PyInstaller, prerequisites and exact ZIP verification. The package includes no model weights, private database, key or school session.
+
+Pushing `main` updates source; it does not replace old [GitHub Releases](https://github.com/frankrainrp/Hackathon/releases) ZIPs. Daily schedules require a separate explicit `install-schedule.ps1 -Install`; `-DryRun` only previews. Source/artwork attribution and existing third-party notices from Bulter are retained.
+
+Run `node tools/audit-portability.cjs --source` for the source audit and `node tools/audit-portability.cjs <fresh-package-folder>` for every regular package file. The packager removes this project's absolute build paths from compiled application code and checks for private state, weights and common credential patterns. Upstream compiler source/debug locations inside unmodified vendor binaries are listed separately; they are not personal settings or runtime dependencies on the build computer. The audit does not decode compressed third-party payload internals or promise detection of every possible secret format.

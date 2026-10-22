@@ -1,0 +1,11 @@
+const path = require('node:path'), fs = require('node:fs'), { execFileSync } = require('node:child_process');
+const { files, auditFiles } = require('./portable-paths.cjs');
+const projectRoot = path.resolve(__dirname, '..');
+const source = process.argv[2] === '--source';
+const root = source ? projectRoot : path.resolve(process.argv[2] || '.');
+if (!source && !process.argv[2]) throw Error('Provide --source or a fresh package folder. Never point this at personal runtime data.');
+const input = source ? execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean).map(p => path.join(root, p)) : files(root);
+const report = auditFiles(root, input, projectRoot);
+report.scope = source ? 'Tracked and non-ignored source files; generated and private files are excluded by Git.' : 'Every regular package file, including binary bytes; compressed third-party payload internals are not decoded.';
+console.log(JSON.stringify(report, null, 2));
+if (report.findings.length) process.exitCode = 1;

@@ -78,6 +78,8 @@ import {
 import { workspaceState } from "@/lib/workspace-state";
 import type { SyncStatus } from "@/lib/state-sync";
 import { mergeLmsTasks, mergeLmsRows, mergeLmsNotes, type LmsFeed } from "@/lib/lms-sync";
+import { emptyProfiles, type ProfileSettings } from "@/lib/lms-profile";
+import { isActionableTask } from "@/lib/task-visibility";
 import { playSound } from "@/lib/sound";
 import RecurringTasksManager from "@/components/RecurringTasksManager";
 import {
@@ -161,6 +163,7 @@ export default function HomePage() {
   // Notes 浏览器版（Dexie v5）
   const [notes, setNotes] = useState<Note[]>([]);
   const [lmsFeed, setLmsFeed] = useState<LmsFeed | null>(null);
+  const [schoolProfiles, setSchoolProfiles] = useState<ProfileSettings>(emptyProfiles);
   // AI 模型选择（localStorage 持久化）
   const [selectedModel, setSelectedModel] = useState<AiModelId>(DEFAULT_MODEL_ID);
   useEffect(() => {
@@ -209,6 +212,13 @@ export default function HomePage() {
         if (!response.ok) return;
         const feed: LmsFeed = await response.json();
         if (!cancelled) setLmsFeed(feed);
+        try {
+          const profileResponse = await fetch("/api/lms/settings", { cache: "no-store" });
+          if (profileResponse.ok) {
+            const data = await profileResponse.json();
+            if (!cancelled) setSchoolProfiles(data.settings);
+          }
+        } catch { /* Imported records remain available if school settings cannot be read. */ }
         if (cancelled || feed.revision === revision || !feed.revision) return;
         revision = feed.revision;
         setDdls(prev => mergeLmsTasks(prev, feed.ddls));
@@ -231,7 +241,8 @@ export default function HomePage() {
     };
     void poll();
     const interval = setInterval(poll, 30000);
-    return () => { cancelled = true; clearInterval(interval); };
+    window.addEventListener("butler:lms-changed", poll);
+    return () => { cancelled = true; clearInterval(interval); window.removeEventListener("butler:lms-changed", poll); };
   }, [hydrated]);
 
   // 启动一次性 load
@@ -1131,10 +1142,10 @@ export default function HomePage() {
     const effStatus = (d: DdlItem) => d.status ?? (d.completed ? "done" : "todo");
     return {
       all: ddls.length,
-      active: ddls.filter((d) => effStatus(d) !== "done").length,
-      in_progress: ddls.filter((d) => effStatus(d) === "in_progress").length,
+      active: ddls.filter((d) => isActionableTask(d) && effStatus(d) !== "done").length,
+      in_progress: ddls.filter((d) => isActionableTask(d) && effStatus(d) === "in_progress").length,
       upcoming: ddls.filter(
-        (d) => effStatus(d) !== "done" && d.dueDate && new Date(d.dueDate) >= today,
+        (d) => isActionableTask(d) && effStatus(d) !== "done" && d.dueDate && new Date(d.dueDate) >= today,
       ).length,
       completed: ddls.filter((d) => effStatus(d) === "done").length,
     };
@@ -1166,6 +1177,7 @@ export default function HomePage() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   // Epic 3 偏好设置 modal
   const [prefsOpen, setPrefsOpen] = useState(false);
+  const [prefsSchool, setPrefsSchool] = useState(false);
   // #3 成就收藏室 modal
   const [achievementsOpen, setAchievementsOpen] = useState(false);
   // [072] 付费体系：账单面板 / 定价页 / 结账（演示模式）
@@ -1468,26 +1480,6 @@ export default function HomePage() {
     toast.info(uiText("ui.page.b93e573532", { value0: newDate, value1: newTime }));
   }, [toast]);
 
-  // G1.1 一键填入 Demo 数据(激活新用户;支持 Undo)
-  const handleLoadDemo = useCallback(async () => {
-    const { buildDemoData } = await import("@/lib/demo-data");
-    const { ddls: demoDdls, notes: demoNotes } = buildDemoData();
-    const prevDdls = ddlsRef.current;
-    const prevNotes = notes;
-    setDdls((p) => [...p, ...demoDdls]);
-    setNotes((p) => [...demoNotes, ...p]);
-    toast.success(uiText("ui.page.98a5f46dc8", { value0: demoDdls.length, value1: demoNotes.length }), {
-      duration: 8000,
-      action: {
-        label: uiText("ui.page.926a50b98e"),
-        onClick: () => {
-          setDdls(prevDdls);
-          setNotes(prevNotes);
-        },
-      },
-    });
-  }, [notes, toast]);
-
   // B4 笔记 `- [ ] todo` 自动同步到 Tasks（单向）
   // 1. 为每个新 todo 创建一个 task,默认 dueDate="待定",source="笔记自动同步"
   // 2. task.noteId 自动关联回这个笔记
@@ -1707,7 +1699,7 @@ export default function HomePage() {
         notes={notes}
         messages={messages}
         onSearchJump={handleSearchJump}
-        onOpenPreferences={() => setPrefsOpen(true)}
+        onOpenPreferences={() => { setPrefsSchool(false); setPrefsOpen(true); }}
         onOpenAchievements={() => setAchievementsOpen(true)}
         onOpenBilling={() => setBillingOpen(true)}
         onUpgrade={openPricing}
@@ -1813,8 +1805,6 @@ export default function HomePage() {
               onSelectModel={handleSelectModel}
               ddls={ddls}
               onJumpToTask={handleJumpToTask}
-              onLoadDemo={handleLoadDemo}
-              hasAnyData={ddls.length > 0 || notes.length > 0}
               streakDays={streakDays}
               bestHourLabel={bestHourLabel}
               butlerPosition={butlerPosition}
@@ -1824,7 +1814,8 @@ export default function HomePage() {
             </div>
           )}
           {!activeCustomPanelId && activeNav === "courses" && (
-            <CoursesPanel feed={lmsFeed} notes={notes}
+            <CoursesPanel feed={lmsFeed} profiles={schoolProfiles} notes={notes}
+              onOpenSettings={() => { setPrefsSchool(true); setPrefsOpen(true); }}
               onAskCourse={course => {
                 const id = `course-${course.noteId}`;
                 setSessions(prev => prev.some(s => s.id === id)
@@ -1950,7 +1941,7 @@ export default function HomePage() {
         {/* Epic 2.3 快捷键帮助面板（? 触发） */}
         <KeyboardShortcutsHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
         {/* Epic 3 偏好设置 modal */}
-        <PreferencesPanel open={prefsOpen} onClose={() => setPrefsOpen(false)} />
+        <PreferencesPanel open={prefsOpen} onClose={() => setPrefsOpen(false)} feed={lmsFeed} schoolOpen={prefsSchool} onSchoolSaved={() => window.dispatchEvent(new Event("butler:lms-changed"))} />
         {/* #3 成就收藏室 */}
         <AchievementsRoom
           open={achievementsOpen}

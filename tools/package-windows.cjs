@@ -2,6 +2,7 @@
 // No download, install, upload, publish or school-session action occurs here.
 const fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process'),crypto=require('node:crypto'),{createRequire}=require('node:module');
 const root=path.resolve(__dirname,'..'),workspace=path.join(root,'my-app'),web=path.join(workspace,'apps/web'),standalone=path.join(web,'.next/standalone');
+const {scrubBuildPaths,auditFiles,files:portableFiles}=require('./portable-paths.cjs');
 const output=path.resolve(process.argv[2]||path.join(root,'..','Hackathon-Windows-x64-CPU'));
 if(process.platform!=='win32'||process.arch!=='x64')throw new Error('This package target requires Windows x64 and its native better-sqlite3 build.');
 if(fs.existsSync(output))throw new Error('Choose a new output directory; existing packages/data are never overwritten.');
@@ -58,7 +59,11 @@ materialize(path.join(root,'my-app/ops/lms-sync'),path.join(output,'ops/lms-sync
 const schoolWorker=path.join(root,'runtime/school-worker/ButlerSync');
 if(!fs.existsSync(path.join(schoolWorker,'ButlerSync.exe')))throw new Error('Build the school connector with tools/package-school-worker.cjs first.');
 materialize(schoolWorker,path.join(output,'ops/lms-sync'));
-for(const name of ['Launch.cjs','Start-Hackathon.cmd','GETTING-STARTED.md','THIRD-PARTY-NOTICES.md'])fs.copyFileSync(path.join(root,'distribution',name),path.join(output,name));
+for(const name of ['Launch.cjs','Start-Hackathon.cmd','GETTING-STARTED.md','GETTING-STARTED.zh-CN.md','THIRD-PARTY-NOTICES.md'])fs.copyFileSync(path.join(root,'distribution',name),path.join(output,name));
+const compiler=path.join(process.env.WINDIR||process.env.SystemRoot||'', 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');
+if(!path.isAbsolute(compiler)||!fs.existsSync(compiler))throw Error('The installed Windows .NET Framework compiler is required to build Butler.exe.');
+execFileSync(compiler,['/nologo','/target:exe','/platform:x64','/optimize+','/debug-', '/out:'+path.join(output,'Butler.exe'),path.join(root,'distribution/ButlerLauncher.cs')],{windowsHide:true,stdio:'inherit'});
+scrubBuildPaths(output,root);
 // Preserve license texts even if Next's file tracer omitted non-runtime notice files.
 const licenses=[],store=path.join(workspace,'node_modules/.pnpm');
 for(const entry of fs.readdirSync(store)){const modules=path.join(store,entry,'node_modules');if(!fs.existsSync(modules))continue;let packages=[];
@@ -66,6 +71,9 @@ for(const entry of fs.readdirSync(store)){const modules=path.join(store,entry,'n
  for(const pkg of packages){if(fs.lstatSync(pkg).isSymbolicLink()||!fs.existsSync(path.join(pkg,'package.json')))continue;const meta=JSON.parse(fs.readFileSync(path.join(pkg,'package.json'),'utf8'));const key=`${meta.name}@${meta.version}`;if(licenses.some(l=>l.package===key))continue;const texts=fs.readdirSync(pkg).filter(n=>/^(license|notice|copying)(\.|$)/i.test(n)&&fs.statSync(path.join(pkg,n)).isFile());const dest=path.join(output,'licenses/npm',key.replace(/[^a-zA-Z0-9.@_-]/g,'_'));fs.mkdirSync(dest,{recursive:true});for(const name of texts)fs.copyFileSync(path.join(pkg,name),path.join(dest,name));licenses.push({package:key,license:meta.license||'See package license',files:texts});}
 }
 fs.writeFileSync(path.join(output,'licenses/npm-manifest.json'),JSON.stringify(licenses,null,2));
+const portableAudit=auditFiles(output,portableFiles(output),root);
+if(portableAudit.findings.length)throw Error('Portability audit failed: '+JSON.stringify(portableAudit.findings));
+fs.writeFileSync(path.join(output,'PORTABILITY-AUDIT.json'),JSON.stringify(portableAudit,null,2));
 const files=[];function inventory(dir){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,entry.name);if(fs.lstatSync(file).isSymbolicLink())throw new Error('Output contains a machine-bound link');if(entry.isDirectory())inventory(file);else files.push({path:path.relative(output,file).replaceAll('\\','/'),bytes:fs.statSync(file).size});}}inventory(output);
 fs.writeFileSync(path.join(output,'PACKAGE-MANIFEST.json'),JSON.stringify({createdAt:new Date().toISOString(),platform:'win32-x64',node:process.version,next:require(path.join(web,'node_modules/next/package.json')).version,engine:{release:'b11669',version:'0.7.0-dev',commit:'620d2225cc436ab0b001e3200e590e3b286ef9ab',source:'https://github.com/ggml-org/llama.cpp/releases/tag/b11669',upstreamArchiveSha256:'37b3efcf962847ca869745fd4ccf7f5e7e8dacfeff9fa3523b4ca8cdc66d632b'},weightsIncluded:false,microsoftRuntimeIncluded:false,files},null,2));
 const zip=output+'.zip';if(fs.existsSync(zip))throw new Error('ZIP already exists; choose a new package target.');

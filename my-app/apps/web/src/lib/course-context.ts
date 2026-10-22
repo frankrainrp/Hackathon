@@ -1,5 +1,4 @@
 import type { LmsCourse, LmsFeed } from "./lms-sync";
-import { demoCourses } from "./course-demo.ts";
 
 export interface CourseSource { label: string; url: string; excerpt: string; truncated: boolean }
 export interface CourseContext { courses: string[]; sources: CourseSource[]; metadata: string; missingText: number }
@@ -8,12 +7,32 @@ function tokens(value: string): string[] {
   return Array.from(new Set([...(lowered.match(/[a-z0-9]{2,}/g) || []), ...(lowered.match(/[\u4e00-\u9fff]+/g) || []).flatMap(run => Array.from({ length: Math.max(0, run.length - 1) }, (_, i) => run.slice(i, i + 2)))] )).slice(0, 100);
 }
 
+export function matchesCourse(course: LmsCourse, query: string) {
+  const normalized = query.toLowerCase();
+  const name = course.moduleName.toLowerCase();
+  const code = name.match(/\b[a-z]\d{3,}\b/)?.[0];
+  const title = name.replace(/^\s*[a-z]\d{3,}\s*/, "").trim();
+  return !!(code && new RegExp(`\\b${code}\\b`, "i").test(query))
+    || normalized.includes(name) || (title.length >= 6 && normalized.includes(title));
+}
+export function wantsCourseContext(feed: LmsFeed, query: string, noteId?: string) {
+  return !!noteId || /课程|课件|课堂|\b(lesson|module|course|materials?)\b/i.test(query)
+    || (feed.courses || []).some(c => !c.archived && matchesCourse(c, query));
+}
+
+/** Sources are supplied by the app even when the model emits plain text titles. */
+export function sourceLinksMarkdown(context: CourseContext, language: "en" | "zh" = "en") {
+  const unique = Array.from(new Map(context.sources.map(s => [s.url, s])).values());
+  const links = unique.filter(s => { try { return new URL(s.url).protocol === "https:"; } catch { return false; } })
+    .map(s => `- [${s.label.replace(/[\\[\]]/g, "\\$&").replace(/[\r\n]/g, " ")}](${s.url.replace(/\(/g, "%28").replace(/\)/g, "%29")})`);
+  return links.length ? `\n\n**${language === "zh" ? "课程资料来源" : "Course sources"}**\n${links.join("\n")}` : "";
+}
+
 /** Server reads verified stored data, never client-provided paths or course text. */
 export function selectCourseContext(feed: LmsFeed, query: string, noteId?: string): CourseContext {
-  const selected = noteId?.startsWith("demo-") ? demoCourses().filter(c => c.noteId === noteId)
-    : noteId ? (feed.courses || []).filter(c => c.noteId === noteId) : (feed.courses || []).filter(c => !c.archived);
+  const selected = noteId ? (feed.courses || []).filter(c => c.noteId === noteId) : (feed.courses || []).filter(c => !c.archived);
   const terms = tokens(query);
-  const explicit = selected.filter(c => terms.some(t => t.length >= 3 && c.moduleName.toLowerCase().includes(t)));
+  const explicit = selected.filter(c => matchesCourse(c, query));
   const courses: LmsCourse[] = !noteId && explicit.length ? explicit : selected;
   const candidates: (CourseSource & { score: number })[] = [];
   let missingText = 0;

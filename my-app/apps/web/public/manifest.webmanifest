@@ -4,8 +4,8 @@
   "description": "Organize courses, tasks, notes and study plans.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#1B3D2F",
+  "background_color": "#ECE3CF",
+  "theme_color": "#ECE3CF",
   "lang": "en",
   "orientation": "any",
   "icons": [

@@ -15,6 +15,8 @@ import { useT as useCopyLanguage } from "@/lib/i18n";
 import React, { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useT, type Lang } from "@/lib/i18n";
+import SchoolSettings from "./SchoolSettings";
+import type { LmsFeed } from "@/lib/lms-sync";
 import { X, Moon, Feather, Type, Heart, MessageSquare, Flame, Palette, RotateCcw, Upload, User, AlignLeft, AlignCenter, AlignRight, EyeOff, Volume2, VolumeX, Languages } from "lucide-react";
 import {
   ACCENT_PRESETS,
@@ -51,9 +53,9 @@ const THEME_KEY = "butler.theme";
 const FONT_KEY = "butler.fontSize";
 const PERSONALITY_KEY = "butler.personality";
 
-// [081] 去掉浅色/深色切换：默认深炭蓝暗色。light 一律归一到 dark；仅保留 dark / retro。
+// New installations use Retro. Keep explicitly saved dark preferences and legacy light migration.
 function normalizeTheme(raw: string | null): Theme {
-  return raw === "retro" ? "retro" : "dark";
+  return raw === "dark" || raw === "light" ? "dark" : "retro";
 }
 
 export function applyStoredPreferences() {
@@ -68,13 +70,13 @@ export function applyStoredPreferences() {
   applyStoredAccent();
 }
 
-/** 读当前主题（dark 默认；light 归一到 dark）*/
+/** Read a saved preference; an unconfigured browser uses Retro. */
 export function getStoredTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
+  if (typeof window === "undefined") return "retro";
   try {
     return normalizeTheme(localStorage.getItem(THEME_KEY));
   } catch {
-    return "dark";
+    return "retro";
   }
 }
 
@@ -100,13 +102,16 @@ export function getStoredPersonality(): Personality {
 interface Props {
   open: boolean;
   onClose: () => void;
+  feed: LmsFeed | null;
+  schoolOpen?: boolean;
+  onSchoolSaved: () => void;
 }
 
-export default function PreferencesPanel({ open, onClose }: Props) {
+export default function PreferencesPanel({ open, onClose, feed, schoolOpen, onSchoolSaved }: Props) {
   const uiLanguage = useCopyLanguage().lang;
   const isMobile = useIsMobile();
   const { t, lang, setLang } = useT();
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("retro");
   const [font, setFont] = useState<FontSize>("md");
   const [personality, setPersonality] = useState<Personality>("standard");
   const [accent, setAccent] = useState<string>(DEFAULT_ACCENT);
@@ -126,6 +131,9 @@ export default function PreferencesPanel({ open, onClose }: Props) {
   const [hiddenTabs, setHiddenTabsState] = useState<Set<NavId>>(new Set());
   // [056] 音效
   const [soundPrefs, setSoundPrefsState] = useState<SoundPrefs>(DEFAULT_SOUND_PREFS);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   // [055 F#5] customPreview 用 ref 同步最新值，避免 handleUpload 闭包陷阱：
   // 并发上传时第二次读到 stale closure 的 customPreview → 第一次 URL 永远 revoke 不掉
@@ -291,13 +299,26 @@ export default function PreferencesPanel({ open, onClose }: Props) {
     setStoredAccent(hex); // null → 移除存储恢复默认
   };
 
-  // Esc 关闭
+  // Keep keyboard focus inside Settings and restore the opening control on close.
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const frame = requestAnimationFrame(() => {
+      const target = schoolOpen ? dialogRef.current?.querySelector<HTMLElement>("summary") : null;
+      (target || dialogRef.current?.querySelector<HTMLElement>("button"))?.focus();
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.preventDefault(); closeRef.current(); }
+      if (e.key !== "Tab") return;
+      const nodes = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button, a[href], input, select, summary, [tabindex="0"]') || [])
+        .filter(el => !el.matches(":disabled") && el.getClientRects().length > 0);
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("keydown", onKey); previous?.focus(); };
+  }, [open, schoolOpen]);
 
   if (!open) return null;
   return (
@@ -313,7 +334,9 @@ export default function PreferencesPanel({ open, onClose }: Props) {
         }}
       />
       <div
+        ref={dialogRef}
         role="dialog"
+        aria-modal="true"
         aria-label={uiText("ui.preferencespanel.57907a69fc")}
         style={{
           position: "fixed",
@@ -332,7 +355,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
                 top: "50%",
                 left: "50%",
                 transform: "translate(-50%, -50%)",
-                width: 420,
+                width: 560,
                 maxWidth: "92vw",
                 maxHeight: "90vh",
                 borderRadius: 14,
@@ -381,6 +404,7 @@ export default function PreferencesPanel({ open, onClose }: Props) {
             <button onClick={() => { onClose(); window.dispatchEvent(new Event("butler:ai-setup")); }} style={{ width: "100%", padding: "12px 14px", border: "1px solid var(--color-border)", borderRadius: 8, background: "var(--color-surface)", color: "var(--color-text)", textAlign: "left", cursor: "pointer", fontWeight: 600 }}>{uiText("ui.preferencespanel.8ccb44ad50")}</button>
             <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--color-text-muted)", marginTop: 8 }}>{uiText("ui.preferencespanel.540bf15669")}</p>
           </Section>
+          <SchoolSettings feed={feed} initialOpen={schoolOpen} onSaved={onSchoolSaved} />
           {/* [072] 语言（中英主语言切换）*/}
           <Section title={t("prefs.section.language")}>
             <SegRow>

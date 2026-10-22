@@ -93,32 +93,32 @@
     --glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, transparent 32%, transparent 70%, rgba(255, 255, 255, 0.3) 100%);
   }
 
-  /* 暗色 = 森林墨绿炭（深炭近黑 + 森林绿，非纯黑）*/
+  /* Neutral translucent dark is the default; retro keeps its own palette. */
   html[data-theme="dark"] {
-    --color-primary: #2D4A3E;        /* 复古主题的墨绿（按钮/主操作）*/
-    --color-primary-hover: #3A5C4D;
-    --color-primary-soft: #16271F;
-    --color-accent: #5C8F73;         /* 鼠尾草/灰绿（次级）*/
+    --color-primary: #525D6D;
+    --color-primary-hover: #657286;
+    --color-primary-soft: rgba(176, 190, 212, 0.12);
+    --color-accent: #B0BED4;
     --butler-gold: #D4AF37; /* 管家金，配墨绿 */
-    --color-accent-hover: #6CA083;
-    --color-accent-soft: #1A302A;
+    --color-accent-hover: #D1DAE8;
+    --color-accent-soft: rgba(176, 190, 212, 0.14);
     --color-success: #34D17F;
     --color-warning: #FF9F0A;
     --color-danger: #FF453A;
-    --color-info: #5BC8C2;
-    --color-text: #F0F2F1;
-    --color-text-muted: #9BA09C;
-    --color-text-faint: #6A6F6B;
+    --color-info: #8CB9F0;
+    --color-text: #F0F2F6;
+    --color-text-muted: #AFB6C2;
+    --color-text-faint: #929BA9;
     /* 更深的纯色底（近中性深灰）+ 面板更亮一档拉开层次 */
-    --color-bg: #161817;
-    --color-surface: #262A27;
-    --color-border: #383C39;
-    --color-border-soft: #2C302D;
+    --color-bg: #121418;
+    --color-surface: rgba(43, 48, 57, 0.64);
+    --color-border: rgba(216, 225, 239, 0.20);
+    --color-border-soft: rgba(216, 225, 239, 0.10);
 
-    --glass-bg: rgba(38, 41, 39, 0.62);
-    --glass-bg-strong: rgba(42, 45, 43, 0.78);
+    --glass-bg: rgba(36, 41, 50, 0.58);
+    --glass-bg-strong: rgba(40, 46, 56, 0.80);
     --glass-border: rgba(255, 255, 255, 0.10);
-    --glass-blur: blur(10px) saturate(1.3);
+    --glass-blur: blur(16px) saturate(1.1);
 
     --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
     --shadow-card-hover: 0 8px 30px rgba(0, 0, 0, 0.6);
@@ -126,7 +126,7 @@
     --shadow-modal: 0 24px 70px rgba(0, 0, 0, 0.7);
     --shadow-drawer: 0 12px 36px rgba(0, 0, 0, 0.6);
 
-    --color-code-bg: #111813;
+    --color-code-bg: #11141A;
     --color-code-text: #E5E5EA;
 
     --color-overlay: rgba(0, 0, 0, 0.6);
@@ -141,7 +141,7 @@
     --grid-line: transparent;
     --bg-grid: none;
     --bg-glow: none;
-    --bg-halftone: radial-gradient(circle at center, rgba(255, 255, 255, 0.022) 1px, transparent 1.5px);
+    --bg-halftone: none;
     --bg-halftone-size: 22px 22px;
 
     --glass-highlight: inset 1px 1px 0 rgba(255, 255, 255, 0.1),

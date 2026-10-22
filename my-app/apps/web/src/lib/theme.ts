@@ -14,10 +14,11 @@ import { uiText } from "./messages.ts";
 // ============================================================
 
 export const ACCENT_KEY = "butler.accent";
-export const DEFAULT_ACCENT = "#1B3D2F"; // 墨绿（与 globals.css :root 一致）
+export const DEFAULT_ACCENT = "#525D6D";
 
 /** UI 用快捷预设 — 横排 swatch 一键应用 */
 export const ACCENT_PRESETS: Array<{ label: string; value: string }> = [
+  { get label() { return uiText("theme.neutral"); }, value: DEFAULT_ACCENT },
   { get label() { return uiText("ui.theme.2803b877f2"); }, value: "#1B3D2F" }, // 默认 forest
   { get label() { return uiText("ui.theme.29d3c90c87"); }, value: "#1E3A5F" },
   { get label() { return uiText("ui.theme.2a2e1b4f30"); }, value: "#5B3A8E" },

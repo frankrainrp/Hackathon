@@ -1,8 +1,7 @@
 import { uiText } from "./messages.ts";
 import OpenAI from "openai";
 import { readAiSettings, readDeepseekKey, loopbackURL } from "./ai-config.ts";
-import { engineCredential, ENGINE_PORT } from "./ai-engine.ts";
-import { catalogModel } from "./ai-catalog.ts";
+import { engineCredential, engineModelName, ENGINE_PORT } from "./ai-engine.ts";
 import type { AiModelId } from "./ai-models.ts";
 
 export interface ProviderEndpoint { name: "server" | "windows" | "bundled" | "local" | "deepseek"; baseURL: string; model: string; apiKey: string; mode: string }
@@ -27,8 +26,7 @@ export function resolveProviderCandidates(modelId: AiModelId = "deepseek-v4-flas
       if (!s.externalModel) throw new Error(uiText("server.95d309058bc3"));
       return [{ name: "local", mode: s.mode, baseURL: loopbackURL(s.externalURL), model: s.externalModel, apiKey: "local-no-key" }];
     }
-    const model = catalogModel(s.modelId);
-    return [{ name: "bundled", mode: s.mode, baseURL: `http://127.0.0.1:${ENGINE_PORT}/v1`, model: model.file, apiKey: engineCredential() }];
+    return [{ name: "bundled", mode: s.mode, baseURL: `http://127.0.0.1:${ENGINE_PORT}/v1`, model: engineModelName(), apiKey: engineCredential() }];
   }
   // Explicit legacy mode preserves primary/alternate ordering. DEEPSEEK_* is never a local fallback.
   if (!process.env.OLLAMA_SERVER_MODEL?.trim()) throw new Error(uiText("ai.legacy.modelRequired"));
@@ -61,7 +59,7 @@ export async function providerModels() {
     try {
       const client = new OpenAI({ baseURL: e.baseURL, apiKey: e.apiKey, timeout: 15000, maxRetries: 0 });
       const result = await client.models.list();
-      return result.data.slice(0, 100).map(m => m.id).filter(id => typeof id === "string" && id.length <= 150);
+      return Array.from(new Set(result.data.slice(0, 100).map(m => m.id).filter(id => typeof id === "string" && !!id.trim() && id.trim() === id && id.length <= 150 && !/[\x00-\x1f\x7f]/.test(id))));
     } catch (err) { last = err; }
   }
   throw new Error(providerError(last));

@@ -15,6 +15,7 @@ import { useT as useCopyLanguage } from "@/lib/i18n";
 import React, { useRef, useEffect, useMemo, useState } from "react";
 import { FileText, Image as ImageIcon, File as FileIcon, Brain, ChevronDown, Copy, RefreshCw, Check as CheckIcon, TrendingUp, LayoutDashboard, Workflow } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import SourceLink from "./SourceLink";
 import remarkGfm from "remark-gfm";
 import type { ChatMessage, ProcessingPipeline as Pipeline, UploadedFile, DdlItem } from "@/lib/types";
 import type { PendingBatch } from "@/lib/pending";
@@ -100,9 +101,6 @@ interface ChatCanvasProps {
   // Epic 4.1 今日 Hero 卡(欢迎屏显示)
   ddls?: DdlItem[];
   onJumpToTask?: (taskId: string) => void;
-  // G1.1 Demo 数据按钮(仅在 ddls/notes 都为空时显示)
-  onLoadDemo?: () => void;
-  hasAnyData?: boolean;
   // G2.1 / G5.2 透传给 TodayHero
   streakDays?: number;
   bestHourLabel?: string | null;
@@ -491,7 +489,7 @@ function ButlerBubble({
             <TypingDots />
           ) : (
             <>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{content || " "}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ href, children }) => <SourceLink href={href}>{children}</SourceLink> }}>{content || " "}</ReactMarkdown>
               {isTyping && (
                 <span
                   style={{
@@ -551,8 +549,6 @@ export default function ChatCanvas(props: ChatCanvasProps) {
     onSelectModel,
     ddls = [],
     onJumpToTask,
-    onLoadDemo,
-    hasAnyData = false,
     streakDays = 0,
     bestHourLabel,
     butlerPosition = "center",
@@ -701,7 +697,7 @@ export default function ChatCanvas(props: ChatCanvasProps) {
             </div>
 
             {/* 3 类快捷提示词 */}
-            <PromptSuggestions onPick={onQuickAction} onLoadDemo={!hasAnyData ? onLoadDemo : undefined} />
+            <PromptSuggestions onPick={onQuickAction} />
 
             <p style={{ fontSize: 11, color: "var(--color-text-faint)", margin: 0 }}>{uiText("ui.chatcanvas.dbe482749d")}</p>
           </div>
@@ -837,7 +833,7 @@ export default function ChatCanvas(props: ChatCanvasProps) {
 // ============================================================
 // 新对话快捷提示词（Claude 式 3 类卡片）
 // ============================================================
-function PromptSuggestions({ onPick, onLoadDemo }: { onPick: (prompt: string) => void; onLoadDemo?: () => void }) {
+function PromptSuggestions({ onPick }: { onPick: (prompt: string) => void }) {
   const uiLanguage = useCopyLanguage().lang;
   const isMobile = useIsMobile();
   return (
@@ -854,24 +850,6 @@ function PromptSuggestions({ onPick, onLoadDemo }: { onPick: (prompt: string) =>
           <PromptGroupCard key={g.id} group={g} onPick={onPick} />
         ))}
       </div>
-      {onLoadDemo && (
-        <button
-          onClick={onLoadDemo}
-          style={{
-            alignSelf: "center",
-            padding: "7px 16px",
-            border: "1px solid var(--color-border)",
-            borderRadius: 999,
-            background: "var(--color-surface)",
-            color: "var(--color-text-muted)",
-            fontSize: 12,
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-primary)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-primary)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border)"; }}
-        >{uiText("ui.chatcanvas.4f91aa0247")}</button>
-      )}
     </div>
   );
 }

@@ -1,0 +1,85 @@
+.reader { display:grid; grid-template-columns:200px minmax(0,1fr); margin-top:20px; border:1px solid var(--color-border-soft); border-radius:12px; background:var(--color-surface); overflow:hidden; }
+.navigation { padding:20px 12px; border-right:1px solid var(--color-border-soft); background:var(--color-bg); min-width:0; }
+.navGroup + .navGroup { margin-top:26px; }
+.navGroup h4 { margin:0 8px 9px; font:600 12px/1.5 var(--font-body); color:var(--color-text-muted); }
+.navGroup button { width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; text-align:left; padding:11px 10px; border:0; border-radius:6px; background:transparent; color:var(--color-text); }
+.navGroup button:hover { background:var(--color-border-soft); }
+.navGroup button[aria-current=page] { background:var(--color-surface); box-shadow:inset 0 0 0 1px var(--color-border); }
+.navGroup strong { display:block; font-size:13px; font-weight:600; line-height:1.5; }
+.navGroup small { display:block; font-size:12px; line-height:1.5; color:var(--color-text-muted); overflow-wrap:anywhere; }
+.navGroup button > small, .navGroup svg { flex-shrink:0; }
+.mobileNavigation { display:none; }
+.readingArea { min-width:0; }
+.lessonHeader { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:26px 28px 22px; }
+.lessonHeader h3, .assignmentPage h3 { font-size:22px; line-height:1.4; font-weight:600; margin:0; }
+.lessonHeader h3 > span { display:block; font-size:16px; font-weight:500; margin-top:6px; }
+.lessonHeader p { font-size:12px; color:var(--color-text-muted); margin:6px 0 0; }
+.completion { display:flex; align-items:center; gap:8px; font-size:12px; line-height:1.5; padding-top:6px; cursor:pointer; flex-shrink:0; }
+.completion input { width:16px; height:16px; accent-color:var(--color-accent); }
+.fileTabs { display:flex; gap:6px; padding:0 20px; overflow-x:auto; border-bottom:1px solid var(--color-border); }
+.fileTabs button { display:flex; align-items:center; gap:7px; padding:12px 10px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--color-text-muted); font-size:13px; white-space:nowrap; }
+.fileTabs svg { flex-shrink:0; }
+.fileTabs button:hover { color:var(--color-text); background:var(--color-bg); }
+.fileTabs button[aria-pressed=true] { border-bottom-color:var(--color-text); color:var(--color-text); font-weight:600; }
+.documentToolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 24px; border-bottom:1px solid var(--color-border-soft); }
+.viewOptions, .documentActions { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.viewOptions { gap:4px; }
+.viewOptions button { border:0; border-radius:5px; padding:6px 8px; background:transparent; font-size:12px; color:var(--color-text-muted); }
+.viewOptions button[aria-pressed=true] { background:var(--color-bg); color:var(--color-text); }
+.viewOptions button:hover { color:var(--color-text); }
+.documentActions a { display:inline-flex; align-items:center; gap:5px; font-size:12px; line-height:1.5; }
+.documentState, .sourceName { color:var(--color-text-muted); font-size:12px; }
+.pdfDocument { min-width:0; }
+.pdfHelp { margin:0; padding:10px 24px; font-size:12px; line-height:1.6; color:var(--color-text-muted); }
+.pdfDocument iframe { display:block; width:100%; height:72vh; min-height:500px; max-height:900px; border:0; background:var(--color-bg); }
+.prose { max-width:74ch; padding:28px 32px 36px; margin:0 auto; font-family:var(--font-body); font-size:15px; line-height:1.85; overflow-wrap:anywhere; }
+.prose > :first-child { margin-top:0; }
+.prose p, .prose ul, .prose ol { margin:0 0 1.2em; }
+.prose ul, .prose ol { padding-left:1.5em; }
+.prose ul { list-style:disc; }
+.prose ol { list-style:decimal; }
+.prose li { display:list-item; padding:0; font-size:inherit; }
+.prose h1, .prose h2, .prose h3, .prose h4 { margin:1.7em 0 .6em; line-height:1.5; font-size:18px; font-weight:600; }
+.prose h1 { font-size:22px; }
+.prose pre { padding:16px; margin:20px 0; overflow:auto; border-radius:6px; background:var(--color-code-bg); color:var(--color-code-text); font-size:13px; line-height:1.7; }
+.prose code { font-family:ui-monospace,Consolas,monospace; }
+.prose table { display:block; max-width:100%; overflow-x:auto; border-collapse:collapse; margin:20px 0; }
+.prose td, .prose th { padding:8px 12px; border:1px solid var(--color-border); text-align:left; }
+.sourceName { padding:12px 24px; border-top:1px solid var(--color-border-soft); overflow-wrap:anywhere; line-height:1.6; }
+.emptyDocument { padding:48px 28px; text-align:center; color:var(--color-text-muted); }
+.emptyDocument > svg { margin:0 auto 14px; }
+.emptyDocument h4 { color:var(--color-text); margin:0 0 8px; font-size:16px; font-weight:600; }
+.emptyDocument p { max-width:48ch; margin:0 auto; font-size:14px; line-height:1.8; }
+.emptyDocument button { margin-top:20px; padding:8px 12px; border:1px solid var(--color-border); border-radius:6px; background:transparent; color:var(--color-text); font-size:13px; }
+.textNotice { font-size:13px; color:var(--color-text-muted); border-top:1px solid var(--color-border-soft); padding-top:16px; }
+.lessonNavigation { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 24px; border-top:1px solid var(--color-border-soft); }
+.lessonNavigation button { display:flex; align-items:center; gap:6px; padding:6px 0; border:0; background:transparent; color:var(--color-text); font-size:13px; }
+.lessonNavigation button:hover:not(:disabled) { text-decoration:underline; text-underline-offset:4px; }
+.lessonNavigation button:disabled { opacity:.4; cursor:default; }
+.lessonNavigation > span { font-size:12px; color:var(--color-text-muted); font-variant-numeric:tabular-nums; }
+.assignmentPage { padding:28px; }
+.description { font-size:14px; line-height:1.7; color:var(--color-text-muted); margin:8px 0 22px; }
+.assignmentPage ul { list-style:none; padding:0; margin:0; }
+.assignmentPage li { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; padding:18px 0; border-bottom:1px solid var(--color-border-soft); font-size:14px; }
+.assignmentPage li:last-child { border-bottom:0; }
+.assignmentPage li p { font-size:12px; line-height:1.6; margin:6px 0 0; color:var(--color-text-muted); }
+.status { font-size:12px; color:var(--color-text-muted); flex-shrink:0; }
+.reader :is(button,a,input,select):focus-visible { outline:2px solid var(--color-accent); outline-offset:3px; }
+@media(max-width:1100px) { .reader { grid-template-columns:168px minmax(0,1fr); } .lessonHeader { padding:22px 20px; flex-wrap:wrap; gap:12px; } .prose { padding:24px; } }
+@media(max-width:768px) {
+  .reader { display:block; }
+  .navigation { display:none; }
+  .mobileNavigation { display:flex; flex-direction:column; gap:8px; padding:16px; border-bottom:1px solid var(--color-border); font-size:12px; color:var(--color-text-muted); }
+  .mobileNavigation select { width:100%; min-width:0; padding:10px; font:inherit; font-size:16px; color:var(--color-text); background:var(--color-surface); border:1px solid var(--color-border); border-radius:6px; }
+  .lessonHeader { padding:20px 16px; }
+  .lessonHeader h3, .assignmentPage h3 { font-size:20px; }
+  .fileTabs { padding:0 8px; }
+  .documentToolbar { padding:12px 16px; }
+  .documentActions { gap:12px; }
+  .prose, .assignmentPage { padding:24px 18px; }
+  .pdfHelp { padding:12px 16px; }
+  .pdfDocument iframe { height:64vh; min-height:360px; }
+  .sourceName { padding:12px 16px; }
+  .lessonNavigation { padding:16px; gap:8px; }
+  .assignmentPage li { flex-direction:column; gap:8px; }
+}

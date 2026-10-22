@@ -4,7 +4,7 @@ import { withUiLanguage } from "@/lib/api-language";
 import { join } from "node:path";
 import { existsSync, unlinkSync } from "node:fs";
 import { aiDataDir, readAiSettings, saveAiSettings, saveDeepseekKey, hasDeepseekKey, isLocalAiRequest, validateSettings } from "@/lib/ai-config";
-import { CATALOG_VERSION, MODEL_CATALOG, ALL_MODEL_CATALOG, recommendations } from "@/lib/ai-catalog";
+import { CATALOG_VERSION, MODEL_CATALOG, recommendations } from "@/lib/ai-catalog";
 import { hardwareSummary, memorySummary } from "@/lib/ai-hardware";
 import { defaultModelsDirectory } from "@/lib/ai-paths";
 import { contextPlan } from "@/lib/ai-context";
@@ -21,9 +21,10 @@ async function handleGET(req: Request) {
   if (!isLocalAiRequest(req)) return json({ error: uiText("server.641c510983e7") }, 403);
   try {
     const settings = readAiSettings();
+    const engine = await engineStatus();
     return json({ settings, defaultModelsDir: defaultModelsDirectory(), memory: memorySummary(), keyPresent: hasDeepseekKey(), protectedStorage: process.platform === "win32", catalog: MODEL_CATALOG, catalogVersion: CATALOG_VERSION,
-      modelNames: { primary: settings.mode === "none" ? null : settings.mode === "deepseek" ? settings.deepseekModel : settings.mode === "local" ? (settings.localKind === "external" ? settings.externalModel : ALL_MODEL_CATALOG.find(m => m.id === settings.modelId)?.label || "") : process.env.OLLAMA_SERVER_MODEL || null, alternate: settings.mode === "legacy" && process.env.OLLAMA_WINDOWS_BASE_URL ? process.env.OLLAMA_WINDOWS_MODEL || process.env.OLLAMA_SERVER_MODEL || null : null },
-      downloads: downloadStatuses(), engine: await engineStatus(), legacyAvailable: !!process.env.OLLAMA_SERVER_BASE_URL });
+      modelNames: { primary: settings.mode === "none" ? null : settings.mode === "deepseek" ? settings.deepseekModel : settings.mode === "local" ? (settings.localKind === "external" ? settings.externalModel || null : engine.state === "ready" && engine.model === settings.modelId && engine.context === settings.context ? engine.modelName : null) : process.env.OLLAMA_SERVER_MODEL || null, alternate: settings.mode === "legacy" && process.env.OLLAMA_WINDOWS_BASE_URL ? process.env.OLLAMA_WINDOWS_MODEL || process.env.OLLAMA_SERVER_MODEL || null : null },
+      downloads: downloadStatuses(), engine, legacyAvailable: !!process.env.OLLAMA_SERVER_BASE_URL });
   } catch { return json({ error: uiText("server.680390134140") }, 500); }
 }
 async function handlePOST(req: Request) {
@@ -59,7 +60,14 @@ async function handlePOST(req: Request) {
       case "cancel": return json({ ok: true, downloads: await cancelDownload(String(body.id)) });
       case "start": return json({ ok: true, engine: await startEngine() });
       case "stop": return json({ ok: true, engine: await stopEngine() });
-      case "models": return json({ ok: true, models: await providerModels() });
+      case "models": {
+        const models = await providerModels();
+        let settings = readAiSettings();
+        // A single service-reported ID is unambiguous. Multiple IDs require a choice;
+        // an existing user selection is never silently replaced.
+        if (settings.mode === "local" && settings.localKind === "external" && !settings.externalModel && models.length === 1) settings = saveAiSettings({ ...settings, externalModel: models[0] });
+        return json({ ok: true, models, settings });
+      }
       case "test": {
         const endpoints = resolveProviderCandidates(), models = await providerModels(), selected = endpoints[0].model;
         if (!models.includes(selected) && endpoints[0].mode !== "legacy") throw new Error(uiText("server.6fd741f8c8af"));

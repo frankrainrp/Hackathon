@@ -7,6 +7,7 @@ import { applyProfileMetadata } from "@/lib/lms-sync";
 import { readLmsFeed, readState, updateLmsFeed } from "@/lib/server-db";
 import { discoverProfile, identifySchool } from "@/lib/lms-discovery";
 import { schoolJob, startSchoolDiscovery, cancelSchoolDiscovery } from "@/lib/lms-worker";
+import { weeklyStatus, configureWeekly, maybeStartWeekly } from "@/lib/weekly-check";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ async function handleGET(req: Request) {
   const settings = readProfiles();
   if (new URL(req.url).searchParams.get("export") === "1") return Response.json({ version: 1, exportedAt: new Date().toISOString(), settings, feed: readLmsFeed(), state: { ddls: readState("ddls"), notes: readState("notes") } }, { headers: { "content-disposition": 'attachment; filename="butler-learning-backup.json"', "cache-control": "no-store" } });
   const profile = activeProfile(settings);
-  return Response.json({ settings, catalog: profile ? readCatalog(profile.id) : [], job: schoolJob(), activation: "not-managed" }, { headers: { "cache-control": "no-store" } });
+  return Response.json({ settings, catalog: profile ? readCatalog(profile.id) : [], job: schoolJob(), weekly: weeklyStatus(), activation: "not-managed" }, { headers: { "cache-control": "no-store" } });
 }
 async function handlePOST(req: Request) {
   if (!isLocalLmsRequest(req) || !req.headers.get("origin")) return Response.json({ error: uiText("server.697c7464778a") }, { status: 403 });
@@ -23,6 +24,8 @@ async function handlePOST(req: Request) {
     const text = await req.text();
     if (Buffer.byteLength(text) > 100_000) return Response.json({ error: uiText("server.a965b1014d22") }, { status: 413 });
     const body = JSON.parse(text);
+    if (body.action === "weekly" && typeof body.enabled === "boolean") { configureWeekly(body.enabled); return Response.json({ weekly: maybeStartWeekly(), job: schoolJob() }); }
+    if (body.action === "weekly-check") return Response.json({ weekly: maybeStartWeekly(body.force === true), job: schoolJob() });
     if (body.action === "cancel") return Response.json({ job: cancelSchoolDiscovery() });
     if (body.action === "login" || body.action === "catalog" || body.action === "sync") return Response.json({ job: startSchoolDiscovery(body.action === "login", body.action === "sync") });
     if (schoolJob()?.state === "running") return Response.json({ error: uiText("school.auto.busy") }, { status: 409 });

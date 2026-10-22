@@ -12,7 +12,7 @@ import { TOOLS } from "@/lib/ai-tools";
 import { isValidModelId, getModelMeta, DEFAULT_MODEL_ID, type AiModelId } from "@/lib/ai-models";
 import { endpointCandidates, type ModelEndpoint } from "@/lib/model-endpoints";
 import { readLmsFeed } from "@/lib/server-db";
-import { selectCourseContext, courseContextPrompt } from "@/lib/course-context";
+import { selectCourseContext, courseContextPrompt, wantsCourseContext, sourceLinksMarkdown } from "@/lib/course-context";
 import { isLocalLmsRequest } from "@/lib/lms-auth";
 
 export const runtime = "nodejs";       // openai SDK 需要 node runtime（含 stream API）
@@ -105,7 +105,7 @@ async function handlePOST(req: Request) {
   const query = body.messages.filter(m => m.role === "user").slice(-1)[0]?.content || "";
   const courseMode = !!body.courseNoteId;
   const feed = readLmsFeed();
-  const asksCourse = courseMode || /课程|课件|课堂|\b(lesson|module|course|materials?)\b/i.test(query) || (feed.courses || []).some(c => query.toLowerCase().includes(c.moduleName.toLowerCase()));
+  const asksCourse = wantsCourseContext(feed, query, body.courseNoteId);
   const courseContext = asksCourse && process.env.LMS_CONTENT_AI_ENABLED !== "false"
     ? selectCourseContext(feed, query, body.courseNoteId)
     : { courses: [], sources: [], metadata: uiText("ai.courseAccess"), missingText: 0 };
@@ -117,11 +117,12 @@ async function handlePOST(req: Request) {
     ...body.messages.filter((m) => m.role !== "system"),
   ];
 
-  // 模型选择：客户端 model 必须通过白名单；未传或非法 → 默认 V4 Flash
+  // Saved UI identifiers select primary/alternate routing. Provider settings determine the real model.
   const requestedModel: AiModelId =
     body.model && isValidModelId(body.model) ? body.model : DEFAULT_MODEL_ID;
   const modelMeta = getModelMeta(requestedModel);
-  const useTools = !asksCourse && body.includeTools !== false && modelMeta.supportsTools;
+  const saveNotes = /(?:write|save|create|add).{0,35}\bnotes?\b|(?:写入|保存|创建|整理).{0,15}笔记/i.test(query);
+  const useTools = (!asksCourse || saveNotes) && body.includeTools !== false && modelMeta.supportsTools;
 
   // 思考模式（V4 Pro thinking）：加 reasoning_effort + thinking 字段
   // DeepSeek docs: https://api-docs.deepseek.com/guides/thinking_mode
@@ -136,7 +137,6 @@ async function handlePOST(req: Request) {
   try {
     type ChatCreateParams = Parameters<OpenAI["chat"]["completions"]["create"]>[0];
     const createParams = {
-      model: modelMeta.apiModel,
       messages: messages as ChatCreateParams["messages"],
       tools: useTools ? TOOLS : undefined,
       tool_choice: useTools ? "auto" : undefined,
@@ -183,8 +183,10 @@ async function handlePOST(req: Request) {
         // chunk 或后端连接收尾不规整会触发）只 console.warn，不再发 error
         // chunk 误导客户端 — 内容已完整流给用户。
         let hasEmittedChunk = false;
+        let hasText = false;
         try {
           for await (const chunk of activeStream) {
+            if ((chunk as { choices?: { delta?: { content?: string } }[] }).choices?.some(c => c.delta?.content)) hasText = true;
             const data = JSON.stringify(chunk);
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
             hasEmittedChunk = true;
@@ -200,6 +202,8 @@ async function handlePOST(req: Request) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
           }
         } finally {
+          const links = hasText ? sourceLinksMarkdown(courseContext, body.language === "zh" ? "zh" : "en") : "";
+          if (links) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: links }, finish_reason: null }] })}\n\n`));
           // 始终发 [DONE] 通知客户端流结束
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           controller.close();

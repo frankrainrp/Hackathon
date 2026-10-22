@@ -37,7 +37,7 @@ export async function applyDiscoveredCatalog(profileId: string, canApply = () =>
   updateLmsFeed(feed => applyProfileMetadata(feed, saved));
   return !!latestSemester(catalog);
 }
-export function startSchoolDiscovery(login: boolean, download = false) {
+export function startSchoolDiscovery(login: boolean, download = false, options: { allActive?: boolean; onSettled?: (job: Job) => void } = {}) {
   if (schoolJob()?.state === "running") throw new Error(uiText("school.auto.busy"));
   const profile = activeProfile(readProfiles());
   if (!profile || !supportsSchoolConnection(profile.domain, profile.platform)) throw new Error(uiText("school.auto.connectionUnsupported"));
@@ -45,10 +45,11 @@ export function startSchoolDiscovery(login: boolean, download = false) {
   const job: Job = { profileId: profile.id, state: "running", message: uiText(login ? "school.auto.signingIn" : "school.auto.reading") };
   shared.butlerSchoolJob = job;
   let stopChild: (() => void) | undefined;
+  let lastWorkerCode: number | null = null;
   shared.butlerSchoolCancel = () => { job.state = "error"; job.message = uiText("school.auto.cancelled"); stopChild?.(); };
   const run = (action: SchoolAction) => new Promise<void>((ok, fail) => {
     if (action === "inspect" || action === "sync") job.message = uiText(action === "sync" ? "school.auto.downloading" : "school.auto.importing");
-    const child = spawn(command.exe, [...command.prefix, "--config", configPath(), "--expected-profile", profile.id, ...(["inspect", "sync"].includes(action) ? ["--no-ai-brief"] : []), action], { cwd: command.directory, env: { ...process.env, LMS_SYNC_TOKEN: workerLmsToken() }, windowsHide: true, stdio: "ignore" });
+    const child = spawn(command.exe, [...command.prefix, "--config", configPath(), "--expected-profile", profile.id, ...(["inspect", "sync"].includes(action) ? ["--no-ai-brief"] : []), ...(action === "inspect" && options.allActive ? ["--all-active-courses"] : []), action], { cwd: command.directory, env: { ...process.env, LMS_SYNC_TOKEN: workerLmsToken() }, windowsHide: true, stdio: "ignore" });
     stopChild = () => {
       if (child.pid && child.exitCode === null) {
         if (process.platform === "win32") spawnSync("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
@@ -60,7 +61,7 @@ export function startSchoolDiscovery(login: boolean, download = false) {
       fail(new Error(uiText("school.auto.timeout")));
     }, 720000);
     child.once("error", () => { clearTimeout(timer); fail(new Error(uiText("school.auto.workerMissing"))); });
-    child.once("exit", code => { clearTimeout(timer); if (code === 0) ok(); else fail(new Error(schoolWorkerFailure(action, code))); });
+    child.once("exit", code => { clearTimeout(timer); lastWorkerCode = code; if (code === 0) ok(); else fail(new Error(schoolWorkerFailure(action, code))); });
   });
   void (async () => {
     try {
@@ -69,11 +70,15 @@ export function startSchoolDiscovery(login: boolean, download = false) {
         discover: () => applyDiscoveredCatalog(profile.id, canContinue), canContinue,
         hasSelectedCourses: () => {
           const current = activeProfile(readProfiles()), semester = current?.semesters.find(s => s.id === current.activeSemesterId);
-          return !!semester?.confirmed && semester.courses.some(c => c.selected && c.status === "active");
+          return !!semester?.confirmed && semester.courses.some(c => (options.allActive || c.selected) && c.status === "active");
         },
       });
       job.state = "complete"; job.message = uiText("school.auto." + result);
-    } catch (error) { if (job.state === "running") { job.state = "error"; job.message = error instanceof Error ? error.message : uiText("school.auto.loginRequired"); } }
+    } catch (error) { if (job.state === "running") {
+      if (options.allActive && lastWorkerCode === 4) { job.state = "complete"; job.message = uiText("weekly.partial"); }
+      else { job.state = "error"; job.message = error instanceof Error ? error.message : uiText("school.auto.loginRequired"); }
+    } }
+    finally { options.onSettled?.(job); }
   })();
   return job;
 }
