@@ -3,7 +3,7 @@
 const { spawn } = require('node:child_process');
 const [exe, model, context, port, key] = process.argv.slice(2);
 if (!process.send || !/^\d+$/.test(port) || !/^\d+$/.test(context)) process.exit(2);
-const child = spawn(exe, ['--model', model, '--alias', require('node:path').basename(model), '--host', '127.0.0.1', '--port', port, '--ctx-size', context, '--n-gpu-layers', '0', '--parallel', '1', '--jinja', '--api-key', key, '--no-webui', '--no-warmup'], { windowsHide: true, stdio: 'ignore' });
+const child = spawn(exe, ['--model', model, '--alias', require('node:path').basename(model), '--host', '127.0.0.1', '--port', port, '--ctx-size', context, '--cache-type-k', 'f16', '--cache-type-v', 'f16', '--n-gpu-layers', '0', '--parallel', '1', '--jinja', '--api-key', key, '--no-webui', '--no-warmup'], { windowsHide: true, stdio: 'ignore' });
 let stopping = false;
 function stop() { if (stopping) return; stopping = true; child.kill(); const t = setTimeout(() => process.exit(0), 3000); t.unref(); }
 process.on('disconnect', stop);

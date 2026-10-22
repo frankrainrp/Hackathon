@@ -4,8 +4,10 @@ import { withUiLanguage } from "@/lib/api-language";
 import { join } from "node:path";
 import { existsSync, unlinkSync } from "node:fs";
 import { aiDataDir, readAiSettings, saveAiSettings, saveDeepseekKey, hasDeepseekKey, isLocalAiRequest, validateSettings } from "@/lib/ai-config";
-import { CATALOG_VERSION, MODEL_CATALOG, recommendations } from "@/lib/ai-catalog";
-import { hardwareSummary } from "@/lib/ai-hardware";
+import { CATALOG_VERSION, MODEL_CATALOG, ALL_MODEL_CATALOG, recommendations } from "@/lib/ai-catalog";
+import { hardwareSummary, memorySummary } from "@/lib/ai-hardware";
+import { defaultModelsDirectory } from "@/lib/ai-paths";
+import { contextPlan } from "@/lib/ai-context";
 import { modelDirectory, listModels, downloadStatuses, startDownload, cancelDownload } from "@/lib/ai-download";
 import { engineProbe, engineStatus, startEngine, stopEngine } from "@/lib/ai-engine";
 import { providerModels, completeWithProvider, providerError, resolveProviderCandidates } from "@/lib/ai-provider";
@@ -19,8 +21,8 @@ async function handleGET(req: Request) {
   if (!isLocalAiRequest(req)) return json({ error: uiText("server.641c510983e7") }, 403);
   try {
     const settings = readAiSettings();
-    return json({ settings, keyPresent: hasDeepseekKey(), protectedStorage: process.platform === "win32", catalog: MODEL_CATALOG, catalogVersion: CATALOG_VERSION,
-      modelNames: { primary: settings.mode === "none" ? null : settings.mode === "deepseek" ? settings.deepseekModel : settings.mode === "local" ? (settings.localKind === "external" ? settings.externalModel : MODEL_CATALOG.find(m => m.id === settings.modelId)?.label || "") : process.env.OLLAMA_SERVER_MODEL || "qwen3:0.6b", alternate: settings.mode === "legacy" && process.env.OLLAMA_WINDOWS_BASE_URL ? process.env.OLLAMA_WINDOWS_MODEL || process.env.OLLAMA_SERVER_MODEL || "qwen3:0.6b" : null },
+    return json({ settings, defaultModelsDir: defaultModelsDirectory(), memory: memorySummary(), keyPresent: hasDeepseekKey(), protectedStorage: process.platform === "win32", catalog: MODEL_CATALOG, catalogVersion: CATALOG_VERSION,
+      modelNames: { primary: settings.mode === "none" ? null : settings.mode === "deepseek" ? settings.deepseekModel : settings.mode === "local" ? (settings.localKind === "external" ? settings.externalModel : ALL_MODEL_CATALOG.find(m => m.id === settings.modelId)?.label || "") : process.env.OLLAMA_SERVER_MODEL || null, alternate: settings.mode === "legacy" && process.env.OLLAMA_WINDOWS_BASE_URL ? process.env.OLLAMA_WINDOWS_MODEL || process.env.OLLAMA_SERVER_MODEL || null : null },
       downloads: downloadStatuses(), engine: await engineStatus(), legacyAvailable: !!process.env.OLLAMA_SERVER_BASE_URL });
   } catch { return json({ error: uiText("server.680390134140") }, 500); }
 }
@@ -36,18 +38,22 @@ async function handlePOST(req: Request) {
     switch (body.action) {
       case "save": {
         const old = readAiSettings(), next = validateSettings(body.settings);
+        const model = MODEL_CATALOG.find(m => m.id === next.modelId);
+        if (next.contextMode === "auto" && model) next.context = next.modelId === old.modelId && old.contextMode === "auto" && (await engineStatus()).state === "ready" ? old.context : contextPlan(model, memorySummary()).recommended;
         if (next.modelsDir !== old.modelsDir && downloadStatuses().some(s => ["downloading", "verifying"].includes(s.state))) throw new Error(uiText("server.bce9fd9ad5d7"));
         if (["mode", "localKind", "modelId", "context", "modelsDir"].some(key => next[key] !== old[key])) await stopEngine();
         return json({ ok: true, settings: saveAiSettings(next) });
       }
       case "save-key": saveDeepseekKey(body.key as string); return json({ ok: true, keyPresent: true, message: uiText("server.c4206d8a6ee3") });
       case "delete-key": { const path = join(aiDataDir(), "deepseek.dpapi"); if (existsSync(path)) unlinkSync(path); return json({ ok: true, keyPresent: false }); }
-      case "hardware": { const s = readAiSettings(); const hardware = hardwareSummary(s.modelsDir); return json({ ok: true, hardware, recommendations: recommendations(hardware, s.context), probe: engineProbe(), models: listModels(s.modelsDir) }); }
+      case "hardware": { const s = readAiSettings(); const hardware = hardwareSummary(s.modelsDir, body.includeGpu === true), probe = engineProbe(); hardware.bundledCpu = hardware.bundledCpu && probe.available; return json({ ok: true, hardware, recommendations: recommendations(hardware), probe, models: listModels(s.modelsDir) }); }
       case "folder": {
         if (downloadStatuses().some(s => ["downloading", "verifying"].includes(s.state))) throw new Error(uiText("server.bce9fd9ad5d7"));
-        const s = readAiSettings(), directory = modelDirectory(String(body.directory || ""));
-        saveAiSettings({ ...s, modelsDir: directory });
-        return json({ ok: true, directory, models: listModels(directory) });
+        const s = readAiSettings(), automatic = body.useDefault === true;
+        const directory = modelDirectory(automatic ? defaultModelsDirectory() : String(body.directory || "").trim());
+        if (s.modelsDir !== directory) await stopEngine();
+        const settings = saveAiSettings({ ...s, modelsDir: directory, modelsDirMode: automatic ? "auto" : "custom" });
+        return json({ ok: true, settings, directory, models: listModels(directory) });
       }
       case "download": return json({ ok: true, download: startDownload(String(body.id), body.confirm === true) });
       case "cancel": return json({ ok: true, downloads: await cancelDownload(String(body.id)) });

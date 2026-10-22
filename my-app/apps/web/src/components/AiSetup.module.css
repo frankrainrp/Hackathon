@@ -57,6 +57,8 @@
 .download progress { width:100%; height:10px; accent-color:var(--color-accent); margin-top:14px; }
 .progressText { font-variant-numeric:tabular-nums; }
 .hash { overflow-wrap:anywhere; font-size:12px; }
+.pathHint { overflow-wrap:anywhere; font-size:13px; color:var(--color-text-muted); }
+.model > span { min-width:0; overflow-wrap:anywhere; }
 .instructions { list-style:decimal; padding-left:23px; line-height:1.75; }
 .instructions li { padding-left:4px; margin:14px 0; }
 .success { margin:24px 0; }

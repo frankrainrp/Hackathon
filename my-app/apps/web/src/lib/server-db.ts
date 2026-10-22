@@ -1,8 +1,8 @@
 import "server-only";
 
 import Database from "better-sqlite3";
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { mkdirSync, existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import type { LmsFeed } from "./lms-sync";
 
 let sqlite: Database.Database | undefined;
@@ -10,7 +10,10 @@ let sqlite: Database.Database | undefined;
 function getDatabase(): Database.Database {
   if (sqlite) return sqlite;
 
-  const dbPath = process.env.BUTLER_DB_PATH || "/data/butler.sqlite";
+  const localPath = resolve(process.cwd(), ".private", "butler.sqlite");
+  const legacyPath = resolve("/data/butler.sqlite");
+  // Retain an existing legacy store; fresh source installs use a writable local data folder.
+  const dbPath = process.env.BUTLER_DB_PATH || (existsSync(localPath) ? localPath : existsSync(legacyPath) ? legacyPath : localPath);
   mkdirSync(dirname(dbPath), { recursive: true });
   sqlite = new Database(dbPath);
   sqlite.pragma("journal_mode = WAL");

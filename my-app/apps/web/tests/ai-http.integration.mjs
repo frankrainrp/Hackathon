@@ -41,6 +41,8 @@ async function brief(term,title,sequence){
 }
 try{
  await start();let initial=await api();assert.equal(initial.settings.onboarding,'new');
+ assert.ok(initial.catalog.every(m=>m.parametersB>8));
+ await api('download',{id:'qwen3-8-q4',confirm:true},400);assert.equal(requests.length,0);
  await api('save',{settings:{...initial.settings,mode:'local',localKind:'external',externalURL:`http://127.0.0.1:${mockPort}/v1`,externalModel:'synthetic-local',onboarding:'paused',step:2}});
  assert.equal((await api()).modelNames.primary,'synthetic-local');
  const zhError=await api('download',{id:'qwen3-8-q4',confirm:false},400,{'x-butler-language':'zh'});assert.match(zhError.error,/\p{Script=Han}/u);assert.equal(requests.length,0);

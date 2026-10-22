@@ -4,7 +4,7 @@ import { open } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { aiDataDir, atomicJson, readAiSettings } from "./ai-config.ts";
-import { catalogModel, MODEL_CATALOG, type CatalogModel } from "./ai-catalog.ts";
+import { catalogModel, MODEL_CATALOG, ALL_MODEL_CATALOG, type CatalogModel } from "./ai-catalog.ts";
 
 export interface DownloadStatus { id: string; directory: string; state: "downloading" | "verifying" | "paused" | "ready" | "error"; received: number; total: number; error?: string; updated: number }
 type Job = { controller: AbortController; done: Promise<void>; status: DownloadStatus };
@@ -29,7 +29,7 @@ function persist(status: DownloadStatus) { status.updated = Date.now(); atomicJs
 export function downloadStatuses() {
   const folder = join(aiDataDir(), "downloads");
   if (!existsSync(folder)) return [];
-  return MODEL_CATALOG.flatMap(model => {
+  return ALL_MODEL_CATALOG.flatMap(model => {
     const path = journalPath(model.id);
     if (!existsSync(path)) return [];
     try {
@@ -37,6 +37,8 @@ export function downloadStatuses() {
       const active = jobs.get(model.id);
       if (active) return [active.status];
       if (["downloading", "verifying"].includes(s.state)) s.state = "paused";
+      // A read must not recreate a previous computer's saved model directory.
+      if (!existsSync(s.directory)) return [{ ...s, state: "paused" as const }];
       const partial = modelFile(s.directory, model.file + ".part");
       if (existsSync(partial)) s.received = statSync(partial).size;
       return [s];
@@ -108,6 +110,7 @@ export async function transferModel(model: CatalogModel, directory: string, cont
 }
 export function startDownload(id: string, confirmed: boolean) {
   if (confirmed !== true) throw new Error(uiText("server.c0303ea67d9f"));
+  if (!MODEL_CATALOG.some(m => m.id === id)) throw new Error(uiText("ai.curated.retired"));
   if (jobs.size) throw new Error(uiText("server.f3c6850aded0"));
   const model = catalogModel(id), directory = modelDirectory(readAiSettings().modelsDir);
   const status: DownloadStatus = { id, directory, state: "downloading", received: 0, total: model.bytes, updated: Date.now() };

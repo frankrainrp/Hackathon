@@ -8,6 +8,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { readAiSettings } from "./ai-config.ts";
 import { verifyModel } from "./ai-download.ts";
 import { catalogModel } from "./ai-catalog.ts";
+import { contextPlan, estimatedModelGiB } from "./ai-context.ts";
 import { hardwareSummary } from "./ai-hardware.ts";
 
 export const ENGINE_PORT = 18639;
@@ -40,7 +41,7 @@ export async function startEngine() {
   if (s.mode !== "local" || s.localKind !== "bundled") throw new Error(uiText("server.a8e0bc327335"));
   const probe = engineProbe(); if (!probe.available) throw new Error(probe.error || uiText("server.af3aa49cea74"));
   const model = catalogModel(s.modelId), h = hardwareSummary(s.modelsDir);
-  if (h.freeRamGiB < model.workingGiB + Math.max(0, (s.context - 4096) / 1024)) throw new Error(uiText("server.08a8d1907bc9"));
+  if (h.ramGiB < model.minRamGiB || h.freeRamGiB < estimatedModelGiB(model, s.context) + contextPlan(model, h).reserveGiB) throw new Error(uiText("server.08a8d1907bc9"));
   engine.state = "starting"; engine.error = undefined;
   try {
     const file = await verifyModel(s.modelsDir, s.modelId);

@@ -7,13 +7,15 @@ import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { execFileSync } from 'node:child_process';
 import { defaults, readAiSettings, saveAiSettings, hasDeepseekKey, saveDeepseekKey, readDeepseekKey, loopbackURL, isLocalAiRequest } from '../src/lib/ai-config.ts';
-import { MODEL_CATALOG, recommendations } from '../src/lib/ai-catalog.ts';
+import { recommendations, MODEL_CATALOG as ACTIVE_MODELS } from '../src/lib/ai-catalog.ts';
+import { RETIRED_MODEL_CATALOG as MODEL_CATALOG } from '../src/lib/ai-legacy-catalog.ts';
 import { resolveProviderCandidates, completeWithProvider, providerError } from '../src/lib/ai-provider.ts';
 import { transferModel, sha256File, modelDirectory, modelFile, downloadStatuses } from '../src/lib/ai-download.ts';
 import { engineProbe, engineStatus, startEngine, stopEngine } from '../src/lib/ai-engine.ts';
 
 const folder = mkdtempSync(join(tmpdir(), 'butler-ai-'));
 process.env.BUTLER_AI_DATA_DIR = join(folder, 'ai');
+process.env.BUTLER_MODELS_DIR = join(folder, 'model-storage');
 after(() => { const target=resolve(folder); assert.equal(dirname(target),resolve(tmpdir())); assert.match(basename(target),/^butler-ai-/); rmSync(target,{recursive:true,force:true}); });
 test('settings survive a new process; unrelated state and secrets cannot enter JSON', () => {
   const initial = defaults();
@@ -55,11 +57,11 @@ test('Windows DPAPI roundtrip persists only ciphertext, supports replacement and
   const e=resolveProviderCandidates()[0]; assert.equal(e.baseURL,'https://api.deepseek.com'); assert.equal(e.model,'deepseek-v4-pro');
 });
 test('recommendations account for free RAM, disk, context and CPU-only backend',()=>{
-  const hardware={os:'win32',arch:'x64',ramGiB:16,freeRamGiB:10,diskGiB:20,gpus:[{name:'Synthetic GPU',vramGiB:24}],bundledCpu:true,notes:[]};
-  assert.equal(recommendations(hardware).quality,'qwen3-8-q4'); assert.equal(recommendations(hardware).balanced,'qwen3-4-q4');
+  const hardware={os:'win32',arch:'x64',ramGiB:64,freeRamGiB:48,diskGiB:40,gpus:[{name:'Synthetic GPU',vramGiB:24}],bundledCpu:true,notes:[]};
+  assert.equal(recommendations(hardware).quality,'qwen38-27-q4'); assert.equal(recommendations(hardware).balanced,'gemma4-12-qat');
   assert.equal(recommendations({...hardware,freeRamGiB:1}).quality,null);
   assert.equal(recommendations({...hardware,diskGiB:0.1}).balanced,null);
-  assert.notEqual(recommendations(hardware,8192).quality,'qwen3-8-q4');
+  assert.equal(recommendations({...hardware,freeRamGiB:8}).recommendedMode,'api');
   assert.match(recommendations(hardware).backend,/CPU/);
   assert.equal(recommendations({...hardware,diskGiB:null}).unknown,true);
   assert.equal(recommendations({...hardware,bundledCpu:false}).quality,null);
@@ -95,7 +97,7 @@ test('controlled transfer cancels, resumes with Range, survives journal reload a
 });
 test('native engine probe is real; missing model fails without spawning or contacting cloud',async()=>{
   const probe=engineProbe(); if(process.platform==='win32'&&process.arch==='x64') { assert.equal(probe.available,true,probe.error); assert.match(probe.version,/11669/); }
-  saveAiSettings({...defaults(),mode:'local',modelId:MODEL_CATALOG[0].id,modelsDir:join(folder,'models')});
+  saveAiSettings({...defaults(),mode:'local',modelId:MODEL_CATALOG[0].id,modelsDirMode:'custom',modelsDir:join(folder,'models')});
   if(process.platform!=='win32'||process.arch!=='x64') {
     assert.equal(probe.available,false);
     await assert.rejects(startEngine(),/Windows x64/);

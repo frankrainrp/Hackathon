@@ -1,20 +1,23 @@
 import { uiText } from "./messages.ts";
 // Server-only persistence. Never import this module from a client component.
-import { mkdirSync, existsSync, readFileSync, writeFileSync, renameSync } from "node:fs";
+import { mkdirSync, existsSync, readFileSync, writeFileSync, renameSync, readdirSync } from "node:fs";
 import { resolve, join, isAbsolute } from "node:path";
 import { spawnSync } from "node:child_process";
+import { defaultModelsDirectory } from "./ai-paths.ts";
+import { ALL_MODEL_CATALOG } from "./ai-catalog.ts";
 
 export type AiMode = "none" | "local" | "deepseek" | "legacy";
 export interface AiSettings {
   version: 1; mode: AiMode; onboarding: "new" | "paused" | "complete"; step: number;
   localKind: "bundled" | "external"; modelsDir: string; modelId: string;
   context: number; externalURL: string; externalModel: string;
+  modelsDirMode: "auto" | "custom"; contextMode: "auto" | "manual";
   deepseekModel: "deepseek-flash" | "deepseek-v4-pro"; cloudOcr: boolean;
 }
 export const aiDataDir = () => resolve(process.env.BUTLER_AI_DATA_DIR || join(process.cwd(), ".private", "ai"));
 export function defaults(): AiSettings {
   return { version: 1, mode: process.env.OLLAMA_SERVER_BASE_URL ? "legacy" : "none", onboarding: "new", step: 0,
-    localKind: "bundled", modelsDir: join(aiDataDir(), "models"), modelId: "", context: 4096,
+    localKind: "bundled", modelsDir: defaultModelsDirectory(), modelsDirMode: "auto", modelId: "", context: 4096, contextMode: "auto",
     externalURL: "http://127.0.0.1:11434/v1", externalModel: "", deepseekModel: "deepseek-flash", cloudOcr: false };
 }
 export function atomicJson(file: string, value: unknown) {
@@ -26,7 +29,14 @@ export function readAiSettings(): AiSettings {
   const file = join(aiDataDir(), "settings.json");
   if (!existsSync(file)) return defaults();
   // Invalid persisted configuration fails closed, never selects a cloud fallback.
-  return validateSettings(JSON.parse(readFileSync(file, "utf8")));
+  const raw = JSON.parse(readFileSync(file, "utf8"));
+  if (!raw.modelsDirMode) {
+    // Preserve old/custom model stores, especially complete or interrupted weights.
+    const legacy = join(aiDataDir(), "models");
+    const emptyLegacy = raw.modelsDir === legacy && (!existsSync(legacy) || readdirSync(legacy).length === 0);
+    raw.modelsDirMode = emptyLegacy ? "auto" : "custom";
+  }
+  return validateSettings(raw);
 }
 export function loopbackURL(raw: string) {
   const url = new URL(raw);
@@ -38,12 +48,14 @@ export function loopbackURL(raw: string) {
 export function validateSettings(raw: unknown): AiSettings {
   const s = raw as AiSettings;
   if (!s || s.version !== 1 || !["none", "local", "deepseek", "legacy"].includes(s.mode) || !["new", "paused", "complete"].includes(s.onboarding) || !["bundled", "external"].includes(s.localKind)
-    || !Number.isInteger(s.step) || s.step < 0 || s.step > 3 || !Number.isInteger(s.context) || s.context < 2048 || s.context > 8192
+    || !Number.isInteger(s.step) || s.step < 0 || s.step > 3 || !Number.isInteger(s.context) || s.context < (ALL_MODEL_CATALOG.find(m => m.id === s.modelId)?.minContext || 2048) || s.context > (ALL_MODEL_CATALOG.find(m => m.id === s.modelId)?.context || 262144)
+    || (s.modelsDirMode !== undefined && !["auto", "custom"].includes(s.modelsDirMode)) || (s.contextMode !== undefined && !["auto", "manual"].includes(s.contextMode))
     || typeof s.modelsDir !== "string" || s.modelsDir.length > 500 || !isAbsolute(s.modelsDir) || /^(\\\\|\/\/)/.test(s.modelsDir) || s.modelsDir.includes("\0") || typeof s.modelId !== "string" || !/^[a-zA-Z0-9._-]{0,150}$/.test(s.modelId)
     || typeof s.externalModel !== "string" || s.externalModel.length > 150 || !["deepseek-flash", "deepseek-v4-pro"].includes(s.deepseekModel) || typeof s.cloudOcr !== "boolean") throw new Error(uiText("server.305c01cbb876"));
   // Explicit projection: credentials and unrelated app state cannot enter settings/exports.
-  return { version: 1, mode: s.mode, onboarding: s.onboarding, step: s.step, localKind: s.localKind, modelsDir: s.modelsDir, modelId: s.modelId,
-    context: s.context, externalURL: loopbackURL(s.externalURL), externalModel: s.externalModel.trim(), deepseekModel: s.deepseekModel, cloudOcr: s.cloudOcr };
+  const modelsDirMode = s.modelsDirMode || "custom";
+  return { version: 1, mode: s.mode, onboarding: s.onboarding, step: s.step, localKind: s.localKind, modelsDir: modelsDirMode === "auto" ? defaultModelsDirectory() : s.modelsDir, modelsDirMode, modelId: s.modelId,
+    context: s.context, contextMode: s.contextMode || (s.context === 4096 ? "auto" : "manual"), externalURL: loopbackURL(s.externalURL), externalModel: s.externalModel.trim(), deepseekModel: s.deepseekModel, cloudOcr: s.cloudOcr };
 }
 export function saveAiSettings(raw: unknown) {
   const s = validateSettings(raw);

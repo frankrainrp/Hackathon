@@ -31,7 +31,8 @@ export function resolveProviderCandidates(modelId: AiModelId = "deepseek-v4-flas
     return [{ name: "bundled", mode: s.mode, baseURL: `http://127.0.0.1:${ENGINE_PORT}/v1`, model: model.file, apiKey: engineCredential() }];
   }
   // Explicit legacy mode preserves primary/alternate ordering. DEEPSEEK_* is never a local fallback.
-  const primary: ProviderEndpoint = { name: "server", mode: s.mode, baseURL: process.env.OLLAMA_SERVER_BASE_URL || "http://127.0.0.1:11434/v1", model: process.env.OLLAMA_SERVER_MODEL || "qwen3:0.6b", apiKey: process.env.OLLAMA_API_KEY || "ollama" };
+  if (!process.env.OLLAMA_SERVER_MODEL?.trim()) throw new Error(uiText("ai.legacy.modelRequired"));
+  const primary: ProviderEndpoint = { name: "server", mode: s.mode, baseURL: process.env.OLLAMA_SERVER_BASE_URL || "http://127.0.0.1:11434/v1", model: process.env.OLLAMA_SERVER_MODEL.trim(), apiKey: process.env.OLLAMA_API_KEY || "ollama" };
   const alternate = process.env.OLLAMA_WINDOWS_BASE_URL?.trim();
   if (!alternate) return [primary];
   const secondary: ProviderEndpoint = { name: "windows", mode: s.mode, baseURL: alternate, model: process.env.OLLAMA_WINDOWS_MODEL || primary.model, apiKey: process.env.OLLAMA_API_KEY || "ollama" };
