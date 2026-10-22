@@ -100,7 +100,7 @@ try {
         }
         if (-not $ready -or $server.HasExited) { throw 'The source server did not become ready. Check the error above; no browser was opened.' }
         Write-Output "Ready: http://127.0.0.1:$Port"
-        if (-not $NoBrowser) { Start-Process -FilePath $edge -ArgumentList "http://127.0.0.1:$Port" -WindowStyle Hidden }
+        if (-not $NoBrowser) { Start-Process -FilePath $edge -ArgumentList "http://127.0.0.1:$Port" -WindowStyle Normal }
         $server.WaitForExit()
         if ($server.ExitCode -ne 0) { throw "Source server exited with code $($server.ExitCode)." }
     }
