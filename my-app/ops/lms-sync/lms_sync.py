@@ -11,7 +11,6 @@ import secrets
 import sys
 import time
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
 
 from core import Ledger, atomic_json, component, export_course
 from secrets_store import load_secret, save_secret
@@ -102,16 +101,25 @@ def push(config, snapshot):
     if not token:
         token = load_secret(Path(config["private_dir"]) / "bridge.enc")["token"]
     body = json.dumps(snapshot, ensure_ascii=False).encode()
-    req = Request(config["butler_url"].rstrip("/") + "/api/lms/ingest", data=body,
-                  headers={"Content-Type": "application/json", "Authorization": "Bearer " + token,
-                           "X-Butler-Language": "zh" if config.get("language") == "zh" else "en"}, method="POST")
-    # Redirects are forbidden so the bridge token cannot follow an external redirect.
-    from urllib.request import HTTPRedirectHandler, build_opener
-    class NoRedirect(HTTPRedirectHandler):
-        def redirect_request(self, *args, **kwargs):
-            return None
-    with build_opener(NoRedirect).open(req, timeout=90) as response:
-        result = json.load(response)
+    # A direct loopback connection never uses environment proxies or follows redirects.
+    # Do not construct urllib's unrelated HTTPS handler for a plain HTTP bridge: frozen
+    # Python can lack its TLS provider configuration even while the school browser works.
+    from http.client import HTTPConnection, HTTPSConnection
+    target = urlparse(config["butler_url"])
+    if target.hostname not in ("localhost", "127.0.0.1", "::1") or target.scheme not in ("http", "https"):
+        raise ValueError("Butler bridge must run on this computer.")
+    connection_type = HTTPSConnection if target.scheme == "https" else HTTPConnection
+    connection = connection_type(target.hostname, target.port, timeout=90)
+    try:
+        connection.request("POST", target.path.rstrip("/") + "/api/lms/ingest", body=body,
+                           headers={"Content-Type": "application/json", "Authorization": "Bearer " + token,
+                                    "X-Butler-Language": "zh" if config.get("language") == "zh" else "en"})
+        response = connection.getresponse()
+        if not 200 <= response.status < 300:
+            raise RuntimeError(f"Butler bridge returned HTTP {response.status}; local data was preserved.")
+        result = json.loads(response.read(100_000))
+    finally:
+        connection.close()
     if not result.get("ok"):
         raise RuntimeError("Butler rejected the snapshot.")
     LOG.info("Butler imported snapshot; notifications=%s, AI=%s", result["notifications"], result["aiStatus"])
@@ -283,6 +291,8 @@ async def sync(config, metadata_only=False, catalog_only=False):
     history.append({"profileId": config["profile_id"], "semesterId": config["semester_id"], "syncedAt": snapshot["syncedAt"], "status": snapshot["status"], "courses": len(snapshot["courses"])})
     atomic_json(history_path, history)
     LOG.info("Sync %s: %d courses, %d warnings", snapshot["status"], len(snapshot["courses"]), len(snapshot["warnings"]))
+    if catalog_only:
+        return 3 if snapshot["status"] == "login_required" else 1
     try:
         push(config, snapshot)
         atomic_json(private / "status.json", {"syncedAt": snapshot["syncedAt"], "status": snapshot["status"], "bridge": "ok", "warnings": snapshot["warnings"]})
@@ -290,7 +300,7 @@ async def sync(config, metadata_only=False, catalog_only=False):
         atomic_json(private / "status.json", {"syncedAt": snapshot["syncedAt"], "status": snapshot["status"], "bridge": "pending", "warnings": snapshot["warnings"]})
         LOG.error("Butler delivery pending (%s); snapshot retained for retry.", type(error).__name__)
         return 2
-    return 0 if snapshot["status"] == "ok" else 1
+    return {"ok": 0, "login_required": 3, "partial": 4}.get(snapshot["status"], 1)
 
 
 def main():

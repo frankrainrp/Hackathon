@@ -1,5 +1,20 @@
 # Changes by file · 22 October 2026
 
+## Frozen connector bridge follow-up
+
+| File | Fix and verification |
+| --- | --- |
+| `my-app/ops/lms-sync/lms_sync.py` | Use a direct loopback HTTP connection for ingest, avoiding urllib's eager unused HTTPS context and environment proxies; preserve HTTPS certificate verification when HTTPS is explicitly configured and never follow redirects. Distinguish delivery failure, expired session and partial sync exit codes. Catalog failures do not try to ingest an unconfirmed semester. |
+| `my-app/ops/lms-sync/test_bridge.py` | Reproduce the frozen TLS-initialisation failure at the real push call; verify successful credentialed local delivery, refused redirects and authentication rejection. |
+| `my-app/apps/web/src/lib/school-workflow.ts` | Map worker delivery, expiry, partial and generic failures to distinct user messages. |
+| `my-app/apps/web/src/lib/lms-worker.ts` | Use the worker exit classification rather than reporting every failure as incomplete sign-in. |
+| `my-app/apps/web/src/lib/locales/en.ts`, `zh.ts` | Matching bridge retry, session-expiry, partial-download and operation-failure messages. |
+| `my-app/apps/web/tests/school-workflow.test.mjs` | Lock down the distinction between an ingest failure and an expired school session. |
+| `tools/smoke-package.cjs` | Exercise the exact frozen worker's credentialed HTTP push against a local synthetic bridge, in addition to existing package startup/provider/state checks. |
+| `docs/CHANGE-FILES-2026-10-22.md` | Record the packaged transport defect, scope and per-file repairs. |
+
+Live evidence: four C304 files downloaded before the original frozen worker failed while constructing urllib's HTTPS handler for the plain HTTP ingest URL. The regression reproduced that same stack path. The final exact ZIP passes its real frozen-worker HTTP bridge check. The real authenticated backend subsequently completed sync and ingest, extracted three text documents, preserved the image-only ZIP, answered from server-retrieved material using the existing local model, then repeated sync after an application restart without another login. All four unchanged files were reused, and course/task/note counts stayed stable. All 58 Node tests, 29 Python tests, the production build and school HTTP integration pass. Private real-account evidence remains local and is not included in Git or fresh runtime/source archives.
+
 ## Live RP catalog follow-up
 
 | File | Fix and verification |

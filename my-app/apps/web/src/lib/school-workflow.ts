@@ -1,5 +1,12 @@
 export type SchoolAction = "login" | "catalog" | "inspect" | "sync";
 
+export function schoolWorkerFailure(action: SchoolAction, code: number | null) {
+  if (code === 2) return uiText("school.auto.deliveryPending");
+  if (code === 3 || action === "login") return uiText("school.auto.loginRequired");
+  if (code === 4) return uiText("school.auto.partial");
+  return uiText("school.auto.workerFailed");
+}
+
 /** Discover the real term first, then import metadata for the confirmed selection. */
 export async function runSchoolWorkflow(options: {
   login: boolean;

@@ -9,7 +9,7 @@ import { enrichTermLabels } from "./lms-discovery-ai.ts";
 import { updateLmsFeed } from "./server-db.ts";
 import { applyProfileMetadata } from "./lms-sync.ts";
 import { workerLmsToken } from "./lms-auth.ts";
-import { runSchoolWorkflow, type SchoolAction } from "./school-workflow.ts";
+import { runSchoolWorkflow, schoolWorkerFailure, type SchoolAction } from "./school-workflow.ts";
 
 type Job = { profileId: string; state: "running" | "complete" | "error"; message: string };
 const shared = globalThis as typeof globalThis & { butlerSchoolJob?: Job; butlerSchoolCancel?: () => void };
@@ -60,7 +60,7 @@ export function startSchoolDiscovery(login: boolean, download = false) {
       fail(new Error(uiText("school.auto.timeout")));
     }, 720000);
     child.once("error", () => { clearTimeout(timer); fail(new Error(uiText("school.auto.workerMissing"))); });
-    child.once("exit", code => { clearTimeout(timer); if (code === 0) ok(); else fail(new Error(uiText("school.auto.loginRequired"))); });
+    child.once("exit", code => { clearTimeout(timer); if (code === 0) ok(); else fail(new Error(schoolWorkerFailure(action, code))); });
   });
   void (async () => {
     try {

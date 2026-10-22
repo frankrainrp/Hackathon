@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runSchoolWorkflow } from '../src/lib/school-workflow.ts';
+import { runSchoolWorkflow, schoolWorkerFailure } from '../src/lib/school-workflow.ts';
 
 test('first-school setup imports learning metadata after real term discovery', async () => {
   const calls = []; let confirmed = false, imported = false;
@@ -44,4 +44,11 @@ test('explicit file sync downloads and parses only after discovery and selection
     run: async action => { if (action === 'sync') throw Error('file retrieval failed'); },
     discover: async () => true, hasSelectedCourses: () => true,
   }), /file retrieval failed/);
+});
+
+test('delivery errors do not tell the user to sign in again; expired sessions do', () => {
+  assert.match(schoolWorkerFailure('sync',2), /importing.*failed/i);
+  assert.match(schoolWorkerFailure('catalog',3), /session expired/i);
+  assert.match(schoolWorkerFailure('sync',4), /some course items/i);
+  assert.match(schoolWorkerFailure('sync',1), /operation failed/i);
 });
