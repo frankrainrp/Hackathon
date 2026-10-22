@@ -58,6 +58,10 @@ const snapshot = { school: profile.school, baseUrl: 'https://tplms.polite.edu.sg
 const ingest = value => request('/api/lms/ingest', value, 200, { authorization: `Bearer ${token}` });
 try {
   await start();
+  const foreignState = await fetch(origin + '/api/state', { headers: { host: 'untrusted.example', origin: 'http://untrusted.example' } });
+  assert.equal(foreignState.status, 403, 'Private state must reject a non-loopback Host');
+  const crossSiteWrite = await fetch(origin + '/api/state', { method: 'PUT', headers: { origin: 'https://foreign.example', 'sec-fetch-site': 'cross-site', 'content-type': 'application/json' }, body: JSON.stringify({ key: 'notes', value: [] }) });
+  assert.equal(crossSiteWrite.status, 403, 'Private state must reject cross-site writes');
   assert.equal((await request('/api/lms/settings')).settings.profiles.length, 0);
   const urlOnly = { entryUrl:'https://tplms.polite.edu.sg/d2l/home', confirm:false };
   const identified = (await request('/api/lms/settings',urlOnly)).preview;

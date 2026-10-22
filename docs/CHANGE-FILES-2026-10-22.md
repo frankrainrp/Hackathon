@@ -65,3 +65,30 @@ Validation: 41 Node regressions, 22 Python tests, production Next build, selecte
 | `docs/CHANGE-FILES-2026-10-22.md` | Record these two cascade regressions and distinguish stylesheet checks from browser acceptance. |
 
 PostCSS analysis reproduces both failures in the previous commit and verifies the corrected rules at 320, 390, 768 and 1440px. School inputs now resolve to 16px through 768px; AI choice cards use content height through 760px and retain their desktop minimum height above that breakpoint. The production build passes. These are source-level cascade checks; rendered desktop/mobile beginner-path acceptance remains pending because Browser Use rejects the origin despite its saved allow settings. No browser permission was expanded or bypassed.
+
+## Independent workflow audit follow-up
+
+| File | Change |
+| --- | --- |
+| `distribution/GETTING-STARTED.md` | Explain cache-first saving, retry and the completed metadata-import path. |
+| `docs/INDEPENDENT-JOURNEY-AUDIT-2026-10-22.md` | Record three fresh-context audits, reproduced issues, corrections, validation limits and user-assisted checks. |
+| `my-app/apps/web/src/app/api/state/route.ts` | Enforce local Host/origin checks for private state reads and writes. |
+| `my-app/apps/web/src/app/page.tsx` | Use the durable workspace queue, show saving/retry failures and block empty writes after a complete hydration failure. |
+| `my-app/apps/web/src/components/NotesPanel.tsx` | Commit text drafts to parent state immediately before navigation can unmount them. |
+| `my-app/apps/web/src/lib/db.ts` | Add an outbox table without removing existing IndexedDB stores. |
+| `my-app/apps/web/src/lib/state-sync.ts` | Stage edits before HTTP, coalesce and serialize writes, overlay pending data during load and acknowledge only the matching revision. |
+| `my-app/apps/web/src/lib/workspace-state.ts` | Adapt the queue to atomic Dexie cache/outbox transactions. |
+| `my-app/apps/web/src/lib/server-state.ts` | Bound load/save requests so a hung connection cannot indefinitely stall retries. |
+| `my-app/apps/web/src/lib/school-workflow.ts` | Join confirmed catalog discovery to metadata import with cancellation and empty-selection checks. |
+| `my-app/apps/web/src/lib/lms-worker.ts` | Run the owned metadata worker with no-AI flags and its private process credential. |
+| `my-app/apps/web/src/lib/lms-auth.ts` | Authenticate owned workers while retaining configured CLI tokens; compare token bytes safely. |
+| `my-app/apps/web/src/lib/locales/en.ts`, `my-app/apps/web/src/lib/locales/zh.ts` | Match saving, failure, retry and school-import copy and variables. |
+| `my-app/apps/web/tests/notes-editor.test.mjs` | Exercise the actual editor with isolated hook/timer navigation and pinning cases. |
+| `my-app/apps/web/tests/state-sync.test.mjs` | Cover outages, reopening, coalescing, stale requests, cache failure and hydration/reconnect ordering. |
+| `my-app/apps/web/tests/school-workflow.test.mjs` | Cover discovery/import order, cancellation, missing term, empty selection and import failure. |
+| `my-app/apps/web/tests/lms-auth.test.mjs` | Validate the owned worker credential and malformed token handling. |
+| `my-app/apps/web/tests/lms-settings.integration.mjs` | Reproduce and verify non-loopback state reads and cross-site write rejection. |
+| `my-app/ops/lms-sync/lms_sync.py` | Add the explicit no-AI-brief flag used by metadata imports. |
+| `my-app/ops/lms-sync/test_discovery.py` | Verify the real CLI passes metadata-only and no-cloud-summary configuration to the worker. |
+
+Validation: 55 Node and 23 Python checks pass, with production build, copy audit and isolated HTTP contracts. The frozen worker is rebuilt for the changed CLI. Exact package checks and preserved-data live restart are recorded locally after packaging. Parent-thread rendered browser acceptance remains blocked and is not claimed.

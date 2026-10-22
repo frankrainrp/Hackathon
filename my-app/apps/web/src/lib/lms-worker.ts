@@ -8,6 +8,8 @@ import { discoverProfile, latestSemester } from "./lms-discovery.ts";
 import { enrichTermLabels } from "./lms-discovery-ai.ts";
 import { updateLmsFeed } from "./server-db.ts";
 import { applyProfileMetadata } from "./lms-sync.ts";
+import { workerLmsToken } from "./lms-auth.ts";
+import { runSchoolWorkflow, type SchoolAction } from "./school-workflow.ts";
 
 type Job = { profileId: string; state: "running" | "complete" | "error"; message: string };
 const shared = globalThis as typeof globalThis & { butlerSchoolJob?: Job; butlerSchoolCancel?: () => void };
@@ -44,8 +46,9 @@ export function startSchoolDiscovery(login: boolean) {
   shared.butlerSchoolJob = job;
   let stopChild: (() => void) | undefined;
   shared.butlerSchoolCancel = () => { job.state = "error"; job.message = uiText("school.auto.cancelled"); stopChild?.(); };
-  const run = (action: "login" | "catalog") => new Promise<void>((ok, fail) => {
-    const child = spawn(command.exe, [...command.prefix, "--config", configPath(), "--expected-profile", profile.id, action], { cwd: command.directory, windowsHide: true, stdio: "ignore" });
+  const run = (action: SchoolAction) => new Promise<void>((ok, fail) => {
+    if (action === "inspect") job.message = uiText("school.auto.importing");
+    const child = spawn(command.exe, [...command.prefix, "--config", configPath(), "--expected-profile", profile.id, ...(action === "inspect" ? ["--no-ai-brief"] : []), action], { cwd: command.directory, env: { ...process.env, LMS_SYNC_TOKEN: workerLmsToken() }, windowsHide: true, stdio: "ignore" });
     stopChild = () => {
       if (child.pid && child.exitCode === null) {
         if (process.platform === "win32") spawnSync("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
@@ -61,11 +64,15 @@ export function startSchoolDiscovery(login: boolean) {
   });
   void (async () => {
     try {
-      if (login) await run("login");
-      if (job.state !== "running") return;
-      job.message = uiText("school.auto.reading"); await run("catalog");
-      const found = await applyDiscoveredCatalog(profile.id, () => shared.butlerSchoolJob === job && job.state === "running");
-      job.state = "complete"; job.message = uiText(found ? "school.auto.complete" : "school.auto.termUnavailable");
+      const canContinue = () => shared.butlerSchoolJob === job && job.state === "running" && readProfiles().activeProfileId === profile.id;
+      const result = await runSchoolWorkflow({ login, run,
+        discover: () => applyDiscoveredCatalog(profile.id, canContinue), canContinue,
+        hasSelectedCourses: () => {
+          const current = activeProfile(readProfiles()), semester = current?.semesters.find(s => s.id === current.activeSemesterId);
+          return !!semester?.confirmed && semester.courses.some(c => c.selected && c.status === "active");
+        },
+      });
+      job.state = "complete"; job.message = uiText("school.auto." + result);
     } catch (error) { if (job.state === "running") { job.state = "error"; job.message = error instanceof Error ? error.message : uiText("school.auto.loginRequired"); } }
   })();
   return job;

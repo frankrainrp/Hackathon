@@ -1,4 +1,8 @@
-import { timingSafeEqual } from "node:crypto";
+import { timingSafeEqual, randomBytes } from "node:crypto";
+
+const internal = globalThis as typeof globalThis & { butlerWorkerToken?: string };
+/** Private per-process credential, supplied only to a server-owned school worker. */
+export const workerLmsToken = () => internal.butlerWorkerToken ||= randomBytes(32).toString("hex");
 
 /** This repository is a single-user app. New school-data routes are local-only. */
 export function isLocalLmsRequest(request: Request) {
@@ -18,8 +22,10 @@ export function isLocalLmsRequest(request: Request) {
 }
 
 export function hasLmsToken(request: Request) {
-  const expected = process.env.LMS_SYNC_TOKEN || "";
   const actual = (request.headers.get("authorization") || "").replace(/^Bearer /, "");
-  if (expected.length < 32 || actual.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(actual), Buffer.from(expected));
+  return [process.env.LMS_SYNC_TOKEN, internal.butlerWorkerToken].some(expected => {
+    if (!expected || expected.length < 32) return false;
+    const a = Buffer.from(actual), b = Buffer.from(expected);
+    return a.length === b.length && timingSafeEqual(a, b);
+  });
 }

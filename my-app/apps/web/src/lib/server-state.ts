@@ -4,7 +4,7 @@ export type ServerStateKey = "ddls" | "sessions" | "messages" | "notes";
 export type ServerState = Record<ServerStateKey, unknown[]>;
 
 export async function loadServerState(): Promise<ServerState> {
-  const response = await fetch("/api/state", { cache: "no-store" });
+  const response = await fetch("/api/state", { cache: "no-store", signal: AbortSignal.timeout(10000) });
   if (!response.ok) throw new Error(uiText("server.185184804da0", { value0: response.status }));
   return response.json() as Promise<ServerState>;
 }
@@ -14,6 +14,7 @@ export async function saveServerState(key: ServerStateKey, value: unknown[]): Pr
     method: "PUT",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ key, value }),
+    signal: AbortSignal.timeout(10000),
   });
   if (!response.ok) throw new Error(uiText("server.ae2d20f3cb25", { value0: response.status }));
 }

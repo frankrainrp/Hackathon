@@ -1,10 +1,29 @@
 import unittest
+import tempfile
+import sys
+import logging
+from pathlib import Path
+from unittest.mock import patch, AsyncMock
 from brightspace import Brightspace
 from school_profile import resolve_profile
 from test_school_profile import fixture
 
 
 class DiscoveryTests(unittest.IsolatedAsyncioTestCase):
+    def test_inspect_cli_disables_cloud_brief_for_owned_worker(self):
+        import lms_sync
+        with tempfile.TemporaryDirectory() as folder:
+            config = {"private_dir": folder, "profile_id": "p", "enable_ai_brief": True}
+            worker = AsyncMock(return_value=0)
+            with patch.object(sys, "argv", ["lms_sync", "--config", str(Path(folder) / "config.json"), "--expected-profile", "p", "--no-ai-brief", "inspect"]), \
+                 patch.object(lms_sync, "load_config", return_value=config), \
+                 patch.object(lms_sync, "sync", worker), \
+                 patch("logging.handlers.RotatingFileHandler", return_value=logging.NullHandler()), \
+                 patch("logging.basicConfig"):
+                self.assertEqual(lms_sync.main(), 0)
+            self.assertFalse(worker.call_args.args[0]["enable_ai_brief"])
+            self.assertEqual(worker.call_args.kwargs, {"metadata_only": True, "catalog_only": False})
+
     async def test_catalog_keeps_official_term_and_access_evidence(self):
         adapter = Brightspace(None, {"base_url": "https://tplms.polite.edu.sg", "discover_semesters": True})
         adapter.versions = {"lp": "1.0"}

@@ -75,7 +75,8 @@ import {
   putCustomPanel,
   updateCustomPanel,
 } from "@/lib/custom-panels";
-import { loadServerState, saveServerState } from "@/lib/server-state";
+import { workspaceState } from "@/lib/workspace-state";
+import type { SyncStatus } from "@/lib/state-sync";
 import { mergeLmsTasks, mergeLmsRows, mergeLmsNotes, type LmsFeed } from "@/lib/lms-sync";
 import { playSound } from "@/lib/sound";
 import RecurringTasksManager from "@/components/RecurringTasksManager";
@@ -181,6 +182,17 @@ export default function HomePage() {
 
   // ---------- 持久化：服务器 SQLite 为主，浏览器 IndexedDB 为本机缓存 ----------
   const [hydrated, setHydrated] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("saved");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [storageError, setStorageError] = useState(false);
+  useEffect(() => {
+    const changed = (event: Event) => setSyncStatus((event as CustomEvent<SyncStatus>).detail);
+    const retry = () => { void workspaceState.flush(); };
+    window.addEventListener("butler:state-sync", changed);
+    window.addEventListener("online", retry);
+    workspaceState.start();
+    return () => { window.removeEventListener("butler:state-sync", changed); window.removeEventListener("online", retry); workspaceState.stop(); };
+  }, []);
 
   // Dedicated school inbox survives browser writes and is polled without a redesign.
   useEffect(() => {
@@ -231,23 +243,11 @@ export default function HomePage() {
         let sessRows: ChatSession[];
         let msgRows: ChatMessage[];
         let noteRows: Note[];
-        try {
-          const remote = await loadServerState();
-          ddlRows = remote.ddls as DdlItem[];
-          sessRows = remote.sessions as ChatSession[];
-          msgRows = remote.messages as ChatMessage[];
-          noteRows = remote.notes as Note[];
-        } catch (remoteError) {
-          console.warn("[sqlite] unavailable, falling back to browser cache:", remoteError);
-          const { getDb } = await import("@/lib/db");
-          const db = getDb();
-          [ddlRows, sessRows, msgRows, noteRows] = await Promise.all([
-            db.ddls.toArray(),
-            db.sessions.toArray(),
-            db.messages.toArray(),
-            db.notes.toArray(),
-          ]);
-        }
+        const remote = await workspaceState.load();
+        ddlRows = remote.ddls as DdlItem[];
+        sessRows = remote.sessions as ChatSession[];
+        msgRows = remote.messages as ChatMessage[];
+        noteRows = remote.notes as Note[];
         if (cancelled) return;
         if (ddlRows.length > 0) setDdls(ddlRows);
         if (noteRows.length > 0) setNotes(noteRows);
@@ -278,68 +278,18 @@ export default function HomePage() {
           }));
           setMessages(normalized);
         }
-      } catch (e) {
-        console.warn("[db] hydrate failed:", e);
-      } finally {
-        if (!cancelled) setHydrated(true);
+        if (!cancelled) { setStorageError(false); setHydrated(true); }
+      } catch {
+        if (!cancelled) setStorageError(true);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [loadAttempt]);
 
-  // 改动同步：SQLite + IndexedDB 缓存
-  useEffect(() => {
-    if (!hydrated) return; // 防止首次渲染（空数组）覆盖已有数据
-    (async () => {
-      try {
-        await saveServerState("ddls", ddls);
-        const { getDb } = await import("@/lib/db");
-        const db = getDb();
-        await db.transaction("rw", db.ddls, async () => {
-          await db.ddls.clear();
-          if (ddls.length > 0) await db.ddls.bulkPut(ddls);
-        });
-      } catch (e) {
-        console.warn("[db] sync failed:", e);
-      }
-    })();
-  }, [ddls, hydrated]);
-
-  // 持久化：sessions 变化 → 整体替换
-  useEffect(() => {
-    if (!hydrated) return;
-    (async () => {
-      try {
-        await saveServerState("sessions", sessions);
-        const { getDb } = await import("@/lib/db");
-        const db = getDb();
-        await db.transaction("rw", db.sessions, async () => {
-          await db.sessions.clear();
-          if (sessions.length > 0) await db.sessions.bulkPut(sessions);
-        });
-      } catch (e) {
-        console.warn("[db] sessions sync failed:", e);
-      }
-    })();
-  }, [sessions, hydrated]);
-
-  // 持久化：notes 变化 → bulkPut
-  useEffect(() => {
-    if (!hydrated) return;
-    (async () => {
-      try {
-        await saveServerState("notes", notes);
-        const { getDb } = await import("@/lib/db");
-        const db = getDb();
-        await db.transaction("rw", db.notes, async () => {
-          await db.notes.clear();
-          if (notes.length > 0) await db.notes.bulkPut(notes);
-        });
-      } catch (e) {
-        console.warn("[db] notes sync failed:", e);
-      }
-    })();
-  }, [notes, hydrated]);
+  // Persist local edits and a durable outbox before attempting the server.
+  useEffect(() => { if (hydrated) void workspaceState.save("ddls", ddls).catch(() => setSyncStatus("error")); }, [ddls, hydrated]);
+  useEffect(() => { if (hydrated) void workspaceState.save("sessions", sessions).catch(() => setSyncStatus("error")); }, [sessions, hydrated]);
+  useEffect(() => { if (hydrated) void workspaceState.save("notes", notes).catch(() => setSyncStatus("error")); }, [notes, hydrated]);
 
   // Notes CRUD
   const handleCreateNote = useCallback((): Note => {
@@ -378,23 +328,9 @@ export default function HomePage() {
   // Epic 5.4 已推送过 deadline 通知的 task id（防重复）
   const deadlineNotifiedRef = useRef<Set<string>>(new Set());
 
-  // 持久化：messages 变化 → 整体替换（pipeline 类消息不持久化，避免重启后挂着旧 pipelineId）
+  // Transient pipeline/confirmation rows never enter durable chat history.
   useEffect(() => {
-    if (!hydrated) return;
-    (async () => {
-      try {
-        const { getDb } = await import("@/lib/db");
-        const db = getDb();
-        const persistable = messages.filter((m) => m.role !== "pipeline" && m.role !== "confirm");
-        await saveServerState("messages", persistable);
-        await db.transaction("rw", db.messages, async () => {
-          await db.messages.clear();
-          if (persistable.length > 0) await db.messages.bulkPut(persistable);
-        });
-      } catch (e) {
-        console.warn("[db] messages sync failed:", e);
-      }
-    })();
+    if (hydrated) void workspaceState.save("messages", messages.filter(m => m.role !== "pipeline" && m.role !== "confirm")).catch(() => setSyncStatus("error"));
   }, [messages, hydrated]);
 
   // 当前 session 的消息（派生）
@@ -1732,6 +1668,12 @@ export default function HomePage() {
     </LeftRail>
   );
 
+  if (!hydrated) return <main role={storageError ? "alert" : "status"} style={{ minHeight: "100dvh", display: "grid", placeItems: "center", padding: 24, background: "var(--color-bg)", color: "var(--color-text)" }}>
+    <section style={{ maxWidth: 560, lineHeight: 1.7 }}><h1 style={{ fontSize: 22 }}>{uiText(storageError ? "storage.loadFailed" : "storage.loading")}</h1>
+      {storageError && <button className="glass-btn" onClick={() => { setStorageError(false); setLoadAttempt(n => n + 1); }}>{uiText("storage.retry")}</button>}
+    </section>
+  </main>;
+
   return (
     <div
       style={{
@@ -1751,6 +1693,10 @@ export default function HomePage() {
       <WallpaperLayer />
 
       {/* 顶 Bar（悬浮胶囊条）*/}
+      {(storageError || syncStatus === "offline" || syncStatus === "error") && <div role="alert" style={{ padding: "10px 16px", background: "var(--color-warning-soft)", color: "var(--color-text)", fontSize: 13, flexShrink: 0 }}>
+        {uiText(storageError ? "storage.loadFailed" : syncStatus === "error" ? "storage.unsaved" : "storage.offline")}{" "}
+        <button className="glass-btn" onClick={() => { if (storageError) setLoadAttempt(n => n + 1); else void workspaceState.flush(); }}>{uiText("storage.retry")}</button>
+      </div>}
       <TopBar
         isMobile={isMobile}
         activeNav={activeNav}

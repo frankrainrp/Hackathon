@@ -25,6 +25,8 @@ The official OpenAI-compatible base is `https://api.deepseek.com`; setup offers 
 
 ## Recovery
 
+- **Workspace saving:** drafts are written to this browser and a durable retry queue before server sync. Rapid typing is combined into fewer server requests. If the server is unavailable, keep using the same browser/profile; pending edits take priority over an older server snapshot when reopening and retry automatically. A visible warning provides Retry. If both stores are unavailable, keep the page open and retry before leaving.
+
 - **Interrupted download:** select the original folder and model, confirm, then Resume. A damaged partial file is discarded after checksum failure. No automatic restart download occurs.
 - **Disk full:** free space or use a larger local folder. To preserve partial bytes when moving, stop/cancel first and move the relevant `.gguf.part` file yourself; Butler never moves your files automatically.
 - **Low RAM / stopped engine:** close other applications, select a smaller model or reduce context, then start again. This package uses system RAM, not GPU VRAM. Very small models have limited reasoning and tool reliability.
@@ -55,3 +57,5 @@ Open Courses and expand **Connect your Singapore polytechnic**. Paste the direct
 Choose **Sign in and find courses** to open the existing Edge installation for your own SSO/MFA. The included frozen connector needs no Python installation. It reads enrollment IDs/names and official semester/start-date metadata, then selects the latest accessible started term and retains older terms and selections. A saved session can be refreshed with **Find latest semester and courses**. Cancel stops only this discovery worker. Ambiguous or unavailable semester evidence stays pending rather than guessing. A selected local model may interpret nonstandard labels only when its output matches source text and actual enrollment IDs; discovery never calls a cloud model. No materials or schedules are activated by discovery.
 
 Recognition covers the five Singapore polytechnics. Reviewed login connections currently cover the exact TP/RP/SP Brightspace hosts; other recognised URLs remain saved with a clear adapter limitation. A shared POLITEMall URL alone cannot identify an institution. Edge and the existing Microsoft runtime prerequisite are required; browsers are not downloaded automatically.
+
+After discovering a real accessible term, login/refresh continues by importing lesson links, assignments and announcements for selected active courses into the workspace. This metadata import does not download course files, request a cloud AI summary or enable a schedule. The server supplies its own worker a private process credential, so this path does not require the old manual bridge setup command. If no courses are selected or the term cannot be confirmed, the interface reports that condition rather than claiming import succeeded.

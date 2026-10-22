@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isLocalLmsRequest } from '../src/lib/lms-auth.ts';
+import { isLocalLmsRequest, hasLmsToken, workerLmsToken } from '../src/lib/lms-auth.ts';
+
+test('server-owned worker credential authenticates imports without entering exports or files', () => {
+  const token = workerLmsToken();
+  assert.equal(token, workerLmsToken()); assert.ok(token.length >= 32);
+  const req = value => new Request('http://127.0.0.1/api/lms/ingest', { headers: { authorization: 'Bearer ' + value } });
+  assert.equal(hasLmsToken(req(token)), true);
+  assert.equal(hasLmsToken(req('invalid')), false);
+  assert.equal(hasLmsToken(req('é'.repeat(token.length))), false);
+});
 
 const request = (url, origin, site = 'same-site') => new Request(url, {
   headers: { ...(origin ? { origin } : {}), 'sec-fetch-site': site },

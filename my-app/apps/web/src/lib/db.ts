@@ -8,9 +8,12 @@ import { uiText } from "./messages.ts";
 // ============================================================
 
 import Dexie, { type Table } from "dexie";
+import type { PendingState } from "./state-sync";
+import type { ServerStateKey } from "./server-state";
 import type { DdlItem, ChatMessage, StoredBlob, ChatSession, Note, ButlerAsset, CustomPanel, Wallpaper, RecurringTask } from "./types";
 
 export class ButlerDB extends Dexie {
+  stateOutbox!: Table<PendingState, ServerStateKey>;
   ddls!: Table<DdlItem, string>;          // 主键 id
   messages!: Table<ChatMessage, string>;  // 主键 id（消息历史）
   blobs!: Table<StoredBlob, string>;      // 主键 id（附件文件二进制）
@@ -118,6 +121,7 @@ export class ButlerDB extends Dexie {
       wallpapers: "&id, updatedAt",
       recurringTasks: "&id, createdAt, active",
     });
+    this.version(10).stores({ stateOutbox: "&key" });
   }
 }
 

@@ -2,6 +2,7 @@ import { uiText } from "../../../lib/messages.ts";
 import { withUiLanguage } from "@/lib/api-language";
 import { z } from "zod";
 import { readState, writeState } from "@/lib/server-db";
+import { isLocalAiRequest } from "@/lib/ai-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,13 +14,15 @@ const payloadSchema = z.object({
   value: z.array(z.unknown()).max(50_000),
 });
 
-async function handleGET() {
+async function handleGET(req: Request) {
+  if (!isLocalAiRequest(req)) return Response.json({ error: uiText("server.641c510983e7") }, { status: 403 });
   return Response.json(Object.fromEntries(KEYS.map((key) => [key, readState(key)])), {
     headers: { "cache-control": "no-store" },
   });
 }
 
 async function handlePUT(req: Request) {
+  if (!isLocalAiRequest(req, true)) return Response.json({ error: uiText("server.641c510983e7") }, { status: 403 });
   const contentLength = Number(req.headers.get("content-length") || 0);
   if (contentLength > MAX_REQUEST_BYTES) {
     return Response.json({ error: uiText("server.6f5abbce3e03") }, { status: 413 });

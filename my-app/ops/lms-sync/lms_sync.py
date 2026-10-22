@@ -297,8 +297,11 @@ def main():
     parser.add_argument("--task-user", default="CURRENT_USER")
     parser.add_argument("--task-executable")
     parser.add_argument("--expected-profile")
+    parser.add_argument("--no-ai-brief", action="store_true", help="Import school facts without requesting an AI summary")
     args = parser.parse_args()
     config = load_config(args.config.resolve(), allow_pending=args.command in ("setup", "login", "catalog", "session-check", "status"))
+    if args.no_ai_brief:
+        config["enable_ai_brief"] = False
     if args.expected_profile and args.expected_profile != config["profile_id"]:
         raise ValueError("The scheduled school profile changed. Review and approve a separate schedule for that school.")
     if args.command == "schedule-plan":

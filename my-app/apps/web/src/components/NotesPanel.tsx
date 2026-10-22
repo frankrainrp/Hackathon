@@ -438,15 +438,8 @@ function NoteEditor({
     setContent(note.content);
   }, [note.id, note.title, note.content]);
 
-  // 防抖保存（500ms）
-  useEffect(() => {
-    if (title === note.title && content === note.content) return;
-    const t = setTimeout(() => {
-      onUpdate({ title, content, updatedAt: Date.now() });
-    }, 500);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, content]);
+  // Keep the parent draft current before a note/tab switch can unmount this editor.
+  // The durable workspace queue coalesces network writes instead of delaying text edits.
 
   // B4 防抖（1.2s）扫描 markdown 中的 `- [ ] todo`，对比已同步列表，emit 新增的
   useEffect(() => {
@@ -481,7 +474,7 @@ function NoteEditor({
       >
         <input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => { setTitle(e.target.value); onUpdate({ title: e.target.value, updatedAt: Date.now() }); }}
           placeholder={uiText("ui.notespanel.e01fa44bf3")}
           style={{
             flex: 1, border: "none", background: "transparent",
@@ -592,7 +585,7 @@ function NoteEditor({
       {mode === "edit" ? (
         <textarea
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={(e) => { setContent(e.target.value); onUpdate({ content: e.target.value, updatedAt: Date.now() }); }}
           placeholder={uiText("ui.notespanel.6182a6a750")}
           style={{
             flex: 1, width: "100%", padding: "16px 24px",
