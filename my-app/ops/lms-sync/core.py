@@ -56,7 +56,7 @@ def lesson_number(title: str):
     return value[0] if value else None
 
 
-def content_lessons(toc: dict, base: str, course_id: str) -> list:
+def content_lessons(toc: dict, base: str, course_id: str, assignment_pages=None) -> list:
     """Flatten Package/Week while preserving explicit lesson/week numbers and source hierarchy.
 
     Groups are "Lesson N" (RP style) or "Week N" (TP style); the nearest numbered folder wins.
@@ -106,16 +106,23 @@ def content_lessons(toc: dict, base: str, course_id: str) -> list:
                 lessons.setdefault(target, {"id": target, "number": None, "title": "Resources", "materials": []})
             source_url = topic.get("Url", "")
             parsed = urlparse(source_url)
-            # Only local content files. External links remain references, never receive LMS cookies.
+            # Local files and API-published assignment instructions only. External links
+            # remain references and never receive LMS cookies or navigation requests.
             is_file = parsed.path.startswith("/content/") and (not parsed.netloc or parsed.netloc == urlparse(base).netloc)
+            page = (assignment_pages or {}).get(str(topic.get("ToolItemId")))
+            is_page = not is_file and page is not None and topic.get("ActivityType") == 3 and parsed.scheme in ("", "https") and (not parsed.netloc or parsed.netloc == urlparse(base).netloc)
             url = f"{base}/d2l/le/content/{course_id}/viewContent/{topic['TopicId']}/View"
-            suffix = Path(unquote(parsed.path)).suffix if is_file else ""
-            lessons[target]["materials"].append({
+            suffix = Path(unquote(parsed.path)).suffix if is_file else ".md" if is_page else ""
+            material = {
                 "id": str(topic["TopicId"]), "title": topic["Title"], "url": url,
                 "modifiedAt": topic.get("LastModifiedDate") or node.get("LastModifiedDate"),
-                "sourcePath": " / ".join(ancestors + [title]), "downloadable": is_file,
+                "sourcePath": " / ".join(ancestors + [title]), "downloadable": is_file or is_page,
                 "filename": f"{component(topic['Title'])} [{topic['TopicId']}]{suffix}",
-            })
+            }
+            if is_page:
+                from course_content import rich_text_body
+                material.update(pageSnapshot=True, pageText=rich_text_body(page.get("CustomInstructions")))
+            lessons[target]["materials"].append(material)
         for child in sorted(node.get("Modules", []), key=lambda m: m.get("SortOrder", 0)):
             walk(child, ancestors + [title], current)
 

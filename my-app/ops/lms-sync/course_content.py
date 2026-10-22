@@ -125,3 +125,14 @@ def extract_material(path: Path):
         return {"text": text[:MAX_TEXT], "textStatus": "truncated" if len(text) > MAX_TEXT else "ready"}
     except Exception:
         return {"text": "", "textStatus": "error"}
+
+
+def rich_text_body(value):
+    """Keep only published page instructions, never a form or invented metadata."""
+    if not isinstance(value, dict):
+        return ""
+    text = value.get("Text")
+    if isinstance(text, str) and text.strip():
+        return text.replace("\x00", "").strip()[:MAX_TEXT + 1]
+    html = value.get("Html")
+    return extract_bytes("page.html", html.encode("utf-8")).replace("\x00", "").strip()[:MAX_TEXT + 1] if isinstance(html, str) else ""

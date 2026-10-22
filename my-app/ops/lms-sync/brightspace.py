@@ -113,12 +113,13 @@ class Brightspace:
         prefix = f"/d2l/api/le/{self.versions['le']}/{course_id}"
         warnings = []
         toc = await self.get(prefix + "/content/toc")
-        tasks = []
+        tasks, assignment_pages = [], {}
         try:
             folders = await self.get(prefix + "/dropbox/folders/")
             for folder in folders:
                 if folder.get("IsHidden"):
                     continue
+                assignment_pages[str(folder["Id"])] = folder
                 try:
                     entities = await self.get(prefix + f"/dropbox/folders/{folder['Id']}/submissions/mysubmissions/")
                 except AccessUnavailable:
@@ -140,8 +141,12 @@ class Brightspace:
         except AccessUnavailable:
             warnings.append(f"{source['name']}: announcements unavailable.")
         return {"id": course_id, "moduleName": source["name"],
-                "lessons": content_lessons(toc, self.base, course_id),
+                "lessons": content_lessons(toc, self.base, course_id, assignment_pages),
                 "assignments": tasks, "announcements": announcements}, warnings
 
     async def download(self, course_id, material):
+        if material.get("pageSnapshot"):
+            # Already obtained by the authenticated read-only folder API. Do not
+            # navigate to a submission form, follow links or send any submission.
+            return material["pageText"].encode("utf-8")
         return await self.get(f"/d2l/api/le/{self.versions['le']}/{course_id}/content/topics/{material['id']}/file", binary=True)

@@ -49,6 +49,8 @@ Butler retains its own encrypted school session and reuses it across runs until 
 
 Open **Courses**, expand a downloaded course and check its material list. **Archived locally** indicates a saved file. The readable-text count tells you whether AI has extracted source text; a scanned document or image ZIP can be saved successfully without readable text.
 
+Course downloads also save the published instructions of linked Brightspace assignment pages as local text files. Original page links stay available. Pages with no published instructions are saved as empty and do not count as readable sources; the app never fills in missing content or submits the assignment.
+
 Choose **Ask course AI** and ask, for example: “Explain this lesson and tell me which source you used.” Check the named source and school link in the answer. A discovered course without imported records directs you back to School settings; it does not fabricate progress or materials.
 
 You can also name the course directly in ordinary Chat, for example “Explain C304 lesson one”. Butler retrieves its locally extracted sources. App-supplied **Course sources** are clickable even when the model omits Markdown links; selecting a source opens its original HTTPS page in Microsoft Edge. This works with the chosen local or API provider and does not require a provider call just to open a link. You may ask the AI to save course notes; review its proposed note before confirming.

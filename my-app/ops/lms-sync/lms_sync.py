@@ -246,7 +246,10 @@ async def sync(config, metadata_only=False, catalog_only=False):
                                 key = f"{config['profile_id']}:{config['semester_id']}:{config['base_url']}:{course['id']}:{material['id']}"
                                 try:
                                     ledger.relocate(key, material["modifiedAt"], path, Path(config["output_dir"]))
-                                    if ledger.needs_download(key, material["modifiedAt"], path):
+                                    # Instruction edits need not change the linked topic's
+                                    # timestamp. Refresh these small API page snapshots from
+                                    # the current response without another network request.
+                                    if material.get("pageSnapshot") or ledger.needs_download(key, material["modifiedAt"], path):
                                         data = await adapter.download(course["id"], material)
                                         temp = path.with_suffix(path.suffix + ".part")
                                         temp.write_bytes(data)

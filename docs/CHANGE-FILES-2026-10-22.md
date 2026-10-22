@@ -1,5 +1,21 @@
 # Changes by file · 22 October 2026
 
+## Downloaded course files and linked assignment pages
+
+| File | Change and verification |
+| --- | --- |
+| `my-app/ops/lms-sync/core.py` | Match assignment topics to visible folder IDs using the API's ActivityType/ToolItemId; mark their published instructions as downloadable local Markdown, retaining the original topic source. External references and hidden assignment bodies stay excluded. |
+| `my-app/ops/lms-sync/brightspace.py` | Pass the already retrieved visible assignment metadata into course normalization and save its text without navigating to a submission form or calling the topic-file endpoint for a page. |
+| `my-app/ops/lms-sync/course_content.py` | Normalize published RichText instructions to bounded plain text, discarding script/style HTML. Empty instructions stay empty. |
+| `my-app/ops/lms-sync/lms_sync.py` | Refresh small instruction snapshots from current API metadata even when the linked topic timestamp has not changed. The existing atomic save/extraction/ingest path handles their files. |
+| `my-app/ops/lms-sync/test_assignment_pages.py` | Reproduce the old skipped-page failure at the actual adapter seam; verify safe saving, empty pages, hidden/external exclusion and text refresh through the real worker sync loop. |
+| `distribution/GETTING-STARTED.md`, `GETTING-STARTED.zh-CN.md` | Explain saved assignment instructions, preserved page links and the distinction between an empty page and readable source text. |
+| `docs/CHANGE-FILES-2026-10-22.md` | Record the diagnosis, exact repair and per-file validation. |
+
+The initial real C346 feed contained eight listed items and no downloaded paths/text. Running the existing selected-course sync downloaded and extracted its six PDF/ZIP resources. The remaining two were linked assignment activities, which the old file-only loop always skipped. After rebuilding and updating the frozen connector, the real application saved all eight items: seven have readable text, while the Week 2 assignment has no published instructions and correctly remains empty. The saved school session was reused. Source material and private evidence remain local. All 33 Python tests pass, including three new regressions. No assignment submission, new model weights or paid API call was used.
+
+API field reference: [D2L content activity types and ToolItemId](https://docs.valence.desire2learn.com/res/content.html), [assignment CustomInstructions](https://docs.valence.desire2learn.com/res/dropbox.html#Dropbox.DropboxFolder). The adapter copies only these read-only API facts; it does not crawl or operate the submission page.
+
 ## Assignment task contract follow-up
 
 | File | Change and verification |
