@@ -20,20 +20,72 @@ Connections currently support the explicit `tplms.polite.edu.sg` and `rplms.poli
 
 Daily preferences default to **09:00 Asia/Singapore**, with a configurable time and UTC alternative. Saving preferences does not enable a background task. Daily checks can miss shorter-notice deadlines.
 
-## Source quick start — Windows
+## Setup guide — Windows
 
-Use Node 24, pnpm 9, Python 3.11+ and Edge. Ollama is optional for AI; deterministic school facts do not require it.
+### 1. What to download
+
+| Download | Version | Needed for | Link |
+| --- | --- | --- | --- |
+| Git | any | Cloning the repo | [git-scm.com](https://git-scm.com/download/win) |
+| Node.js | 24 (20+ works) | Running the app | [nodejs.org](https://nodejs.org/) |
+| pnpm | 9 | Installing app packages | Run `npm install -g pnpm@9` after Node is installed |
+| Python | 3.11 or newer | PoliteMall login and sync | [python.org](https://www.python.org/downloads/) — tick **Add python.exe to PATH** in the installer |
+| Microsoft Edge | latest | Opening the app and PoliteMall login | Already installed on Windows |
+| Ollama | latest | Optional — only if you want to use your own Ollama models; the app can download a local model from its setup screen | [ollama.com](https://ollama.com/download) |
+
+Close and reopen your terminal after installing, then check everything is found:
 
 ```powershell
-cd my-app
+git --version
+node -v
+pnpm -v
+python --version
+```
+
+### 2. Get the code and install packages
+
+Run these in PowerShell. The first install takes a few minutes.
+
+```powershell
+git clone https://github.com/frankrainrp/Hackathon.git
+cd Hackathon/my-app
 pnpm install --frozen-lockfile
 python -m venv ops/lms-sync/.venv
 ./ops/lms-sync/.venv/Scripts/python.exe -m pip install -r ops/lms-sync/requirements.txt -c ops/lms-sync/requirements-ci.txt
+New-Item -ItemType Directory -Force ops/lms-sync/.private
+```
+
+### 3. Start the app
+
+From `Hackathon/my-app`:
+
+```powershell
 $env:BUTLER_DB_PATH = "$PWD/ops/lms-sync/.private/butler.sqlite"
 pnpm --filter @smart-hub/web dev --hostname 127.0.0.1
 ```
 
-Open [Courses](http://127.0.0.1:3000/?view=courses) and confirm the profile. Then stop the local app, run `lms_sync.py setup`, restart it, and perform manual login/catalog/first-sync only when ready. Full commands and access boundaries are in [School profile workflow](my-app/ops/lms-sync/PROFILE_WORKFLOW.md).
+Wait for `Ready`, then open <http://127.0.0.1:3000> in Edge. The first page load takes 10–20 seconds while it compiles. Leave this terminal open; press `Ctrl+C` to stop the app. Set `BUTLER_DB_PATH` again every time you open a new terminal, or your records won't be loaded.
+
+### 4. Connect PoliteMall
+
+1. In the app, open [Courses](http://127.0.0.1:3000/?view=courses) and confirm your school, semester and modules.
+2. Stop the app (`Ctrl+C`), then in the same terminal run:
+
+   ```powershell
+   cd ops/lms-sync
+   .\.venv\Scripts\python.exe lms_sync.py setup
+   ```
+
+3. Start the app again (step 3, from `Hackathon/my-app`).
+4. In a second terminal, from `Hackathon/my-app/ops/lms-sync`, log in and download your files:
+
+   ```powershell
+   .\.venv\Scripts\python.exe lms_sync.py login     # opens Edge for your school Microsoft login
+   .\.venv\Scripts\python.exe lms_sync.py catalog   # finds your semester and modules
+   .\.venv\Scripts\python.exe lms_sync.py sync      # downloads files for the selected modules
+   ```
+
+Sync only works for TP and RP PoliteMall. More detail, including the optional daily check, is in [School profile workflow](my-app/ops/lms-sync/PROFILE_WORKFLOW.md).
 
 The rebuilt portable launcher opens the local UI only. It does not log in, save a school session, sync or register a schedule. Existing [release ZIPs](https://github.com/frankrainrp/Hackathon/releases) are not automatically updated by this source change.
 
