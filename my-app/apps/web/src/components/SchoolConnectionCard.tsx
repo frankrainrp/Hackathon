@@ -65,7 +65,7 @@ export default function SchoolConnectionCard({entryUrl}:{entryUrl:string}){
       <p>{uiText("learning.help")}</p>
     </div>
     {semester?.confirmed&&<p>{uiText("agent.school.detected",{term:semester.label,count:semester.courses.filter(c=>c.selected&&c.status==="active").length})}</p>}
-    <div role="status" aria-live="polite" className={styles.status}>{running&&<Loader2 size={17} className={styles.spinner}/>}<span>{localizeExternal(error||job?.message||(!supported&&school?uiText("school.auto.connectionUnsupported"):""))}</span></div>
+    <div role="status" aria-live="polite" className={styles.status}>{running&&<Loader2 size={17} className={styles.spinner}/>}<span>{localizeExternal(error||job?.message||plan?.message||(!supported&&school?uiText("school.auto.connectionUnsupported"):""))}</span></div>
     {plan?.requiresLogin&&<p>{uiText("learning.loginRequired")}</p>}
     {plan?.enabled&&plan.nextRunAt&&!plan.requiresLogin&&!running&&<p>{uiText("learning.next",{date:new Date(plan.nextRunAt).toLocaleString(lang==="zh"?"zh-CN":"en-GB")})}</p>}
     <div className={styles.actions}>
