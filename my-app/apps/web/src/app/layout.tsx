@@ -1,25 +1,28 @@
 // ============================================================
 // apps/web/src/app/layout.tsx
-// 全局根布局 — 挂载 Google Fonts 与全局样式
+// Global layout: bundled font assets keep builds independent of font services.
 // ============================================================
 import { translate } from "@/lib/messages";
 import type { Metadata } from "next";
-import { Inter, Cinzel } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { ToastProvider } from "@/components/Toast";
 
-const inter = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: "../../public/fonts/inter-latin.woff2",
+  weight: "100 900",
   variable: "--font-inter",
   display: "swap",
+  adjustFontFallback: "Arial",
 });
 
 // 复古模式衬线展示字（小型大写横幅 / 品牌字）
-const cinzel = Cinzel({
-  subsets: ["latin"],
+const cinzel = localFont({
+  src: "../../public/fonts/cinzel-latin.woff2",
   variable: "--font-cinzel",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  weight: "400 900",
+  adjustFontFallback: "Times New Roman",
 });
 
 export const metadata: Metadata = {

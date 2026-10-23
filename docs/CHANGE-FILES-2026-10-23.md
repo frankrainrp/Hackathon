@@ -12,5 +12,6 @@
 - Connector recovery tests and reader tests: restricted-versus-submission-only access, media authorization boundaries, failed transfers preserving previous files, media-heavy large decks and stale opening dates.
 - English/Chinese READMEs and getting-started guides: describe the supported behavior and actual limits.
 - `tools/package-school-worker.cjs`: include the installed Python SSL runtime's companion certificate data when present. This fixes frozen HTTPS construction while preserving certificate verification.
+- Web `layout.tsx` and `public/fonts`: use the app's existing Latin WOFF2 assets and accompanying OFL licenses locally, so clean CI/source builds do not depend on live Google Fonts responses. Keep the established font families and system CJK fallbacks.
 
 Validation uses synthetic regression fixtures plus authorized local school tests. School files, account sessions, local model configuration, browser recordings and private diagnostic reports remain outside Git and distribution archives. A video download does not imply transcription, and access expiration remains controlled by the school.
