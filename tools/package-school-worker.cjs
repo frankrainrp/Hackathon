@@ -5,7 +5,11 @@ const output=path.join(root,'runtime/school-worker'),python=process.env.LMS_BUIL
 if(process.platform!=='win32'||!python||!path.isAbsolute(python)||!fs.existsSync(python))throw Error('Set LMS_BUILD_PYTHON to an existing Windows Python with the pinned connector and PyInstaller dependencies.');
 if(fs.existsSync(output))throw Error('Generated runtime/school-worker already exists. Preserve it before rebuilding.');
 fs.mkdirSync(output,{recursive:true});
-execFileSync(python,['-m','PyInstaller','--noconfirm','--onedir','--name','ButlerSync','--distpath',output,'--workpath',path.join(output,'build'),'--specpath',output,'--collect-all','playwright','--collect-all','pypdf',path.join(source,'lms_sync.py')],{cwd:source,windowsHide:true,stdio:'inherit'});
+// Some supplied Python runtimes augment ssl.py with a companion certificate file.
+// Preserve that runtime's verification policy instead of disabling TLS checks.
+const sslCompanion=execFileSync(python,['-c','import ssl,pathlib; p=pathlib.Path(ssl.__file__).with_name("codex-rejected-cas.pem"); print(str(p) if p.is_file() else "")'],{windowsHide:true,encoding:'utf8'}).trim();
+const sslData=sslCompanion?['--add-data',sslCompanion+path.delimiter+'.']:[];
+execFileSync(python,['-m','PyInstaller','--noconfirm','--onedir','--name','ButlerSync','--distpath',output,'--workpath',path.join(output,'build'),'--specpath',output,'--collect-all','playwright','--collect-all','pypdf',...sslData,path.join(source,'lms_sync.py')],{cwd:source,windowsHide:true,stdio:'inherit'});
 const worker=path.join(output,'ButlerSync'),notices=path.join(worker,'third-party-notices');fs.mkdirSync(notices,{recursive:true});
 const licenses=`import importlib.metadata as m,json,pathlib,shutil,sys
 out=pathlib.Path(sys.argv[1]); manifest=[]

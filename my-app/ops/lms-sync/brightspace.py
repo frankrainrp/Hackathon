@@ -7,7 +7,7 @@ Optional LMS_ACCESS_TOKEN supports institution-issued read-only OAuth access.
 import asyncio
 import os
 from urllib.parse import urlparse
-from core import assignment, content_lessons
+from core import assignment, assignment_availability, content_lessons
 from school_profile import require_public_url, require_supported_school, access_token
 
 
@@ -121,6 +121,9 @@ class Brightspace:
                     continue
                 assignment_pages[str(folder["Id"])] = folder
                 try:
+                    if assignment_availability(folder):
+                        tasks.append(assignment(folder, None, self.base, course_id))
+                        continue
                     entities = await self.get(prefix + f"/dropbox/folders/{folder['Id']}/submissions/mysubmissions/")
                 except AccessUnavailable:
                     entities = None
@@ -150,3 +153,25 @@ class Brightspace:
             # navigate to a submission form, follow links or send any submission.
             return material["pageText"].encode("utf-8")
         return await self.get(f"/d2l/api/le/{self.versions['le']}/{course_id}/content/topics/{material['id']}/file", binary=True)
+
+    async def download_to(self, course_id, material, path):
+        from school_download import stream_to_file, DownloadError
+        require_supported_school(self.config)
+        if material.get("pageSnapshot"):
+            path.with_suffix(path.suffix + ".part").write_bytes(await self.download(course_id, material))
+            path.with_suffix(path.suffix + ".part").replace(path)
+            return {}
+        try:
+            if material.get("mediaLibrary"):
+                from school_media import download_media
+                return await download_media(self, course_id, material, path)
+            state = await self.context.request.storage_state()
+            token = access_token(self.config)
+            headers = {"Authorization": "Bearer " + token} if token else {}
+            limit = self.config.get("max_office_file_mb", 1024) if path.suffix.lower() in (".pptx", ".docx", ".xlsx") else self.config.get("max_file_mb", 150)
+            await asyncio.to_thread(stream_to_file, self.base + f"/d2l/api/le/{self.versions['le']}/{course_id}/content/topics/{material['id']}/file", path, limit * 1024 * 1024, headers, state.get("cookies", []))
+            return {}
+        except DownloadError as error:
+            if error.login_required:
+                raise LoginRequired(str(error)) from None
+            raise AccessUnavailable(str(error)) from None

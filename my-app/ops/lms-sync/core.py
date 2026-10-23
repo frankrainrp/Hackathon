@@ -108,20 +108,23 @@ def content_lessons(toc: dict, base: str, course_id: str, assignment_pages=None)
             parsed = urlparse(source_url)
             # Local files and API-published assignment instructions only. External links
             # remain references and never receive LMS cookies or navigation requests.
-            is_file = parsed.path.startswith("/content/") and (not parsed.netloc or parsed.netloc == urlparse(base).netloc)
+            is_file = parsed.scheme in ("", "https") and parsed.path.startswith("/content/") and (not parsed.netloc or parsed.netloc == urlparse(base).netloc)
+            is_media = bool(re.fullmatch(r"d2l:brightspace:content:[a-z0-9-]*:[a-f0-9-]{36}:video:[a-f0-9-]{36}/[a-zA-Z0-9-]+", source_url))
             page = (assignment_pages or {}).get(str(topic.get("ToolItemId")))
             is_page = not is_file and page is not None and topic.get("ActivityType") == 3 and parsed.scheme in ("", "https") and (not parsed.netloc or parsed.netloc == urlparse(base).netloc)
             url = f"{base}/d2l/le/content/{course_id}/viewContent/{topic['TopicId']}/View"
-            suffix = Path(unquote(parsed.path)).suffix if is_file else ".md" if is_page else ""
+            suffix = Path(unquote(parsed.path)).suffix if is_file else ".md" if is_page else ".mp4" if is_media else ""
             material = {
                 "id": str(topic["TopicId"]), "title": topic["Title"], "url": url,
                 "modifiedAt": topic.get("LastModifiedDate") or node.get("LastModifiedDate"),
-                "sourcePath": " / ".join(ancestors + [title]), "downloadable": is_file or is_page,
+                "sourcePath": " / ".join(ancestors + [title]), "downloadable": is_file or is_page or is_media,
                 "filename": f"{component(topic['Title'])} [{topic['TopicId']}]{suffix}",
             }
             if is_page:
                 from course_content import rich_text_body
                 material.update(pageSnapshot=True, pageText=rich_text_body(page.get("CustomInstructions")))
+            if is_media:
+                material.update(mediaLibrary=True, mediaTenant=source_url.split(":")[4])
             lessons[target]["materials"].append(material)
         for child in sorted(node.get("Modules", []), key=lambda m: m.get("SortOrder", 0)):
             walk(child, ancestors + [title], current)
@@ -144,9 +147,21 @@ def submission_state(entities):
     return "unknown"
 
 
+def assignment_availability(folder, now=None):
+    availability = folder.get("Availability") or {}
+    now = now or datetime.now(timezone.utc)
+    start, end = iso(availability.get("StartDate")), iso(availability.get("EndDate"))
+    # SubmissionRestricted (1) still allows reading previous submissions.
+    if start and datetime.fromisoformat(start) > now and availability.get("StartDateAvailabilityType") in (0, 2):
+        return {"availability": "upcoming", "opensAt": start}
+    if end and datetime.fromisoformat(end) <= now and availability.get("EndDateAvailabilityType") in (0, 2):
+        return {"availability": "closed", "closesAt": end}
+    return {}
+
+
 def assignment(folder, entities, base, course_id):
     return {"id": str(folder["Id"]), "title": folder["Name"], "dueAt": iso(folder.get("DueDate")),
-            "submissionState": submission_state(entities),
+            "submissionState": submission_state(entities), **assignment_availability(folder),
             "url": f"{base}/d2l/lms/dropbox/user/folder_submit_files.d2l?db={folder['Id']}&ou={course_id}"}
 
 

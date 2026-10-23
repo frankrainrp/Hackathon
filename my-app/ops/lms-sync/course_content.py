@@ -42,19 +42,41 @@ def decode(data):
     return data.decode("utf-8", errors="replace")
 
 
-def archive_members(archive):
+def archive_members(archive, pattern=None):
     total = 0
-    for entry in archive.infolist()[:200]:
+    count = 0
+    for entry in archive.infolist()[:20000]:
         if entry.is_dir() or entry.flag_bits & 1 or entry.file_size > MAX_MEMBER:
             continue
-        total += entry.file_size
-        if total > MAX_ARCHIVE_BYTES:
-            break
         # Reject archive traversal names even though no extraction occurs.
         name = entry.filename.replace("\\", "/")
         if name.startswith("/") or ".." in name.split("/") or ":" in name:
             continue
+        if pattern and not re.fullmatch(pattern, name):
+            continue
+        count += 1
+        total += entry.file_size
+        if total > MAX_ARCHIVE_BYTES or count > 200:
+            break
         yield name, entry
+
+
+def office_text(archive, suffix):
+    pattern = {".pptx": r"ppt/slides/slide\d+\.xml", ".docx": r"word/document\.xml", ".xlsx": r"xl/(sharedStrings|worksheets/sheet\d+)\.xml"}[suffix]
+    selected = list(archive_members(archive, pattern))
+    selected.sort(key=lambda item: int(re.search(r"\d+", item[0]).group()) if re.search(r"\d+", item[0]) else 0)
+    parts, length = [], 0
+    for member_name, entry in selected:
+        xml = archive.read(entry)
+        if b"<!DOCTYPE" in xml.upper() or b"<!ENTITY" in xml.upper():
+            continue
+        root = ET.fromstring(xml)
+        texts = [node.text for node in root.iter() if node.tag.rsplit("}", 1)[-1] in ("t", "v") and node.text]
+        part = f"\n## {member_name}\n" + "\n".join(texts)
+        parts.append(part)
+        length += len(part)
+        if length > MAX_TEXT: break
+    return "\n".join(parts)[:MAX_TEXT + 1]
 
 
 def extract_bytes(name, data, depth=0):
@@ -83,22 +105,9 @@ def extract_bytes(name, data, depth=0):
         return "\n".join(parts)[:MAX_TEXT + 1]
     if suffix in (".pptx", ".docx", ".xlsx", ".zip"):
         with zipfile.ZipFile(BytesIO(data)) as archive:
-            members = list(archive_members(archive))
             if suffix in (".pptx", ".docx", ".xlsx"):
-                pattern = {".pptx": r"ppt/slides/slide\d+\.xml$", ".docx": r"word/document\.xml$", ".xlsx": r"xl/(sharedStrings|worksheets/sheet\d+)\.xml$"}[suffix]
-                selected = [(n, e) for n, e in members if re.match(pattern, n)]
-                selected.sort(key=lambda item: int(re.search(r"\d+", item[0]).group()) if re.search(r"\d+", item[0]) else 0)
-                parts = []
-                for member_name, entry in selected:
-                    xml = archive.read(entry)
-                    if b"<!DOCTYPE" in xml.upper() or b"<!ENTITY" in xml.upper():
-                        continue
-                    root = ET.fromstring(xml)
-                    texts = [node.text for node in root.iter() if node.tag.rsplit("}", 1)[-1] in ("t", "v") and node.text]
-                    parts.append(f"\n## {member_name}\n" + "\n".join(texts))
-                    if sum(map(len, parts)) > MAX_TEXT:
-                        break
-                return "\n".join(parts)[:MAX_TEXT + 1]
+                return office_text(archive, suffix)
+            members = list(archive_members(archive))
             if depth >= 2:
                 return ""
             parts = []
@@ -117,9 +126,23 @@ def extract_bytes(name, data, depth=0):
 
 def extract_material(path: Path):
     try:
-        if path.stat().st_size > 150 * 1024 * 1024:
+        if path.suffix.lower() in (".pptx", ".docx", ".xlsx"):
+            with zipfile.ZipFile(path) as archive:
+                text = office_text(archive, path.suffix.lower())
+        elif path.suffix.lower() in (".mp4", ".webm", ".mp3", ".m4a"):
+            caption = path.with_suffix(path.suffix + '.vtt')
+            if not caption.is_file() or caption.stat().st_size > 2 * 1024 * 1024:
+                return {"text": "", "textStatus": "unsupported"}
+            lines = decode(caption.read_bytes()).splitlines()
+            text = '\n'.join(line for line in lines if line.strip() and not re.match(r'^(WEBVTT|\d+$|.*-->.*|NOTE\b)', line))
+            parser = HtmlText()
+            parser.feed(text)
+            text = ''.join(parser.parts)
+        elif path.stat().st_size > 150 * 1024 * 1024:
             return {"text": "", "textStatus": "unsupported"}
-        text = extract_bytes(path.name, path.read_bytes()).replace("\x00", "").strip()
+        else:
+            text = extract_bytes(path.name, path.read_bytes())
+        text = text.replace("\x00", "").strip()
         if not text:
             return {"text": "", "textStatus": "empty"}
         return {"text": text[:MAX_TEXT], "textStatus": "truncated" if len(text) > MAX_TEXT else "ready"}

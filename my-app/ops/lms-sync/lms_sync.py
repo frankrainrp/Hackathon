@@ -31,6 +31,9 @@ def load_config(path: Path, allow_pending=False):
         config[field] = str((path.parent / config[field]).resolve())
     if not 1 <= int(config.get("max_file_mb", 150)) <= 500:
         raise ValueError("max_file_mb must be between 1 and 500.")
+    for field in ("max_office_file_mb", "max_media_file_mb"):
+        if not 1 <= int(config.get(field, 1024)) <= 4096:
+            raise ValueError(f"{field} must be between 1 and 4096.")
     return config
 
 
@@ -250,14 +253,13 @@ async def sync(config, metadata_only=False, catalog_only=False):
                                     # timestamp. Refresh these small API page snapshots from
                                     # the current response without another network request.
                                     if material.get("pageSnapshot") or ledger.needs_download(key, material["modifiedAt"], path):
-                                        data = await adapter.download(course["id"], material)
-                                        temp = path.with_suffix(path.suffix + ".part")
-                                        temp.write_bytes(data)
-                                        temp.replace(path)
+                                        media_text = await adapter.download_to(course["id"], material, path)
+                                        material.update(media_text)
                                         ledger.downloaded(key, material["modifiedAt"], path)
                                         LOG.info("Downloaded %s / %s", course["moduleName"], material["title"])
                                     material["filePath"] = str(path.resolve())
-                                    material.update(extract_material(path))
+                                    if not material.get("text"):
+                                        material.update(extract_material(path))
                                 except AccessUnavailable as error:
                                     snapshot["warnings"].append(f"{course['moduleName']}: {material['title']} - {error}")
                         export_course(Path(config["output_dir"]) / config["profile_id"] / config["semester_id"], config["school"], course, config.get("language", "en"))
@@ -284,6 +286,8 @@ async def sync(config, metadata_only=False, catalog_only=False):
         snapshot["status"] = "error"
         # Browser errors sometimes include cookies/URLs: log only the type, not raw diagnostics.
         snapshot["warnings"].append(f"Sync failed ({type(error).__name__}); previous files were preserved.")
+        import traceback
+        LOG.error("Sync failure locations: %s", " > ".join(f"{Path(frame.filename).name}:{frame.lineno}:{frame.name}" for frame in traceback.extract_tb(error.__traceback__)))
     finally:
         ledger.close()
     if snapshot["warnings"] and snapshot["status"] == "ok":
