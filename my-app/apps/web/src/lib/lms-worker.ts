@@ -11,7 +11,7 @@ import { applyProfileMetadata } from "./lms-sync.ts";
 import { workerLmsToken } from "./lms-auth.ts";
 import { runSchoolWorkflow, schoolWorkerFailure, type SchoolAction } from "./school-workflow.ts";
 
-type Job = { profileId: string; state: "running" | "complete" | "error"; message: string };
+type Job = { profileId: string; state: "running" | "complete" | "error"; message: string; code?: "login_required" | "cancelled" | "worker_failed" };
 const shared = globalThis as typeof globalThis & { butlerSchoolJob?: Job; butlerSchoolCancel?: () => void };
 export const schoolJob = () => shared.butlerSchoolJob || null;
 export function cancelSchoolDiscovery() { shared.butlerSchoolCancel?.(); return schoolJob(); }
@@ -46,7 +46,7 @@ export function startSchoolDiscovery(login: boolean, download = false, options: 
   shared.butlerSchoolJob = job;
   let stopChild: (() => void) | undefined;
   let lastWorkerCode: number | null = null;
-  shared.butlerSchoolCancel = () => { job.state = "error"; job.message = uiText("school.auto.cancelled"); stopChild?.(); };
+  shared.butlerSchoolCancel = () => { job.state = "error"; job.code = "cancelled"; job.message = uiText("school.auto.cancelled"); stopChild?.(); };
   const run = (action: SchoolAction) => new Promise<void>((ok, fail) => {
     if (action === "inspect" || action === "sync") job.message = uiText(action === "sync" ? "school.auto.downloading" : "school.auto.importing");
     const child = spawn(command.exe, [...command.prefix, "--config", configPath(), "--expected-profile", profile.id, ...(["inspect", "sync"].includes(action) ? ["--no-ai-brief"] : []), ...(action === "inspect" && options.allActive ? ["--all-active-courses"] : []), action], { cwd: command.directory, env: { ...process.env, LMS_SYNC_TOKEN: workerLmsToken() }, windowsHide: true, stdio: "ignore" });
@@ -76,7 +76,7 @@ export function startSchoolDiscovery(login: boolean, download = false, options: 
       job.state = "complete"; job.message = uiText("school.auto." + result);
     } catch (error) { if (job.state === "running") {
       if (options.allActive && lastWorkerCode === 4) { job.state = "complete"; job.message = uiText("weekly.partial"); }
-      else { job.state = "error"; job.message = error instanceof Error ? error.message : uiText("school.auto.loginRequired"); }
+      else { job.state = "error"; job.code = lastWorkerCode === 3 ? "login_required" : "worker_failed"; job.message = error instanceof Error ? error.message : uiText("school.auto.loginRequired"); }
     } }
     finally { options.onSettled?.(job); }
   })();

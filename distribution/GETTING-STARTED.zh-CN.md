@@ -29,7 +29,11 @@ AI 设置分为 **Choose → Prepare → Test → Use**。选择 **Skip for now*
 
 本地模式不会自动回退到云端。即使设备推荐 API，也可以继续接入你已有的本地服务。
 
-## 3. 在 Settings 中连接学校
+## 3. 在 Chat 或 Settings 中连接学校
+
+在 **Chat** 中发送学校的直接学习平台网址，例如“连接我的学校并持续更新课程资料：[学校学习网址]”。核对识别出的学校和授权范围，可选中 **Keep selected course files up to date daily**，再点击 **Connect and sign in**。在独立 Edge 窗口自行完成 Microsoft 登录与 MFA。软件会识别最新学期和课程，下载并解析所选在读课程的资料。连接卡会保留在聊天中。
+
+每日资料更新需要主动启用，计划保存在本机，只在 Butler 运行时执行；错过或中断的检查在下次启动后补做。有效学校会话可复用，过期后自动采集暂停，重新登录后继续。不自动提交作业，不调用云端 AI。可在 **School settings** 调整课程或暂停更新。空白说明、扫描件、未支持的链接和超过大小限制的文件可能没有可提取文字。
 
 打开 **Settings → Connect your Singapore polytechnic**。Courses 空页面或右上角的 **School settings** 也通向这里。
 

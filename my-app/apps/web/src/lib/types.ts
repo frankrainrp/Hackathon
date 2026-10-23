@@ -118,6 +118,8 @@ export interface ChatMessage {
   reasoning?: string;
   /** 标记此条 assistant 是错误消息（来自 onError 兜底），UI 显示 retry 按钮 */
   isError?: boolean;
+  /** A user-requested connection is confirmed in the UI, never by model output. */
+  schoolConnection?: { entryUrl: string };
   timestamp: Date;
 }
 

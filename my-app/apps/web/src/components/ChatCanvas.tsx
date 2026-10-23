@@ -25,6 +25,7 @@ import ButlerCharacter, { type ButlerPose } from "./ButlerCharacter";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import ConfirmCard from "./ConfirmCard";
 import InputPod from "./InputPod";
+import SchoolConnectionCard from "./SchoolConnectionCard";
 
 export type Message = ChatMessage;
 
@@ -55,6 +56,7 @@ const PROMPT_GROUPS = (): { id: string; title: string; icon: React.ReactNode; pr
     get title() { return uiText("ui.chatcanvas.1b0717562c"); },
     icon: <Workflow size={15} color="var(--color-primary)" />,
     prompts: [
+      uiText("agent.school.prompt"),
       uiText("ui.chatcanvas.4f39153743"),
       uiText("ui.chatcanvas.9490634d9e"),
       uiText("ui.chatcanvas.d65b0f8dae"),
@@ -712,6 +714,7 @@ export default function ChatCanvas(props: ChatCanvasProps) {
           >
             {messages.map((msg) => {
               if (msg.role === "user") return <UserBubble key={msg.id} msg={msg} />;
+              if (msg.schoolConnection) return <SchoolConnectionCard key={msg.id} entryUrl={msg.schoolConnection.entryUrl} />;
               if (msg.role === "pipeline" && msg.pipelineId) {
                 const pipeline = pipelines[msg.pipelineId];
                 if (!pipeline) return null;

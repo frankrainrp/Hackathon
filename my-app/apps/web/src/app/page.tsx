@@ -18,6 +18,7 @@ import TasksRail from "@/components/layout/TasksRail";
 import CalendarRail from "@/components/layout/CalendarRail";
 import NotesRail from "@/components/layout/NotesRail";
 import ChatCanvas from "@/components/ChatCanvas";
+import { schoolConnectionIntent } from "@/lib/school-agent-intent";
 import TasksPanel from "@/components/TasksPanel";
 import CalendarPanel from "@/components/CalendarPanel";
 import NotesPanel from "@/components/NotesPanel";
@@ -243,6 +244,16 @@ export default function HomePage() {
     const interval = setInterval(poll, 30000);
     window.addEventListener("butler:lms-changed", poll);
     return () => { cancelled = true; clearInterval(interval); window.removeEventListener("butler:lms-changed", poll); };
+  }, [hydrated]);
+
+  // The portable launcher also ticks this route. A source-mode browser can do the
+  // same work; the persisted due time and shared worker prevent duplicate jobs.
+  useEffect(() => {
+    if (!hydrated) return;
+    const tick = () => { void fetch("/api/lms/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({action:"weekly-check"}) }).catch(() => {}); };
+    tick();
+    const timer = setInterval(tick, 60000);
+    return () => clearInterval(timer);
   }, [hydrated]);
 
   // 启动一次性 load
@@ -722,7 +733,8 @@ export default function HomePage() {
     if (!sid) return;
 
     // [087] 免费墙：当前 5h 窗口额度用尽 → 弹 softwall，不发送（也不入栈用户消息）
-    if (!canSpend()) {
+    const schoolIntent = attachedFiles.length === 0 ? schoolConnectionIntent(content) : null;
+    if (!schoolIntent && !canSpend()) {
       setQuotaWallOpen(true);
       return;
     }
@@ -741,6 +753,12 @@ export default function HomePage() {
 
     setInputValue("");
     setAttachedFiles([]);
+
+    if (schoolIntent) {
+      const key = schoolIntent.kind === "connect" ? "agent.school.intro" : schoolIntent.kind === "request-url" ? "agent.school.requestUrl" : schoolIntent.kind === "one-url" ? "agent.school.oneUrl" : "agent.school.invalidUrl";
+      setMessages(prev => [...prev, { id: uid(), sessionId: sid, role: "assistant", content: uiText(key), timestamp: new Date(), ...(schoolIntent.kind === "connect" ? { schoolConnection: { entryUrl: schoolIntent.entryUrl } } : {}) }]);
+      return;
+    }
 
     // 2. 有文件 → 触发 mock pipeline（暂不接 AI，Phase D 再合并）
     if (filesSnapshot.length > 0) {

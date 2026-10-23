@@ -1,13 +1,14 @@
 import { uiText } from "../../../../lib/messages.ts";
 import { withUiLanguage } from "@/lib/api-language";
 import { isLocalLmsRequest } from "@/lib/lms-auth";
-import { activeProfile, previewProfile } from "@/lib/lms-profile";
+import { activeProfile, previewProfile, supportsSchoolConnection } from "@/lib/lms-profile";
 import { readProfiles, readCatalog, requirePublicHost, saveProfile } from "@/lib/lms-profile-store";
 import { applyProfileMetadata } from "@/lib/lms-sync";
 import { readLmsFeed, readState, updateLmsFeed } from "@/lib/server-db";
 import { discoverProfile, identifySchool } from "@/lib/lms-discovery";
 import { schoolJob, startSchoolDiscovery, cancelSchoolDiscovery } from "@/lib/lms-worker";
 import { weeklyStatus, configureWeekly, maybeStartWeekly } from "@/lib/weekly-check";
+import { learningSyncStatus, configureLearningSync, maybeStartLearningSync, settleLearningSync } from "@/lib/learning-sync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ async function handleGET(req: Request) {
   const settings = readProfiles();
   if (new URL(req.url).searchParams.get("export") === "1") return Response.json({ version: 1, exportedAt: new Date().toISOString(), settings, feed: readLmsFeed(), state: { ddls: readState("ddls"), notes: readState("notes") } }, { headers: { "content-disposition": 'attachment; filename="butler-learning-backup.json"', "cache-control": "no-store" } });
   const profile = activeProfile(settings);
-  return Response.json({ settings, catalog: profile ? readCatalog(profile.id) : [], job: schoolJob(), weekly: weeklyStatus(), activation: "not-managed" }, { headers: { "cache-control": "no-store" } });
+  return Response.json({ settings, catalog: profile ? readCatalog(profile.id) : [], job: schoolJob(), weekly: weeklyStatus(), learningSync: learningSyncStatus(), activation: "not-managed" }, { headers: { "cache-control": "no-store" } });
 }
 async function handlePOST(req: Request) {
   if (!isLocalLmsRequest(req) || !req.headers.get("origin")) return Response.json({ error: uiText("server.697c7464778a") }, { status: 403 });
@@ -24,8 +25,31 @@ async function handlePOST(req: Request) {
     const text = await req.text();
     if (Buffer.byteLength(text) > 100_000) return Response.json({ error: uiText("server.a965b1014d22") }, { status: 413 });
     const body = JSON.parse(text);
+    if (body.action === "learning-sync" && typeof body.enabled === "boolean") {
+      configureLearningSync(body.enabled);
+      return Response.json({ learningSync: maybeStartLearningSync(), job: schoolJob() });
+    }
+    if (body.action === "learning-sync-now") return Response.json({learningSync:maybeStartLearningSync(true),job:schoolJob()});
+    if (body.action === "agent-connect") {
+      if (body.confirm !== true || typeof body.autoSync !== "boolean" || body.downloadSelected !== true || typeof body.entryUrl !== "string") return Response.json({error:uiText("agent.school.consentRequired")},{status:400});
+      if (schoolJob()?.state === "running") return Response.json({error:uiText("school.auto.busy")},{status:409});
+      const identity=identifySchool(body.entryUrl);
+      if (!supportsSchoolConnection(identity.domain,identity.platform)) return Response.json({error:uiText("school.auto.connectionUnsupported")},{status:400});
+      await requirePublicHost(identity.domain);
+      const current=readProfiles(),existing=current.profiles.find(p=>p.origin===identity.origin);
+      const settings=saveProfile(discoverProfile(body.entryUrl,current,existing?readCatalog(existing.id):[]));
+      updateLmsFeed(feed=>applyProfileMetadata(feed,settings));
+      const profile=activeProfile(settings)!;
+      configureLearningSync(body.autoSync);
+      const job=startSchoolDiscovery(true,true,{onSettled:result=>settleLearningSync(profile.id,result)});
+      return Response.json({settings,job,learningSync:learningSyncStatus()});
+    }
     if (body.action === "weekly" && typeof body.enabled === "boolean") { configureWeekly(body.enabled); return Response.json({ weekly: maybeStartWeekly(), job: schoolJob() }); }
-    if (body.action === "weekly-check") return Response.json({ weekly: maybeStartWeekly(body.force === true), job: schoolJob() });
+    if (body.action === "weekly-check") {
+      const learningSync=maybeStartLearningSync();
+      const weekly=maybeStartWeekly(body.force === true);
+      return Response.json({ weekly, learningSync, job:schoolJob() });
+    }
     if (body.action === "cancel") return Response.json({ job: cancelSchoolDiscovery() });
     if (body.action === "login" || body.action === "catalog" || body.action === "sync") return Response.json({ job: startSchoolDiscovery(body.action === "login", body.action === "sync") });
     if (schoolJob()?.state === "running") return Response.json({ error: uiText("school.auto.busy") }, { status: 409 });

@@ -63,6 +63,11 @@ try {
   const crossSiteWrite = await fetch(origin + '/api/state', { method: 'PUT', headers: { origin: 'https://foreign.example', 'sec-fetch-site': 'cross-site', 'content-type': 'application/json' }, body: JSON.stringify({ key: 'notes', value: [] }) });
   assert.equal(crossSiteWrite.status, 403, 'Private state must reject cross-site writes');
   assert.equal((await request('/api/lms/settings')).settings.profiles.length, 0);
+  assert.equal((await request('/api/lms/settings')).learningSync.enabled, false);
+  await request('/api/lms/settings',{action:'agent-connect',entryUrl:'https://rplms.polite.edu.sg/d2l/home',confirm:false,downloadSelected:true,autoSync:true},400);
+  await request('/api/lms/settings',{action:'agent-connect',entryUrl:'https://127.0.0.1/',confirm:true,downloadSelected:true,autoSync:true},400);
+  await request('/api/lms/settings',{action:'learning-sync',enabled:true},403,{origin:'https://foreign.example'});
+  assert.equal((await request('/api/lms/settings')).settings.profiles.length,0,'Rejected requests must not save a school or authorize a worker');
   const urlOnly = { entryUrl:'https://tplms.polite.edu.sg/d2l/home', confirm:false };
   const identified = (await request('/api/lms/settings',urlOnly)).preview;
   assert.equal(identified.school,'Temasek Polytechnic');assert.equal(identified.semester.confirmed,false);
@@ -140,8 +145,20 @@ try {
   const second = { ...profile, semester: { ...profile.semester, id: 'fixture-term2', label: 'Synthetic semester 2' } };
   await request('/api/lms/settings', { profile: second, confirm: true });
   await ingest({ ...missingSnapshot, semesterId: second.semester.id, semesterLabel: second.semester.label, syncedAt: '2026-10-22T00:00:00Z' });
+  // Explicitly opt in with no active selection: persist the plan without touching
+  // a real school, opening Edge or launching a connector in this fixture.
+  const paused=structuredClone(second);paused.semester.courses[0].status='paused';
+  await request('/api/lms/settings',{profile:paused,confirm:true});
+  const learning=await request('/api/lms/settings',{action:'learning-sync',enabled:true});
+  assert.equal(learning.learningSync.enabled,true);assert.equal(learning.job,null);
+  const card={id:'synthetic-connection-card',sessionId:'synthetic-session',role:'assistant',content:'Connect school',schoolConnection:{entryUrl:profile.entryUrl},timestamp:new Date().toISOString()};
+  await state('messages',[card]);
   await stop();
   await start();
+  assert.equal((await request('/api/lms/settings')).learningSync.enabled,true,'Daily material refresh consent survives a server restart');
+  assert.deepEqual((await request('/api/state')).messages[0].schoolConnection,card.schoolConnection);
+  const disabled=await request('/api/lms/settings',{action:'learning-sync',enabled:false});
+  assert.equal(disabled.learningSync.enabled,false);
   const backup = await request('/api/lms/settings?export=1');
   assert.equal(backup.settings.profiles.find(p => p.id === profile.id).semesters.length, 2);
   assert.equal(backup.feed.courses.length, 2);

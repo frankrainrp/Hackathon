@@ -29,7 +29,11 @@ Other choices are optional:
 
 Local mode has no cloud fallback. You can keep using an existing local service even if the device recommendation suggests API.
 
-## 3. Connect school in Settings
+## 3. Connect school in Chat or Settings
+
+In **Chat**, send your school's direct learning-site URL, for example “Connect my school and keep course files updated: [your learning URL]”. Review the detected school and connection scope. Optionally choose **Keep selected course files up to date daily**, then **Connect and sign in**. Complete your own Microsoft login/MFA in the separate Edge window. Butler discovers the latest semester and courses, then downloads and extracts selected active-course materials. The connection card is retained in your chat.
+
+Daily file updates are opt-in, saved locally and run while Butler is running. A missed or interrupted check is retried after the next launch. Valid school sessions are reused; expired sessions pause automatic collection until you sign in again. This does not submit assignments or use cloud AI. Change course selection or pause updates in **School settings**. Empty instructions, scans, unsupported links and files above the configured size limit may not provide readable text.
 
 Open **Settings → Connect your Singapore polytechnic**. On an empty Courses page, **School settings** opens this same section.
 
