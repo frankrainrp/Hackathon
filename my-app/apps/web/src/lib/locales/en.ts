@@ -1658,5 +1658,5 @@ export default {
   "reader.opens": "Opens {date} (Singapore)",
   "reader.upcomingCount": "{count} not open yet",
   "reader.videoNoTranscript": "Video saved locally. The school has not provided captions, so AI cannot read its spoken content yet.",
-  "reader.videoTranscript": "School-provided transcript",
+  "reader.videoTranscript": "School-provided transcript"
 } as const;

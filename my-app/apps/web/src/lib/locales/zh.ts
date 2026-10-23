@@ -1658,5 +1658,5 @@ export default {
   "reader.opens": "开放时间：{date}（新加坡时间）",
   "reader.upcomingCount": "{count} 项尚未开放",
   "reader.videoNoTranscript": "视频已保存到本机。学校未提供字幕，AI 暂时无法读取视频中的语音内容。",
-  "reader.videoTranscript": "学校提供的文字稿",
+  "reader.videoTranscript": "学校提供的文字稿"
 } as const;
