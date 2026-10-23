@@ -32,6 +32,9 @@ export const lmsSnapshotSchema = z.object({
       id, title, url,
       dueAt: z.string().datetime({ offset: true }).nullable(),
       submissionState: z.enum(["missing", "submitted", "unknown"]),
+      availability: z.enum(["upcoming", "closed"]).optional(),
+      opensAt: z.string().datetime({ offset: true }).optional(),
+      closesAt: z.string().datetime({ offset: true }).optional(),
     })).max(1000),
     announcements: z.array(z.object({
       id, title, text: z.string().max(8000), url,

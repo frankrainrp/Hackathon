@@ -92,7 +92,7 @@ export function buildLmsFeed(snapshot: LmsSnapshot, previous: LmsFeed, now = Dat
       // Existing tasks are retained so their edits/history and later submission updates survive.
       if (!old && state !== "missing") {
         const oldFact = courses.get(`${prefix}${course.id}-index`)?.assignments.find(a => a.id === assignment.id);
-        if (!oldFact || oldFact.submissionState !== state) changes.push(uiText("ui.lmssync.eee4f71f3b", { value0: course.moduleName, value1: assignment.title, value2: state === "submitted" ? uiText("lms.submitted") : uiText("lms.unknown") }));
+        if (!oldFact || oldFact.submissionState !== state) changes.push(uiText("ui.lmssync.eee4f71f3b", { value0: course.moduleName, value1: assignment.title, value2: state === "submitted" ? uiText("lms.submitted") : assignment.availability === "upcoming" && assignment.opensAt && Date.parse(assignment.opensAt) > now ? uiText("reader.opens", { date: new Date(assignment.opensAt).toLocaleString(language === "en" ? "en-GB" : "zh-CN", { timeZone: "Asia/Singapore", dateStyle: "medium", timeStyle: "short" }) }) : assignment.availability === "closed" ? uiText("reader.closed") : uiText("lms.unknown") }));
         continue;
       }
       const done = state === "submitted";

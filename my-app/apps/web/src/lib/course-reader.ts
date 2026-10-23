@@ -18,6 +18,12 @@ export function compactSourceTitle(title: string) {
 }
 
 export function materialIsPdf(material: CourseMaterial) { return /\.pdf$/i.test(material.filePath || ""); }
+export function assignmentAvailability(item: LmsCourse["assignments"][number], now = Date.now()) {
+  if (item.submissionState !== "unknown") return undefined;
+  if (item.availability === "upcoming" && item.opensAt && Date.parse(item.opensAt) > now) return "upcoming";
+  if (item.availability === "closed" && item.closesAt && Date.parse(item.closesAt) <= now) return "closed";
+  return undefined;
+}
 export function firstReadingMaterial(materials: CourseMaterial[]) {
   return materials.find(materialIsPdf) || materials.find(m => m.text?.trim()) || materials[0];
 }

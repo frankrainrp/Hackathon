@@ -1652,5 +1652,11 @@ export default {
   "reader.due": "Due {date} · Singapore time",
   "reader.localOnly": "Course documents can only be opened from the local app.",
   "reader.fileUnavailable": "This saved document is unavailable. Refresh course files in School settings.",
-  "ai.engine.identityMismatch": "The running engine reported a different model identity. Stop it and restart the selected model file."
+  "ai.engine.identityMismatch": "The running engine reported a different model identity. Stop it and restart the selected model file.",
+  "reader.notOpen": "Not open yet",
+  "reader.closed": "Access closed",
+  "reader.opens": "Opens {date} (Singapore)",
+  "reader.upcomingCount": "{count} not open yet",
+  "reader.videoNoTranscript": "Video saved locally. The school has not provided captions, so AI cannot read its spoken content yet.",
+  "reader.videoTranscript": "School-provided transcript",
 } as const;

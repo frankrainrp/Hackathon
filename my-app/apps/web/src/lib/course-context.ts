@@ -49,7 +49,7 @@ export function selectCourseContext(feed: LmsFeed, query: string, noteId?: strin
   candidates.sort((a, b) => b.score - a.score);
   const sources = candidates.slice(0, 8).map(({ score: _score, ...source }) => source);
   const metadata = courses.slice(0, 12).map(c => `${c.moduleName}: ${c.lessons.length} lesson groups; ${c.assignments.length} assignments. ` +
-    c.assignments.slice(0, 8).map(a => `${a.title}: ${a.submissionState}; due=${a.dueAt || "not published"}`).join("; ")).join("\n").slice(0, 5000);
+    c.assignments.slice(0, 8).map(a => `${a.title}: ${a.submissionState}; availability=${a.availability || "not restricted"}; opens=${a.opensAt || "not published"}; due=${a.dueAt || "not published"}`).join("; ")).join("\n").slice(0, 5000);
   return { courses: courses.map(c => c.moduleName), sources, metadata, missingText };
 }
 export function courseContextPrompt(context: CourseContext) {

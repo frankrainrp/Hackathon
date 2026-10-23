@@ -26,8 +26,8 @@ async function handleGET(req: Request) {
   const range = materialByteRange(req.headers.get("range"), file.size);
   if (!range) return new Response(null, { status: 416, headers: { "content-range": `bytes */${file.size}` } });
   const headers = new Headers({
-    "content-type": file.pdf ? "application/pdf" : "application/octet-stream",
-    "content-disposition": `${file.pdf && params.get("download") !== "1" ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(file.name).replaceAll("'", "%27")}`,
+    "content-type": file.pdf ? "application/pdf" : file.video ? "video/mp4" : "application/octet-stream",
+    "content-disposition": `${(file.pdf || file.video) && params.get("download") !== "1" ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(file.name).replaceAll("'", "%27")}`,
     "content-length": String(Math.max(0, range.end - range.start + 1)),
     "accept-ranges": "bytes", "cache-control": "private, no-store", "x-content-type-options": "nosniff",
     "content-security-policy": "frame-ancestors 'self'", "x-frame-options": "SAMEORIGIN", "referrer-policy": "no-referrer",

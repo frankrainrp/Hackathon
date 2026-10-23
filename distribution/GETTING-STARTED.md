@@ -10,6 +10,8 @@ English and Retro are the defaults for a fresh browser. An existing saved theme 
 
 English is the default language. Choose **中文** in AI setup or **Settings → Language** to change the interface. Your own course names, notes and conversations keep their original text.
 
+Future access-restricted coursework shows its opening date rather than a failed submission check. Downloaded large slide decks show extracted study text; supported school Media Library videos play locally. A saved video without school-provided captions is explicitly marked as unavailable to text AI.
+
 ## 2. Connect AI, or skip it
 
 The optional setup has four steps: **Choose → Prepare → Test → Use**. **Skip for now** keeps tasks, notes and school sync available. Reopen setup from **Settings → AI connection → Open AI setup**, or `/ai-setup`.

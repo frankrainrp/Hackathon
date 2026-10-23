@@ -23,7 +23,13 @@ export function registeredMaterialFile(root: string, courses: LmsCourse[], selec
       try { pdf = readSync(file, header, 0, 5, 0) === 5 && header.toString("ascii") === "%PDF-"; }
       finally { closeSync(file); }
     }
-    return { path, name: basename(path), size: stat.size, pdf };
+    let video = false;
+    if (/\.mp4$/i.test(path)) {
+      const file = openSync(path, "r"), header = Buffer.alloc(12);
+      try { video = readSync(file, header, 0, 12, 0) === 12 && header.toString("ascii", 4, 8) === "ftyp"; }
+      finally { closeSync(file); }
+    }
+    return { path, name: basename(path), size: stat.size, pdf, video };
   } catch { return null; }
 }
 

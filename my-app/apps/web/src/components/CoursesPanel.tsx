@@ -13,7 +13,7 @@ import { courseCopy } from "@/lib/course-copy";
 import { activeProfile, type ProfileSettings } from "@/lib/lms-profile";
 import { overviewCourses, type OverviewCourse } from "@/lib/course-overview";
 import CourseReader from "./CourseReader";
-import { readerSections } from "@/lib/course-reader";
+import { assignmentAvailability, readerSections } from "@/lib/course-reader";
 
 interface Props {
   feed: LmsFeed | null;
@@ -25,7 +25,7 @@ interface Props {
   onAskCourse: (course: LmsCourse) => void;
 }
 
-type Row = { course: OverviewCourse; total: number; submitted: number; unknown: number; missing: number };
+type Row = { course: OverviewCourse; total: number; submitted: number; unknown: number; missing: number; upcoming: number };
 
 function Track({ value, total, unknown = 0, missing = 0, label }: { value: number; total: number; unknown?: number; missing?: number; label: string }) {
   const uiLanguage = useCopyLanguage().lang;
@@ -53,9 +53,10 @@ export default function CoursesPanel({ feed, profiles, notes, onOpenSettings, on
     submitted: course.assignments.filter(a => a.submissionState === "submitted").length,
     unknown: course.assignments.filter(a => a.submissionState === "unknown").length,
     missing: course.assignments.filter(a => a.submissionState === "missing").length,
+    upcoming: course.assignments.filter(a => assignmentAvailability(a) === "upcoming").length,
   })), [discovered]);
   const filtered = rows.filter(r => (recordView === "all" || (recordView === "history" ? (r.course.archived || !r.course.semesterId) : (r.course.semesterId && !r.course.archived))) && `${r.course.moduleName} ${r.course.school}`.toLowerCase().includes(query.trim().toLowerCase()));
-  const totals = filtered.reduce((s, r) => ({ total: s.total + r.total, submitted: s.submitted + r.submitted, unknown: s.unknown + r.unknown }), { total: 0, submitted: 0, unknown: 0 });
+  const totals = filtered.reduce((s, r) => ({ total: s.total + r.total, submitted: s.submitted + r.submitted, unknown: s.unknown + r.unknown - r.upcoming, upcoming: s.upcoming + r.upcoming }), { total: 0, submitted: 0, unknown: 0, upcoming: 0 });
   const syncedAt = feed?.status?.syncedAt;
 
   return <section className={styles.panel} aria-label={c.title}>
@@ -68,11 +69,11 @@ export default function CoursesPanel({ feed, profiles, notes, onOpenSettings, on
 
     {feed?.status && feed.status.status !== "ok" && <div className={styles.notice}><div><strong>{feed.status.status === "login_required" ? c.expired : c.partial}</strong><p>{c.retry}</p></div></div>}
 
-    <div className={styles.toolbar}><div className={styles.summary}><strong>{filtered.length} {c.courses}</strong><span>{totals.submitted} / {totals.total} {c.assignmentsDone}</span>{!!totals.unknown && <span>{totals.unknown} {c.unknownItems}</span>}</div><label className={styles.search}><Search size={16} /><input aria-label={c.search} placeholder={c.searchPlaceholder} value={query} onChange={e => setQuery(e.target.value)} /></label></div>
+    <div className={styles.toolbar}><div className={styles.summary}><strong>{filtered.length} {c.courses}</strong><span>{totals.submitted} / {totals.total} {c.assignmentsDone}</span>{!!totals.unknown && <span>{totals.unknown} {c.unknownItems}</span>}{!!totals.upcoming && <span>{uiText("reader.upcomingCount", { count: totals.upcoming })}</span>}</div><label className={styles.search}><Search size={16} /><input aria-label={c.search} placeholder={c.searchPlaceholder} value={query} onChange={e => setQuery(e.target.value)} /></label></div>
 
     <div className={styles.legend}><span><i className={styles.doneDot} />{c.submitted}</span><span><i className={styles.unknownDot} />{c.unknown}</span><span><i className={styles.todoDot} />{c.missing}</span></div>
     <div className={styles.list}>
-      {filtered.map(({ course, total, submitted, unknown, missing }) => {
+      {filtered.map(({ course, total, submitted, unknown, missing, upcoming }) => {
         const code = course.moduleName.match(/^[A-Z]\d+/)?.[0] || uiText("course.module");
         const name = course.moduleName.replace(/^[A-Z]\d+\s*/, "");
         const open = expanded === course.noteId;
@@ -83,7 +84,7 @@ export default function CoursesPanel({ feed, profiles, notes, onOpenSettings, on
           <button className={styles.rowButton} aria-expanded={open} aria-controls={`course-${course.noteId}`} onClick={() => setExpanded(open ? null : course.noteId)}>
             <div className={styles.code}>{code}</div>
             <div className={styles.content}><div className={styles.title}><h2>{name}</h2><span>{course.school}</span></div><p className={styles.emptyDetail}>{`${course.semesterLabel || (lang === "zh" ? uiText("ui.coursespanel.9fa5908b31") : uiText("ui.coursespanel.1aa799f77b"))} · ${course.archived ? (lang === "zh" ? uiText("ui.coursespanel.d1f810edb8") : uiText("ui.coursespanel.183a8dfcff")) : (lang === "zh" ? uiText("ui.coursespanel.42d6be3dd0") : uiText("ui.coursespanel.a139a24717"))} · ${stateLabel(course.courseStatus || "active")}`}</p>
-              {course.catalogOnly ? <p className={styles.emptyDetail}>{uiText("course.catalogOnly")}</p> : <><div className={styles.progressLabel}><span>{c.submission}</span><span>{total ? `${submitted} / ${total} ${c.submitted}${unknown ? ` · ${unknown} ${c.unknown}` : ""}${missing ? ` · ${missing} ${c.missing}` : ""}` : c.noAssignments}</span></div>
+              {course.catalogOnly ? <p className={styles.emptyDetail}>{uiText("course.catalogOnly")}</p> : <><div className={styles.progressLabel}><span>{c.submission}</span><span>{total ? `${submitted} / ${total} ${c.submitted}${unknown - upcoming ? ` · ${unknown - upcoming} ${c.unknown}` : ""}${upcoming ? ` · ${uiText("reader.upcomingCount", { count: upcoming })}` : ""}${missing ? ` · ${missing} ${c.missing}` : ""}` : c.noAssignments}</span></div>
               <Track value={submitted} total={total} unknown={unknown} missing={missing} label={`${course.moduleName} ${c.submission}`} /></>}
               {!!lessons.length && <div className={styles.progressLabel}><span>{c.learning}</span><span>{learned} / {lessons.length} {c.learned}</span></div>}
             </div>

@@ -1652,5 +1652,11 @@ export default {
   "reader.due": "截止 {date} · 新加坡时间",
   "reader.localOnly": "课程文档只能从本机应用打开。",
   "reader.fileUnavailable": "这份本地文档暂不可用，请在学校设置中刷新课程文件。",
-  "ai.engine.identityMismatch": "运行引擎返回的模型标识与所选文件不一致。请停止引擎，再重新启动所选模型文件。"
+  "ai.engine.identityMismatch": "运行引擎返回的模型标识与所选文件不一致。请停止引擎，再重新启动所选模型文件。",
+  "reader.notOpen": "尚未开放",
+  "reader.closed": "访问已关闭",
+  "reader.opens": "开放时间：{date}（新加坡时间）",
+  "reader.upcomingCount": "{count} 项尚未开放",
+  "reader.videoNoTranscript": "视频已保存到本机。学校未提供字幕，AI 暂时无法读取视频中的语音内容。",
+  "reader.videoTranscript": "学校提供的文字稿",
 } as const;

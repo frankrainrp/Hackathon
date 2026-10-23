@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, BookOpen, Check, Download, ExternalLink, FileTex
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { LmsCourse } from "@/lib/lms-sync";
-import { compactSourceTitle, firstReadingMaterial, materialFileUrl, materialIsPdf, readerSections, type CourseLesson } from "@/lib/course-reader";
+import { assignmentAvailability, compactSourceTitle, firstReadingMaterial, materialFileUrl, materialIsPdf, readerSections, type CourseLesson } from "@/lib/course-reader";
 import { uiText } from "@/lib/messages";
 import { useT } from "@/lib/i18n";
 import SourceLink from "./SourceLink";
@@ -42,6 +42,7 @@ export default function CourseReader({ course, completed, onToggleLesson, onOpen
   const material = chosen?.materials.find(m => m.id === files[chosen.id]) || firstReadingMaterial(chosen?.materials || []);
   const fileUrl = material && materialFileUrl(course, material);
   const pdf = !!material && materialIsPdf(material) && !!fileUrl;
+  const video = !!fileUrl && /\.mp4$/i.test(material?.filePath || "");
   const showText = !!material && !!textViews[`${chosen?.id}:${material.id}`];
   const lessonIndex = sections.primary.findIndex(l => l.id === chosen?.id);
   const primary = lessonIndex >= 0;
@@ -70,7 +71,7 @@ export default function CourseReader({ course, completed, onToggleLesson, onOpen
     <div className={styles.readingArea}>
       {assignments ? <section className={styles.assignmentPage} aria-labelledby={`${id}-assignments`}>
         <h3 id={`${id}-assignments`}>{uiText("reader.assignments")}</h3><p className={styles.description}>{uiText("reader.assignmentIntro")}</p>
-        <ul>{course.assignments.map(assignment => <li key={assignment.id}><div><SourceLink href={assignment.url}>{assignment.title}<ExternalLink size={13} /></SourceLink>{assignment.dueAt && <p>{uiText("reader.due", { date: new Date(assignment.dueAt).toLocaleString(lang === "en" ? "en-GB" : "zh-CN", { timeZone: "Asia/Singapore", dateStyle: "medium", timeStyle: "short" }) })}</p>}</div><span className={styles.status}>{uiText(assignment.submissionState === "submitted" ? "course.submitted" : assignment.submissionState === "missing" ? "course.missing" : "course.unknown")}</span></li>)}</ul>
+        <ul>{course.assignments.map(assignment => <li key={assignment.id}><div><SourceLink href={assignment.url}>{assignment.title}<ExternalLink size={13} /></SourceLink>{assignment.dueAt && <p>{uiText("reader.due", { date: new Date(assignment.dueAt).toLocaleString(lang === "en" ? "en-GB" : "zh-CN", { timeZone: "Asia/Singapore", dateStyle: "medium", timeStyle: "short" }) })}</p>}</div><span className={styles.status}>{assignmentAvailability(assignment) ? <>{uiText(assignmentAvailability(assignment) === "upcoming" ? "reader.notOpen" : "reader.closed")}{assignment.opensAt && assignmentAvailability(assignment) === "upcoming" && <small>{uiText("reader.opens", { date: new Date(assignment.opensAt).toLocaleString(lang === "en" ? "en-GB" : "zh-CN", { timeZone: "Asia/Singapore", dateStyle: "medium", timeStyle: "short" }) })}</small>}</> : uiText(assignment.submissionState === "submitted" ? "course.submitted" : assignment.submissionState === "missing" ? "course.missing" : "course.unknown")}</span></li>)}</ul>
       </section> : chosen ? <section key={chosen.id} className={styles.lessonPage} aria-labelledby={`${id}-lesson`}>
         <header className={styles.lessonHeader}><div><h3 id={`${id}-lesson`}>{lessonLabel(chosen)}{subtitle && <span>{subtitle}</span>}</h3><p>{uiText("reader.fileCount", { count: chosen.materials.length })}</p></div>
           {primary && <label className={styles.completion}><input type="checkbox" checked={completed.has(chosen.id)} onChange={() => onToggleLesson(course.noteId, chosen.id)} />{uiText("reader.markLearned")}</label>}
@@ -81,7 +82,7 @@ export default function CourseReader({ course, completed, onToggleLesson, onOpen
             {pdf ? <div className={styles.viewOptions} role="group" aria-label={uiText("reader.documentView")}><button type="button" aria-pressed={!showText} onClick={() => setTextViews(previous => ({ ...previous, [`${chosen.id}:${material.id}`]: false }))}>{uiText("reader.originalPdf")}</button><button type="button" aria-pressed={showText} onClick={() => setTextViews(previous => ({ ...previous, [`${chosen.id}:${material.id}`]: true }))}>{uiText("reader.readText")}</button></div> : <span className={styles.documentState}>{uiText(material.text?.trim() ? "reader.savedText" : material.filePath ? "reader.savedFile" : "reader.sourceOnly")}</span>}
             <div className={styles.documentActions}>{fileUrl && <a href={`${fileUrl}&download=1`}><Download size={14} />{uiText("reader.download")}</a>}<SourceLink href={material.url}>{uiText("reader.openSource")}<ExternalLink size={13} /></SourceLink></div>
           </div>
-          {pdf && !showText ? <div className={styles.pdfDocument}><p className={styles.pdfHelp}>{uiText("reader.pdfHelp")} <a href={fileUrl} target="_blank" rel="noreferrer">{uiText("reader.openDocument")}</a></p><iframe src={`${fileUrl}#toolbar=1&navpanes=0&view=FitH`} title={material.title} loading="lazy" /></div> : material.text?.trim() ? <article className={styles.prose}>
+          {video ? <div className={styles.videoDocument}><video controls preload="metadata" src={fileUrl!} aria-label={material.title} /><p>{uiText(material.text?.trim() ? "reader.videoTranscript" : "reader.videoNoTranscript")}</p>{material.text?.trim() && <article className={styles.prose}>{material.text}</article>}</div> : pdf && !showText ? <div className={styles.pdfDocument}><p className={styles.pdfHelp}>{uiText("reader.pdfHelp")} <a href={fileUrl} target="_blank" rel="noreferrer">{uiText("reader.openDocument")}</a></p><iframe src={`${fileUrl}#toolbar=1&navpanes=0&view=FitH`} title={material.title} loading="lazy" /></div> : material.text?.trim() ? <article className={styles.prose}>
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ href, children }) => <SourceLink href={href}>{children}</SourceLink>, img: ({ alt }) => <span>{alt}</span> }}>{material.text}</ReactMarkdown>
             {material.textStatus === "truncated" && <p className={styles.textNotice}>{uiText("reader.truncated")}</p>}
           </article> : <div className={styles.emptyDocument}><BookOpen size={30} /><h4>{uiText(material.filePath ? "reader.noText" : "reader.notDownloaded")}</h4><p>{uiText(material.filePath ? /\.md$/i.test(material.filePath) && /submission|deliverable/i.test(material.title) ? "reader.emptyPage" : "reader.noTextHelp" : "reader.downloadHelp")}</p>{!material.filePath && <button type="button" onClick={onOpenSettings}>{uiText("course.schoolSettings")}</button>}</div>}

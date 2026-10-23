@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readerSections, compactSourceTitle, firstReadingMaterial, materialFileUrl } from '../src/lib/course-reader.ts';
+import { readerSections, compactSourceTitle, firstReadingMaterial, materialFileUrl, assignmentAvailability } from '../src/lib/course-reader.ts';
+
+test('school access dates explain unknown status without hiding a confirmed submission or staying upcoming after opening', () => {
+  const now = Date.parse('2026-10-23T00:00:00Z');
+  const item = { submissionState: 'unknown', availability: 'upcoming', opensAt: '2026-10-25T16:01:00Z' };
+  assert.equal(assignmentAvailability(item, now), 'upcoming');
+  assert.equal(assignmentAvailability({ ...item, submissionState: 'submitted' }, now), undefined);
+  assert.equal(assignmentAvailability(item, Date.parse(item.opensAt)), undefined);
+  assert.equal(assignmentAvailability({ ...item, opensAt: undefined }, now), undefined);
+});
 
 test('lesson reader keeps actual lessons separate from week-level supporting pages without dropping content', () => {
   const lessons = [{ id: 'week1', kind: 'Week', number: 1, materials: [{ id: 'submission' }] },
